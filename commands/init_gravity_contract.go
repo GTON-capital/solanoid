@@ -16,43 +16,39 @@ import (
 )
 
 var (
-	UpdateConsulsPrivateKey string
-	GravityProgramID        string
-	GravityDataAccount      string
-	Round                   uint64
+	// UpdateConsulsPrivateKey string
+	// GravityProgramID        string
+	// GravityDataAccount      string
+	// Round                   uint64
 	// alias for show
-	updateConsulsCmd = &cobra.Command{
+	initGravityContractCmd = &cobra.Command{
 		Hidden: false,
 
-		Use:   "update-consuls",
+		Use:   "init-gravity",
 		Short: "Display a file from the hoarder storage",
 		Long:  ``,
-		Run:   updateConsuls,
+		Run:   initGravity,
 	}
 )
 
 // init
 func init() {
-	updateConsulsCmd.Flags().StringVarP(&GravityProgramID, "program", "p", "", "Program ID")
-	viper.BindPFlag("program", updateConsulsCmd.Flags().Lookup("program"))
-	updateConsulsCmd.MarkFlagRequired("program")
+	initGravityContractCmd.Flags().StringVarP(&GravityProgramID, "program", "p", "", "Program ID")
+	viper.BindPFlag("program", initGravityContractCmd.Flags().Lookup("program"))
+	initGravityContractCmd.MarkFlagRequired("program")
 
-	updateConsulsCmd.Flags().StringVarP(&GravityDataAccount, "data-account", "d", "", "Gravity Data Account")
-	viper.BindPFlag("data-account", updateConsulsCmd.Flags().Lookup("data-account"))
-	updateConsulsCmd.MarkFlagRequired("data-account")
+	initGravityContractCmd.Flags().StringVarP(&GravityDataAccount, "data-account", "d", "", "Gravity Data Account")
+	viper.BindPFlag("data-account", initGravityContractCmd.Flags().Lookup("data-account"))
+	initGravityContractCmd.MarkFlagRequired("data-account")
 
-	updateConsulsCmd.Flags().StringVarP(&UpdateConsulsPrivateKey, "private-key", "k", "", "private key in base58 encoding")
-	viper.BindPFlag("private-key", updateConsulsCmd.Flags().Lookup("private-key"))
-	updateConsulsCmd.MarkFlagRequired("private-key")
+	initGravityContractCmd.Flags().StringVarP(&UpdateConsulsPrivateKey, "private-key", "k", "", "private key in base58 encoding")
+	viper.BindPFlag("private-key", initGravityContractCmd.Flags().Lookup("private-key"))
+	initGravityContractCmd.MarkFlagRequired("private-key")
 
-	updateConsulsCmd.Flags().Uint64VarP(&Round, "round", "r", 4, "space for data")
-	viper.BindPFlag("round", updateConsulsCmd.Flags().Lookup("round"))
-	updateConsulsCmd.MarkFlagRequired("round")
-
-	SolanoidCmd.AddCommand(updateConsulsCmd)
+	SolanoidCmd.AddCommand(initGravityContractCmd)
 }
 
-func NewUpdateConsulsInstruction(fromAccount, programData, targetProgramID common.PublicKey, Bft uint8, Round uint64, Consuls [5][32]byte) types.Instruction {
+func NewInitGravityContractInstruction(fromAccount, programData, targetProgramID common.PublicKey, Bft uint8, Round uint64, Consuls [5][32]byte) types.Instruction {
 	consuls := []byte{}
 	for i := 0; i < 3; i++ {
 		acc := types.NewAccount()
@@ -65,9 +61,9 @@ func NewUpdateConsulsInstruction(fromAccount, programData, targetProgramID commo
 		Round       uint64
 	}{
 		Instruction: 0,
-		//Bft:         3,
-		//Round:       Round,
-		Consuls: consuls,
+		Bft:         3,
+		Consuls:     consuls,
+		Round:       0,
 	})
 	if err != nil {
 		panic(err)
@@ -85,7 +81,7 @@ func NewUpdateConsulsInstruction(fromAccount, programData, targetProgramID commo
 	}
 }
 
-func updateConsuls(ccmd *cobra.Command, args []string) {
+func initGravity(ccmd *cobra.Command, args []string) {
 	pk, err := base58.Decode(UpdateConsulsPrivateKey)
 	if err != nil {
 		zap.L().Fatal(err.Error())
@@ -105,8 +101,8 @@ func updateConsuls(ccmd *cobra.Command, args []string) {
 	message := types.NewMessage(
 		account.PublicKey,
 		[]types.Instruction{
-			NewUpdateConsulsInstruction(
-				account.PublicKey, dataAcc, program, 3, Round, [5][32]byte{},
+			NewInitGravityContractInstruction(
+				account.PublicKey, dataAcc, program, 3, 1, [5][32]byte{},
 			),
 		},
 		res.Blockhash,
