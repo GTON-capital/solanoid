@@ -50,7 +50,8 @@ func init() {
 
 func NewInitGravityContractInstruction(fromAccount, programData, targetProgramID common.PublicKey, Bft uint8, Round uint64, Consuls [5][32]byte) types.Instruction {
 	consuls := []byte{}
-	for i := 0; i < 3; i++ {
+	consuls = append(consuls, fromAccount.Bytes()...)
+	for i := 0; i < 2; i++ {
 		acc := types.NewAccount()
 		consuls = append(consuls, acc.PublicKey.Bytes()...)
 	}
@@ -74,8 +75,8 @@ func NewInitGravityContractInstruction(fromAccount, programData, targetProgramID
 	return types.Instruction{
 		Accounts: []types.AccountMeta{
 			{PubKey: fromAccount, IsSigner: true, IsWritable: false},
-			{PubKey: programData, IsSigner: false, IsWritable: false},
-			{PubKey: targetProgramID, IsSigner: false, IsWritable: true},
+			{PubKey: programData, IsSigner: false, IsWritable: true},
+			//{PubKey: targetProgramID, IsSigner: false, IsWritable: true},
 		},
 		ProgramID: targetProgramID,
 		Data:      data,
