@@ -73,8 +73,9 @@ func NewInitGravityContractInstruction(fromAccount, programData, targetProgramID
 	fmt.Println("------- END RAW INSTRUCTION DATA ---------")
 	return types.Instruction{
 		Accounts: []types.AccountMeta{
-			{PubKey: fromAccount, IsSigner: true, IsWritable: true},
-			{PubKey: programData, IsSigner: false, IsWritable: true},
+			{PubKey: fromAccount, IsSigner: true, IsWritable: false},
+			{PubKey: programData, IsSigner: false, IsWritable: false},
+			{PubKey: targetProgramID, IsSigner: false, IsWritable: true},
 		},
 		ProgramID: targetProgramID,
 		Data:      data,
