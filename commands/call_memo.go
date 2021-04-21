@@ -42,6 +42,10 @@ func init() {
 	viper.BindPFlag("private-key", callMemoCmd.Flags().Lookup("private-key"))
 	callMemoCmd.MarkFlagRequired("private-key")
 
+	callMemoCmd.Flags().StringVarP(&GravityDataAccount, "data-account", "d", "", "Gravity Data Account")
+	viper.BindPFlag("data-account", callMemoCmd.Flags().Lookup("data-account"))
+	callMemoCmd.MarkFlagRequired("data-account")
+
 	callMemoCmd.Flags().StringVarP(&MessageToCall, "message", "m", "Kavabunga", "Message")
 	viper.BindPFlag("message", callMemoCmd.Flags().Lookup("message"))
 	//callMemoCmd.MarkFlagRequired("message")
@@ -53,7 +57,7 @@ func NewCallMemoInstruction(fromAccount, targetProgramID common.PublicKey, msg s
 
 	return types.Instruction{
 		Accounts: []types.AccountMeta{
-			{PubKey: fromAccount, IsSigner: true, IsWritable: false},
+			{PubKey: fromAccount, IsSigner: false, IsWritable: true},
 		},
 		ProgramID: targetProgramID,
 		Data:      []byte(msg),
@@ -68,6 +72,7 @@ func callMemo(ccmd *cobra.Command, args []string) {
 	account := types.AccountFromPrivateKeyBytes(pk)
 
 	program := common.PublicKeyFromString(GravityProgramID)
+	dataAcc := common.PublicKeyFromString(GravityDataAccount)
 
 	c := client.NewClient(client.TestnetRPCEndpoint)
 
@@ -80,7 +85,7 @@ func callMemo(ccmd *cobra.Command, args []string) {
 		account.PublicKey,
 		[]types.Instruction{
 			NewCallMemoInstruction(
-				account.PublicKey, program, MessageToCall,
+				dataAcc, program, MessageToCall,
 			),
 		},
 		res.Blockhash,
