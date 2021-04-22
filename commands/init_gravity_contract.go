@@ -21,6 +21,7 @@ var (
 	// GravityDataAccount      string
 	// Round                   uint64
 	// alias for show
+	MultisigDataAccount    string
 	initGravityContractCmd = &cobra.Command{
 		Hidden: false,
 
@@ -41,6 +42,10 @@ func init() {
 	viper.BindPFlag("data-account", initGravityContractCmd.Flags().Lookup("data-account"))
 	initGravityContractCmd.MarkFlagRequired("data-account")
 
+	initGravityContractCmd.Flags().StringVarP(&MultisigDataAccount, "multisig-account", "m", "", "Gravity multisig Account")
+	viper.BindPFlag("multisig-account", initGravityContractCmd.Flags().Lookup("multisig-account"))
+	initGravityContractCmd.MarkFlagRequired("multisig-account")
+
 	initGravityContractCmd.Flags().StringVarP(&UpdateConsulsPrivateKey, "private-key", "k", "", "private key in base58 encoding")
 	viper.BindPFlag("private-key", initGravityContractCmd.Flags().Lookup("private-key"))
 	initGravityContractCmd.MarkFlagRequired("private-key")
@@ -48,7 +53,7 @@ func init() {
 	SolanoidCmd.AddCommand(initGravityContractCmd)
 }
 
-func NewInitGravityContractInstruction(fromAccount, programData, targetProgramID common.PublicKey, Bft uint8, Round uint64, Consuls [5][32]byte) types.Instruction {
+func NewInitGravityContractInstruction(fromAccount, programData, multisigData, targetProgramID common.PublicKey, Bft uint8, Round uint64, Consuls [5][32]byte) types.Instruction {
 	consuls := []byte{}
 	consuls = append(consuls, fromAccount.Bytes()...)
 	for i := 0; i < 2; i++ {
@@ -76,7 +81,7 @@ func NewInitGravityContractInstruction(fromAccount, programData, targetProgramID
 		Accounts: []types.AccountMeta{
 			{PubKey: fromAccount, IsSigner: true, IsWritable: false},
 			{PubKey: programData, IsSigner: false, IsWritable: true},
-			//{PubKey: targetProgramID, IsSigner: false, IsWritable: true},
+			{PubKey: multisigData, IsSigner: false, IsWritable: true},
 		},
 		ProgramID: targetProgramID,
 		Data:      data,
@@ -92,6 +97,7 @@ func initGravity(ccmd *cobra.Command, args []string) {
 
 	program := common.PublicKeyFromString(GravityProgramID)
 	dataAcc := common.PublicKeyFromString(GravityDataAccount)
+	multisigAcc := common.PublicKeyFromString(MultisigDataAccount)
 
 	c := client.NewClient(client.TestnetRPCEndpoint)
 
@@ -104,7 +110,7 @@ func initGravity(ccmd *cobra.Command, args []string) {
 		account.PublicKey,
 		[]types.Instruction{
 			NewInitGravityContractInstruction(
-				account.PublicKey, dataAcc, program, 3, 1, [5][32]byte{},
+				account.PublicKey, dataAcc, multisigAcc, program, 3, 1, [5][32]byte{},
 			),
 		},
 		res.Blockhash,
