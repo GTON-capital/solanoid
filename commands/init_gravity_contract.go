@@ -58,6 +58,7 @@ func NewInitGravityContractInstruction(fromAccount, programData, multisigData, t
 	consuls = append(consuls, fromAccount.Bytes()...)
 	for i := 0; i < 2; i++ {
 		acc := types.NewAccount()
+		zap.L().Sugar().Infof("consul %d pk %s", i, base58.Encode(acc.PrivateKey))
 		consuls = append(consuls, acc.PublicKey.Bytes()...)
 	}
 	data, err := common.SerializeData(struct {

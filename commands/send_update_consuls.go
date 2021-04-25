@@ -41,6 +41,10 @@ func init() {
 	viper.BindPFlag("data-account", updateConsulsCmd.Flags().Lookup("data-account"))
 	updateConsulsCmd.MarkFlagRequired("data-account")
 
+	updateConsulsCmd.Flags().StringVarP(&MultisigDataAccount, "multisig-account", "m", "", "Gravity multisig Account")
+	viper.BindPFlag("multisig-account", updateConsulsCmd.Flags().Lookup("multisig-account"))
+	updateConsulsCmd.MarkFlagRequired("multisig-account")
+
 	updateConsulsCmd.Flags().StringVarP(&UpdateConsulsPrivateKey, "private-key", "k", "", "private key in base58 encoding")
 	viper.BindPFlag("private-key", updateConsulsCmd.Flags().Lookup("private-key"))
 	updateConsulsCmd.MarkFlagRequired("private-key")
@@ -52,22 +56,30 @@ func init() {
 	SolanoidCmd.AddCommand(updateConsulsCmd)
 }
 
-func NewUpdateConsulsInstruction(fromAccount, programData, targetProgramID common.PublicKey, Bft uint8, Round uint64, Consuls [5][32]byte) types.Instruction {
-	consuls := []byte{}
-	for i := 0; i < 3; i++ {
-		acc := types.NewAccount()
-		consuls = append(consuls, acc.PublicKey.Bytes()...)
+func NewUpdateConsulsInstruction(fromAccount, programData, targetProgramID, multisigId common.PublicKey, Bft uint8, Round uint64, Consuls [5][32]byte) types.Instruction {
+	meta := []types.AccountMeta{
+		{PubKey: fromAccount, IsSigner: true, IsWritable: true},
+		{PubKey: programData, IsSigner: false, IsWritable: true},
+		{PubKey: multisigId, IsSigner: false, IsWritable: true},
 	}
+	consuls := []byte{}
+	for i := 0; i < int(Bft); i++ {
+		//acc := types.NewAccountxx()
+		k := common.PublicKeyFromBytes(Consuls[i][:])
+		meta = append(meta, types.AccountMeta{PubKey: k, IsSigner: true, IsWritable: false})
+		consuls = append(consuls, Consuls[i][:]...)
+	}
+
 	data, err := common.SerializeData(struct {
 		Instruction uint8
 		Bft         uint8
 		Consuls     []byte
 		Round       uint64
 	}{
-		Instruction: 0,
-		//Bft:         3,
-		//Round:       Round,
-		Consuls: consuls,
+		Instruction: 1,
+		Bft:         3,
+		Round:       Round,
+		Consuls:     consuls,
 	})
 	if err != nil {
 		panic(err)
@@ -76,10 +88,7 @@ func NewUpdateConsulsInstruction(fromAccount, programData, targetProgramID commo
 	fmt.Printf("%s\n", hex.EncodeToString(data))
 	fmt.Println("------- END RAW INSTRUCTION DATA ---------")
 	return types.Instruction{
-		Accounts: []types.AccountMeta{
-			{PubKey: fromAccount, IsSigner: true, IsWritable: true},
-			{PubKey: programData, IsSigner: false, IsWritable: true},
-		},
+		Accounts:  meta,
 		ProgramID: targetProgramID,
 		Data:      data,
 	}
@@ -92,9 +101,25 @@ func updateConsuls(ccmd *cobra.Command, args []string) {
 	}
 	account := types.AccountFromPrivateKeyBytes(pk)
 
+	pks := []string{
+		"4X77h6B7dAnz5AyJrdJMP5FBuefb7RgPS5K51xSxjkHeYjn7BdfNGLySrFeyHrf8Lzrwm5479a53Ka4bcYTTdrCB",
+		//"44yNH2ub6s3xQwi44zHFsDg3VUTP3ZmmsaVxTXfSgJV9BuFFJ8ZXAaNcSvxysxDFDbhAASvXMSZi4gnxskSsH4Aw",
+	}
+	consuls := []types.Account{account}
+	for _, cpk := range pks {
+		bpk, _ := base58.Decode(cpk)
+		consuls = append(consuls, types.AccountFromPrivateKeyBytes(bpk))
+	}
+	consuls = append(consuls, types.NewAccount()) //fake consul
+
+	consulsAddrs := [5][32]byte{}
+	for i, v := range consuls {
+		copy(consulsAddrs[i][:], v.PublicKey.Bytes())
+	}
+
 	program := common.PublicKeyFromString(GravityProgramID)
 	dataAcc := common.PublicKeyFromString(GravityDataAccount)
-
+	multisigAcc := common.PublicKeyFromString(MultisigDataAccount)
 	c := client.NewClient(client.TestnetRPCEndpoint)
 
 	res, err := c.GetRecentBlockhash()
@@ -106,7 +131,7 @@ func updateConsuls(ccmd *cobra.Command, args []string) {
 		account.PublicKey,
 		[]types.Instruction{
 			NewUpdateConsulsInstruction(
-				account.PublicKey, dataAcc, program, 3, Round, [5][32]byte{},
+				account.PublicKey, dataAcc, program, multisigAcc, 3, Round, consulsAddrs,
 			),
 		},
 		res.Blockhash,
@@ -117,9 +142,13 @@ func updateConsuls(ccmd *cobra.Command, args []string) {
 		log.Fatalf("serialize message error, err: %v\n", err)
 	}
 
-	tx, err := types.CreateTransaction(message, map[common.PublicKey]types.Signature{
-		account.PublicKey: ed25519.Sign(account.PrivateKey, serializedMessage),
-	})
+	signs := make(map[common.PublicKey]types.Signature)
+	signs[account.PublicKey] = ed25519.Sign(account.PrivateKey, serializedMessage)
+	for _, c := range consuls {
+		signs[c.PublicKey] = ed25519.Sign(c.PrivateKey, serializedMessage)
+	}
+
+	tx, err := types.CreateTransaction(message, signs)
 	if err != nil {
 		log.Fatalf("generate tx error, err: %v\n", err)
 	}
