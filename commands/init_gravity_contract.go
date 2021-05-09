@@ -56,11 +56,11 @@ func init() {
 func NewInitGravityContractInstruction(fromAccount, programData, multisigData, targetProgramID common.PublicKey, Bft uint8, Round uint64, Consuls [5][32]byte) types.Instruction {
 	consuls := []byte{}
 	consuls = append(consuls, fromAccount.Bytes()...)
-	for i := 0; i < 2; i++ {
-		acc := types.NewAccount()
-		zap.L().Sugar().Infof("consul %d pk %s", i, base58.Encode(acc.PrivateKey))
-		consuls = append(consuls, acc.PublicKey.Bytes()...)
-	}
+	// for i := 0; i < 2; i++ {
+	// 	acc := types.NewAccount()
+	// 	zap.L().Sugar().Infof("consul %d pk %s", i, base58.Encode(acc.PrivateKey))
+	// 	consuls = append(consuls, acc.PublicKey.Bytes()...)
+	// }
 	data, err := common.SerializeData(struct {
 		Instruction uint8
 		Bft         uint8
@@ -68,7 +68,7 @@ func NewInitGravityContractInstruction(fromAccount, programData, multisigData, t
 		Round       uint64
 	}{
 		Instruction: 0,
-		Bft:         3,
+		Bft:         1,
 		Consuls:     consuls,
 		Round:       0,
 	})

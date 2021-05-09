@@ -112,6 +112,9 @@ func newAcc(ccmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatalf("send tx error, err: %v\n", err)
 	}
+	log.Print("Waiting")
+	waitTx(txSig)
+	log.Print("End waiting")
 
 	log.Println("txHash:", txSig)
 	fmt.Printf("Data Acc privake key: %s\n", base58.Encode(newAcc.PrivateKey))

@@ -77,7 +77,7 @@ func NewUpdateConsulsInstruction(fromAccount, programData, targetProgramID, mult
 		Round       uint64
 	}{
 		Instruction: 1,
-		Bft:         3,
+		Bft:         1,
 		Round:       Round,
 		Consuls:     consuls,
 	})
@@ -101,16 +101,16 @@ func updateConsuls(ccmd *cobra.Command, args []string) {
 	}
 	account := types.AccountFromPrivateKeyBytes(pk)
 
-	pks := []string{
-		"4X77h6B7dAnz5AyJrdJMP5FBuefb7RgPS5K51xSxjkHeYjn7BdfNGLySrFeyHrf8Lzrwm5479a53Ka4bcYTTdrCB",
-		//"44yNH2ub6s3xQwi44zHFsDg3VUTP3ZmmsaVxTXfSgJV9BuFFJ8ZXAaNcSvxysxDFDbhAASvXMSZi4gnxskSsH4Aw",
-	}
+	// pks := []string{
+	// 	"4X77h6B7dAnz5AyJrdJMP5FBuefb7RgPS5K51xSxjkHeYjn7BdfNGLySrFeyHrf8Lzrwm5479a53Ka4bcYTTdrCB",
+	// 	//"44yNH2ub6s3xQwi44zHFsDg3VUTP3ZmmsaVxTXfSgJV9BuFFJ8ZXAaNcSvxysxDFDbhAASvXMSZi4gnxskSsH4Aw",
+	// }
 	consuls := []types.Account{account}
-	for _, cpk := range pks {
-		bpk, _ := base58.Decode(cpk)
-		consuls = append(consuls, types.AccountFromPrivateKeyBytes(bpk))
-	}
-	consuls = append(consuls, types.NewAccount()) //fake consul
+	// for _, cpk := range pks {
+	// 	bpk, _ := base58.Decode(cpk)
+	// 	consuls = append(consuls, types.AccountFromPrivateKeyBytes(bpk))
+	// }
+	// consuls = append(consuls, types.NewAccount()) //fake consul
 
 	consulsAddrs := [5][32]byte{}
 	for i, v := range consuls {
@@ -131,7 +131,7 @@ func updateConsuls(ccmd *cobra.Command, args []string) {
 		account.PublicKey,
 		[]types.Instruction{
 			NewUpdateConsulsInstruction(
-				account.PublicKey, dataAcc, program, multisigAcc, 3, Round, consulsAddrs,
+				account.PublicKey, dataAcc, program, multisigAcc, 1, Round, consulsAddrs,
 			),
 		},
 		res.Blockhash,

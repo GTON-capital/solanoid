@@ -1,10 +1,15 @@
 package commands
 
 import (
+	"encoding/json"
+	"fmt"
+	"log"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/gorilla/websocket"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -66,4 +71,65 @@ func init() {
 	SolanoidCmd.PersistentFlags().String("log-level", "INFO", "Output level of logs (TRACE, DEBUG, INFO, WARN, ERROR, FATAL)")
 	viper.BindPFlag("log-level", SolanoidCmd.PersistentFlags().Lookup("log-level"))
 
+}
+
+func waitTx(tx string) {
+	u := url.URL{Scheme: "ws", Host: "testnet.solana.com", Path: "/"}
+	log.Printf("connecting to %s", u.String())
+
+	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	if err != nil {
+		log.Fatal("dial:", err)
+	}
+	defer c.Close()
+	req := `
+	{
+		"jsonrpc": "2.0",
+		"id": 1,
+		"method": "signatureSubscribe",
+		"params": [
+		  "%s",
+		  {
+			"commitment": "finalized"
+		  }
+		]
+	  }
+	`
+	unsubscribeRequest := "{\"jsonrpc\":\"2.0\", \"id\":1, \"method\":\"signatureUnsubscribe\", \"params\":[%d]}"
+	done := make(chan struct{})
+	defer close(done)
+	go func() {
+
+		subscription := 0
+		for {
+			_, message, err := c.ReadMessage()
+			if err != nil {
+				log.Println("read:", err)
+				return
+			}
+			log.Printf("recv: %s", message)
+			a := struct {
+				Method       string `json:"method"`
+				Result       int    `json:"result"`
+				Subscription int    `json:"subscription"`
+			}{}
+			json.Unmarshal(message, &a)
+			switch a.Method {
+			case "":
+				subscription = a.Subscription
+			case "signatureNotification":
+				c.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf(unsubscribeRequest, subscription)))
+				//time.Sleep(time.Millisecond * 100)
+				c.Close()
+				done <- struct{}{}
+				return
+			}
+
+		}
+
+	}()
+
+	err = c.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf(req, tx)))
+	<-done
+	//time.Sleep(time.Millisecond * 100)
 }
