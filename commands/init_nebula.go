@@ -21,39 +21,43 @@ var (
 	// GravityDataAccount      string
 	// Round                   uint64
 	// alias for show
-	MultisigDataAccount    string
-	initGravityContractCmd = &cobra.Command{
+	NebulaDataAccount     string
+	initNebulaContractCmd = &cobra.Command{
 		Hidden: false,
 
-		Use:   "init-gravity",
+		Use:   "init-nebula",
 		Short: "Display a file from the hoarder storage",
 		Long:  ``,
-		Run:   initGravity,
+		Run:   initNebula,
 	}
 )
 
 // init
 func init() {
-	initGravityContractCmd.Flags().StringVarP(&GravityProgramID, "program", "p", "", "Program ID")
-	viper.BindPFlag("program", initGravityContractCmd.Flags().Lookup("program"))
-	initGravityContractCmd.MarkFlagRequired("program")
+	initNebulaContractCmd.Flags().StringVarP(&GravityProgramID, "program", "p", "", "Program ID")
+	viper.BindPFlag("program", initNebulaContractCmd.Flags().Lookup("program"))
+	initNebulaContractCmd.MarkFlagRequired("program")
 
-	initGravityContractCmd.Flags().StringVarP(&GravityDataAccount, "data-account", "d", "", "Gravity Data Account")
-	viper.BindPFlag("data-account", initGravityContractCmd.Flags().Lookup("data-account"))
-	initGravityContractCmd.MarkFlagRequired("data-account")
+	initNebulaContractCmd.Flags().StringVarP(&GravityDataAccount, "data-account", "d", "", "Gravity Data Account")
+	viper.BindPFlag("data-account", initNebulaContractCmd.Flags().Lookup("data-account"))
+	initNebulaContractCmd.MarkFlagRequired("data-account")
 
-	initGravityContractCmd.Flags().StringVarP(&MultisigDataAccount, "multisig-account", "m", "", "Gravity multisig Account")
-	viper.BindPFlag("multisig-account", initGravityContractCmd.Flags().Lookup("multisig-account"))
-	initGravityContractCmd.MarkFlagRequired("multisig-account")
+	initNebulaContractCmd.Flags().StringVarP(&NebulaDataAccount, "nebula-account", "n", "", "Gravity multisig Account")
+	viper.BindPFlag("nebula-account", initNebulaContractCmd.Flags().Lookup("nebula-account"))
+	initNebulaContractCmd.MarkFlagRequired("nebula-account")
 
-	initGravityContractCmd.Flags().StringVarP(&UpdateConsulsPrivateKey, "private-key", "k", "", "private key in base58 encoding")
-	viper.BindPFlag("private-key", initGravityContractCmd.Flags().Lookup("private-key"))
-	initGravityContractCmd.MarkFlagRequired("private-key")
+	initNebulaContractCmd.Flags().StringVarP(&MultisigDataAccount, "multisig-account", "m", "", "Gravity multisig Account")
+	viper.BindPFlag("multisig-account", initNebulaContractCmd.Flags().Lookup("multisig-account"))
+	initNebulaContractCmd.MarkFlagRequired("multisig-account")
 
-	SolanoidCmd.AddCommand(initGravityContractCmd)
+	initNebulaContractCmd.Flags().StringVarP(&UpdateConsulsPrivateKey, "private-key", "k", "", "private key in base58 encoding")
+	viper.BindPFlag("private-key", initNebulaContractCmd.Flags().Lookup("private-key"))
+	initNebulaContractCmd.MarkFlagRequired("private-key")
+
+	SolanoidCmd.AddCommand(initNebulaContractCmd)
 }
 
-func NewInitGravityContractInstruction(fromAccount, programData, multisigData, targetProgramID common.PublicKey, Bft uint8, Round uint64, Consuls [5][32]byte) types.Instruction {
+func NewInitNebulaContractInstruction(fromAccount, programData, nebulaData, multisigData, targetProgramID common.PublicKey, Bft uint8, Consuls [5][32]byte) types.Instruction {
 	consuls := []byte{}
 	consuls = append(consuls, fromAccount.Bytes()...)
 	// for i := 0; i < 2; i++ {
@@ -61,16 +65,27 @@ func NewInitGravityContractInstruction(fromAccount, programData, multisigData, t
 	// 	zap.L().Sugar().Infof("consul %d pk %s", i, base58.Encode(acc.PrivateKey))
 	// 	consuls = append(consuls, acc.PublicKey.Bytes()...)
 	// }
+	/*
+			InitContract {
+		        nebula_data_type: DataType,
+		        gravity_contract_program_id: Pubkey,
+		        oracles_bft: u8,
+		        initial_oracles: Vec<Pubkey>,
+		    },
+	*/
+	fmt.Printf("Nebula programId: %s\n", targetProgramID.ToBase58())
 	data, err := common.SerializeData(struct {
-		Instruction uint8
-		Bft         uint8
-		Consuls     []byte
-		Round       uint64
+		Instruction              uint8
+		Bft                      uint8
+		NebulaDataType           uint8
+		GravityContractProgramID common.PublicKey
+		Consuls                  []byte
 	}{
-		Instruction: 0,
-		Bft:         1,
-		Consuls:     consuls,
-		Round:       0,
+		Instruction:              0,
+		Bft:                      1,
+		NebulaDataType:           2,
+		GravityContractProgramID: programData,
+		Consuls:                  consuls,
 	})
 	if err != nil {
 		panic(err)
@@ -81,7 +96,8 @@ func NewInitGravityContractInstruction(fromAccount, programData, multisigData, t
 	return types.Instruction{
 		Accounts: []types.AccountMeta{
 			{PubKey: fromAccount, IsSigner: true, IsWritable: false},
-			{PubKey: programData, IsSigner: false, IsWritable: true},
+			//{PubKey: programData, IsSigner: false, IsWritable: true},
+			{PubKey: nebulaData, IsSigner: false, IsWritable: true},
 			{PubKey: multisigData, IsSigner: false, IsWritable: true},
 		},
 		ProgramID: targetProgramID,
@@ -89,7 +105,7 @@ func NewInitGravityContractInstruction(fromAccount, programData, multisigData, t
 	}
 }
 
-func initGravity(ccmd *cobra.Command, args []string) {
+func initNebula(ccmd *cobra.Command, args []string) {
 	pk, err := base58.Decode(UpdateConsulsPrivateKey)
 	if err != nil {
 		zap.L().Fatal(err.Error())
@@ -98,8 +114,8 @@ func initGravity(ccmd *cobra.Command, args []string) {
 
 	program := common.PublicKeyFromString(GravityProgramID)
 	dataAcc := common.PublicKeyFromString(GravityDataAccount)
+	nebulaAcc := common.PublicKeyFromString(NebulaDataAccount)
 	multisigAcc := common.PublicKeyFromString(MultisigDataAccount)
-
 	c := client.NewClient(client.DevnetRPCEndpoint)
 
 	res, err := c.GetRecentBlockhash()
@@ -110,8 +126,8 @@ func initGravity(ccmd *cobra.Command, args []string) {
 	message := types.NewMessage(
 		account.PublicKey,
 		[]types.Instruction{
-			NewInitGravityContractInstruction(
-				account.PublicKey, dataAcc, multisigAcc, program, 3, 1, [5][32]byte{},
+			NewInitNebulaContractInstruction(
+				account.PublicKey, dataAcc, nebulaAcc, multisigAcc, program, 1, [5][32]byte{},
 			),
 		},
 		res.Blockhash,

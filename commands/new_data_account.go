@@ -2,6 +2,7 @@ package commands
 
 import (
 	"crypto/ed25519"
+	"encoding/hex"
 	"fmt"
 	"log"
 
@@ -75,17 +76,17 @@ func newAcc(ccmd *cobra.Command, args []string) {
 	if err != nil {
 		zap.L().Fatal(err.Error())
 	}
-
+	instruction := sysprog.CreateAccount(
+		account.PublicKey,
+		newAcc.PublicKey,
+		program,
+		rentBalance,
+		space,
+	)
 	message := types.NewMessage(
 		account.PublicKey,
 		[]types.Instruction{
-			sysprog.CreateAccount(
-				account.PublicKey,
-				newAcc.PublicKey,
-				program,
-				rentBalance,
-				space,
-			),
+			instruction,
 		},
 		res.Blockhash,
 	)
@@ -94,6 +95,10 @@ func newAcc(ccmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatalf("serialize message error, err: %v\n", err)
 	}
+
+	fmt.Println("------- begin message --------")
+	fmt.Println(hex.EncodeToString(serializedMessage))
+	fmt.Println("-------- end message ---------")
 
 	tx, err := types.CreateTransaction(message, map[common.PublicKey]types.Signature{
 		account.PublicKey: ed25519.Sign(account.PrivateKey, serializedMessage),
