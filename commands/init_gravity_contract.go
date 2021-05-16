@@ -100,7 +100,7 @@ func initGravity(ccmd *cobra.Command, args []string) {
 	dataAcc := common.PublicKeyFromString(GravityDataAccount)
 	multisigAcc := common.PublicKeyFromString(MultisigDataAccount)
 
-	c := client.NewClient(client.DevnetRPCEndpoint)
+	c := client.NewClient("http://localhost:8899")
 
 	res, err := c.GetRecentBlockhash()
 	if err != nil {

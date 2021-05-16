@@ -63,7 +63,7 @@ func newAcc(ccmd *cobra.Command, args []string) {
 
 	program := common.PublicKeyFromString(programID)
 
-	c := client.NewClient(client.TestnetRPCEndpoint)
+	c := client.NewClient("http://localhost:8899")
 
 	res, err := c.GetRecentBlockhash()
 	if err != nil {
@@ -118,7 +118,7 @@ func newAcc(ccmd *cobra.Command, args []string) {
 		log.Fatalf("send tx error, err: %v\n", err)
 	}
 	log.Print("Waiting")
-	waitTx(txSig)
+	//waitTx(txSig)
 	log.Print("End waiting")
 
 	log.Println("txHash:", txSig)
