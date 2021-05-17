@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
-
+	"solanoid/models"
 	"github.com/mr-tron/base58"
 	"github.com/portto/solana-go-sdk/client"
 	"github.com/portto/solana-go-sdk/common"
@@ -28,7 +28,7 @@ var (
 		Use:   "attach",
 		Short: "Display a file from the hoarder storage",
 		Long:  ``,
-		Run:   newAcc,
+		Run:   newAccCommand,
 	}
 )
 
@@ -49,8 +49,16 @@ func init() {
 	SolanoidCmd.AddCommand(newDataAccCmd)
 }
 
-func newAcc(ccmd *cobra.Command, args []string) {
-	pk, err := base58.Decode(newDataAccPrivateKey)
+func newAccCommand(ccmd *cobra.Command, args []string) {
+	_, _ = GenerateNewAccount(newDataAccPrivateKey, space, programID)
+	// if err != nil {
+	// 	return 
+	// }
+}
+
+func GenerateNewAccount(privateKey string, space uint64, programID string) (*models.CommandResponse, error) {
+	// pk, err := base58.Decode(newDataAccPrivateKey)
+	pk, err := base58.Decode(privateKey)
 	if err != nil {
 		zap.L().Fatal(err.Error())
 	}
@@ -68,6 +76,7 @@ func newAcc(ccmd *cobra.Command, args []string) {
 	res, err := c.GetRecentBlockhash()
 	if err != nil {
 		log.Fatalf("get recent block hash error, err: %v\n", err)
+		return nil, err
 	}
 
 	newAcc := types.NewAccount()
@@ -75,6 +84,7 @@ func newAcc(ccmd *cobra.Command, args []string) {
 	rentBalance, err := c.GetMinimumBalanceForRentExemption(space)
 	if err != nil {
 		zap.L().Fatal(err.Error())
+		return nil, err
 	}
 	instruction := sysprog.CreateAccount(
 		account.PublicKey,
@@ -94,7 +104,9 @@ func newAcc(ccmd *cobra.Command, args []string) {
 	serializedMessage, err := message.Serialize()
 	if err != nil {
 		log.Fatalf("serialize message error, err: %v\n", err)
+		return nil, err
 	}
+
 
 	fmt.Println("------- begin message --------")
 	fmt.Println(hex.EncodeToString(serializedMessage))
@@ -106,23 +118,32 @@ func newAcc(ccmd *cobra.Command, args []string) {
 	})
 	if err != nil {
 		log.Fatalf("generate tx error, err: %v\n", err)
+		return nil, err
 	}
 
 	rawTx, err := tx.Serialize()
 	if err != nil {
 		log.Fatalf("serialize tx error, err: %v\n", err)
+		return nil, err
 	}
 
 	txSig, err := c.SendRawTransaction(rawTx)
 	if err != nil {
 		log.Fatalf("send tx error, err: %v\n", err)
+		return nil, err
 	}
+
 	log.Print("Waiting")
-	//waitTx(txSig)
+	// waitTx(txSig)
 	log.Print("End waiting")
 
 	log.Println("txHash:", txSig)
 	fmt.Printf("Data Acc privake key: %s\n", base58.Encode(newAcc.PrivateKey))
 	fmt.Printf("Data account address: %s\n", newAcc.PublicKey.ToBase58())
 
+	return &models.CommandResponse{
+		SerializedMessage: hex.EncodeToString(serializedMessage),
+		TxSignature: txSig,
+		Account: newAcc,
+	}, nil
 }
