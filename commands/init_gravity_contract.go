@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"solanoid/models"
+	"solanoid/models/endpoint"
 
 	"github.com/mr-tron/base58"
 	"github.com/portto/solana-go-sdk/client"
@@ -89,22 +91,29 @@ func NewInitGravityContractInstruction(fromAccount, programData, multisigData, t
 	}
 }
 
-func initGravity(ccmd *cobra.Command, args []string) {
-	pk, err := base58.Decode(UpdateConsulsPrivateKey)
+func InitGravity(privateKey, programID, stateID, multisigID, clientEndpoint string) (*models.CommandResponse, error) {
+	// pk, err := base58.Decode(UpdateConsulsPrivateKey)
+	pk, err := base58.Decode(privateKey)
 	if err != nil {
 		zap.L().Fatal(err.Error())
+		return nil, err
 	}
+
 	account := types.AccountFromPrivateKeyBytes(pk)
 
-	program := common.PublicKeyFromString(GravityProgramID)
-	dataAcc := common.PublicKeyFromString(GravityDataAccount)
-	multisigAcc := common.PublicKeyFromString(MultisigDataAccount)
+	// program := common.PublicKeyFromString(GravityProgramID)
+	// dataAcc := common.PublicKeyFromString(GravityDataAccount)
+	// multisigAcc := common.PublicKeyFromString(MultisigDataAccount)
+	program := common.PublicKeyFromString(programID)
+	dataAcc := common.PublicKeyFromString(stateID)
+	multisigAcc := common.PublicKeyFromString(multisigID)
 
-	c := client.NewClient("http://localhost:8899")
+	c := client.NewClient(clientEndpoint)
 
 	res, err := c.GetRecentBlockhash()
 	if err != nil {
 		log.Fatalf("get recent block hash error, err: %v\n", err)
+		return nil, err
 	}
 
 	message := types.NewMessage(
@@ -120,18 +129,22 @@ func initGravity(ccmd *cobra.Command, args []string) {
 	serializedMessage, err := message.Serialize()
 	if err != nil {
 		log.Fatalf("serialize message error, err: %v\n", err)
+		return nil, err
 	}
 
 	tx, err := types.CreateTransaction(message, map[common.PublicKey]types.Signature{
 		account.PublicKey: ed25519.Sign(account.PrivateKey, serializedMessage),
 	})
+
 	if err != nil {
 		log.Fatalf("generate tx error, err: %v\n", err)
+		return nil, err
 	}
 
 	rawTx, err := tx.Serialize()
 	if err != nil {
 		log.Fatalf("serialize tx error, err: %v\n", err)
+		return nil, err
 	}
 	fmt.Println("------ RAW TRANSACTION ------------------------")
 	fmt.Printf("%s\n", hex.EncodeToString(rawTx))
@@ -144,8 +157,21 @@ func initGravity(ccmd *cobra.Command, args []string) {
 	txSig, err := c.SendRawTransaction(rawTx)
 	if err != nil {
 		log.Fatalf("send tx error, err: %v\n", err)
+		return nil, err
 	}
 
 	log.Println("txHash:", txSig)
+	
+	return &models.CommandResponse{
+		SerializedMessage: hex.EncodeToString(serializedMessage),
+		TxSignature: txSig,
+		Message: &message,
+	}, nil
+}
 
+func initGravity(ccmd *cobra.Command, args []string) {
+	_, err := InitGravity(UpdateConsulsPrivateKey, GravityProgramID, GravityDataAccount, MultisigDataAccount, endpoint.LocalEnvironment)
+	if err != nil {
+		log.Fatalf("Error on 'InitGravity': %v\n", err)
+	}
 }

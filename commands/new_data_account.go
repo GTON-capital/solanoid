@@ -16,6 +16,12 @@ import (
 	"go.uber.org/zap"
 )
 
+
+const (
+	GravityContractAllocation = 256
+	MultisigAllocation = 355
+)
+
 var (
 	newDataAccPrivateKey string
 	programPrivateKey    string
@@ -107,7 +113,6 @@ func GenerateNewAccount(privateKey string, space uint64, programID string) (*mod
 		return nil, err
 	}
 
-
 	fmt.Println("------- begin message --------")
 	fmt.Println(hex.EncodeToString(serializedMessage))
 	fmt.Println("-------- end message ---------")
@@ -144,6 +149,7 @@ func GenerateNewAccount(privateKey string, space uint64, programID string) (*mod
 	return &models.CommandResponse{
 		SerializedMessage: hex.EncodeToString(serializedMessage),
 		TxSignature: txSig,
-		Account: newAcc,
+		Message: &message,
+		Account: &newAcc,
 	}, nil
 }

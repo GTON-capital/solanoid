@@ -5,6 +5,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"solanoid/models"
+	"solanoid/models/endpoint"
+	"solanoid/models/nebula"
 
 	"github.com/mr-tron/base58"
 	"github.com/portto/solana-go-sdk/client"
@@ -57,7 +60,7 @@ func init() {
 	SolanoidCmd.AddCommand(initNebulaContractCmd)
 }
 
-func NewInitNebulaContractInstruction(fromAccount, programData, nebulaData, multisigData, targetProgramID common.PublicKey, Bft uint8, Consuls [5][32]byte) types.Instruction {
+func NewInitNebulaContractInstruction(fromAccount, programData, multisigData, targetProgramID, gravityProgramID common.PublicKey, Bft uint8, Consuls [5][32]byte) types.Instruction {
 	consuls := []byte{}
 	consuls = append(consuls, fromAccount.Bytes()...)
 	// for i := 0; i < 2; i++ {
@@ -83,8 +86,8 @@ func NewInitNebulaContractInstruction(fromAccount, programData, nebulaData, mult
 	}{
 		Instruction:              0,
 		Bft:                      1,
-		NebulaDataType:           2,
-		GravityContractProgramID: programData,
+		NebulaDataType:           nebula.Bytes,
+		GravityContractProgramID: gravityProgramID,
 		Consuls:                  consuls,
 	})
 	if err != nil {
@@ -95,39 +98,45 @@ func NewInitNebulaContractInstruction(fromAccount, programData, nebulaData, mult
 	fmt.Println("------- END RAW INSTRUCTION DATA ---------")
 	return types.Instruction{
 		Accounts: []types.AccountMeta{
-			{PubKey: fromAccount, IsSigner: true, IsWritable: false},
-			//{PubKey: programData, IsSigner: false, IsWritable: true},
-			{PubKey: nebulaData, IsSigner: false, IsWritable: true},
-			{PubKey: multisigData, IsSigner: false, IsWritable: true},
+			{ PubKey: fromAccount, IsSigner: true, IsWritable: false },
+			{ PubKey: programData, IsSigner: false, IsWritable: true },
+			{ PubKey: multisigData, IsSigner: false, IsWritable: true },
 		},
 		ProgramID: targetProgramID,
 		Data:      data,
 	}
 }
 
-func initNebula(ccmd *cobra.Command, args []string) {
-	pk, err := base58.Decode(UpdateConsulsPrivateKey)
+func InitNebula(privateKey, nebulaProgramID, nebulaDataAccount, nebulaMultisigDataAccount, clientEndpoint string, gravityProgramID common.PublicKey) (*models.CommandResponse, error) {
+	// pk, err := base58.Decode(UpdateConsulsPrivateKey)
+	pk, err := base58.Decode(privateKey)
 	if err != nil {
 		zap.L().Fatal(err.Error())
+		return nil, err
 	}
 	account := types.AccountFromPrivateKeyBytes(pk)
 
-	program := common.PublicKeyFromString(GravityProgramID)
-	dataAcc := common.PublicKeyFromString(GravityDataAccount)
-	nebulaAcc := common.PublicKeyFromString(NebulaDataAccount)
-	multisigAcc := common.PublicKeyFromString(MultisigDataAccount)
-	c := client.NewClient("http://localhost:8899")
+	program := common.PublicKeyFromString(nebulaProgramID)
+	nebulaAcc := common.PublicKeyFromString(nebulaDataAccount)
+	multisigAcc := common.PublicKeyFromString(nebulaMultisigDataAccount)
+	// program := common.PublicKeyFromString(GravityProgramID)
+	// dataAcc := common.PublicKeyFromString(GravityDataAccount)
+	// nebulaAcc := common.PublicKeyFromString(NebulaDataAccount)
+	// multisigAcc := common.PublicKeyFromString(MultisigDataAccount)
+	// c := client.NewClient("http://localhost:8899")
+	c := client.NewClient(clientEndpoint)
 
 	res, err := c.GetRecentBlockhash()
 	if err != nil {
 		log.Fatalf("get recent block hash error, err: %v\n", err)
+		return nil, err
 	}
 
 	message := types.NewMessage(
 		account.PublicKey,
 		[]types.Instruction{
 			NewInitNebulaContractInstruction(
-				account.PublicKey, dataAcc, nebulaAcc, multisigAcc, program, 1, [5][32]byte{},
+				account.PublicKey, nebulaAcc, multisigAcc, program, gravityProgramID, 1, [5][32]byte{},
 			),
 		},
 		res.Blockhash,
@@ -136,6 +145,7 @@ func initNebula(ccmd *cobra.Command, args []string) {
 	serializedMessage, err := message.Serialize()
 	if err != nil {
 		log.Fatalf("serialize message error, err: %v\n", err)
+		return nil, err
 	}
 
 	tx, err := types.CreateTransaction(message, map[common.PublicKey]types.Signature{
@@ -143,11 +153,13 @@ func initNebula(ccmd *cobra.Command, args []string) {
 	})
 	if err != nil {
 		log.Fatalf("generate tx error, err: %v\n", err)
+		return nil, err
 	}
 
 	rawTx, err := tx.Serialize()
 	if err != nil {
 		log.Fatalf("serialize tx error, err: %v\n", err)
+		return nil, err
 	}
 	fmt.Println("------ RAW TRANSACTION ------------------------")
 	fmt.Printf("%s\n", hex.EncodeToString(rawTx))
@@ -160,8 +172,17 @@ func initNebula(ccmd *cobra.Command, args []string) {
 	txSig, err := c.SendRawTransaction(rawTx)
 	if err != nil {
 		log.Fatalf("send tx error, err: %v\n", err)
+		return nil, err
 	}
 
 	log.Println("txHash:", txSig)
+	return &models.CommandResponse{
+		SerializedMessage: hex.EncodeToString(serializedMessage),
+		TxSignature: txSig,
+		Message: &message,
+	}, nil
+}
 
+func initNebula(ccmd *cobra.Command, args []string) {
+	_, _ = InitNebula(UpdateConsulsPrivateKey, GravityDataAccount, NebulaDataAccount, MultisigDataAccount, endpoint.LocalEnvironment, common.PublicKeyFromString(GravityProgramID))
 }

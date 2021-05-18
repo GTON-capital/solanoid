@@ -7,5 +7,6 @@ import (
 type CommandResponse struct {
 	SerializedMessage string
 	TxSignature       string
-	Account           types.Account
+	Account           *types.Account
+	Message           *types.Message
 }
