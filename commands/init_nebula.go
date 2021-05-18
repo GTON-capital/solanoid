@@ -180,7 +180,6 @@ func InitNebula(privateKey, nebulaProgramID, nebulaDataAccount, nebulaMultisigDa
 	return &models.CommandResponse{
 		SerializedMessage: hex.EncodeToString(serializedMessage),
 		TxSignature: txSig,
-		Message: &message,
 	}, nil
 }
 

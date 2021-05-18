@@ -47,6 +47,7 @@ func DeploySolanaProgram(t *testing.T, tag string, programPrivateKeysPath, progr
 	t.Log("deploying program")
 
 	cmd := exec.Command("solana", "program", "deploy", "--program-id", programPrivateKeysPath, programBinaryPath)
+	// cmd := exec.Command("solana", "program", "deploy", programBinaryPath)
 
 	output, err := cmd.CombinedOutput()
 	
@@ -54,6 +55,7 @@ func DeploySolanaProgram(t *testing.T, tag string, programPrivateKeysPath, progr
 
 	outputList := strings.Split(string(output), " ")
 	programID := outputList[len(outputList) - 1]
+	programID = strings.Trim(programID, "\n\r")
 
 	t.Logf("Program: %v; Deployed Program ID is: %v\n", tag, programID)
 	// t.Logf("Program: %v; Deployed Program ID is: %v\n", tag, common.PublicKeyFromString(programID))
@@ -139,7 +141,7 @@ func TestNebulaDeployment(t *testing.T) {
 
 	validateError(t, err)
 
-	t.Logf("Nebula Program ID: %v \n", nebulaDeploymentResponse.Account.PublicKey.ToBase58())
+	t.Logf("Ser Message: %v \n", nebulaDeploymentResponse.SerializedMessage)
 
 }
 
