@@ -28,7 +28,6 @@ func validateError(t *testing.T, err error) {
 func SystemFaucet(t *testing.T, privateKeyPath string, recipient string, amount uint64) (string, error) {
 	t.Logf("transfer %v SOL to %v address \n", amount, recipient)
 
-	// cmd := exec.Command("solana", "transfer", "--from", privateKeyPath, recipient, fmt.Sprint(amount))
 	cmd := exec.Command("solana", "transfer", recipient, fmt.Sprint(amount))
 
 	output, err := cmd.CombinedOutput()
@@ -45,14 +44,9 @@ func SystemFaucet(t *testing.T, privateKeyPath string, recipient string, amount 
 }
 
 func DeploySolanaProgram(t *testing.T, tag string, programPrivateKeysPath, programBinaryPath string) (string, error) {
-	// cmd := exec.Command("cat", "../binaries/nebula.so")
-	// cmd := exec.Command("cat", "../private-keys/nebula.json")
 	t.Log("deploying program")
-	// cmd := exec.Command("solana", "program", "deploy", "--program-id", "../private-keys/nebula.json", "../binaries/nebula.so")
-	cmd := exec.Command("solana", "program", "deploy", "--program-id", programPrivateKeysPath, programBinaryPath)
 
-	// cmd.Stdout = os.Stdout
-	// cmd.Stderr = os.Stderr
+	cmd := exec.Command("solana", "program", "deploy", "--program-id", programPrivateKeysPath, programBinaryPath)
 
 	output, err := cmd.CombinedOutput()
 	
@@ -62,6 +56,7 @@ func DeploySolanaProgram(t *testing.T, tag string, programPrivateKeysPath, progr
 	programID := outputList[len(outputList) - 1]
 
 	t.Logf("Program: %v; Deployed Program ID is: %v\n", tag, programID)
+	// t.Logf("Program: %v; Deployed Program ID is: %v\n", tag, common.PublicKeyFromString(programID))
 
 	if err != nil {
 		t.Log(err.Error())
@@ -127,9 +122,11 @@ func TestNebulaDeployment(t *testing.T) {
 
 	nebulaStateAccount, err := GenerateNewAccount(deployerPrivateKey, 2000, nebulaProgramID)
 	validateError(t, err)
-
+	t.Logf("nebula state account: %v \n", nebulaStateAccount.Account.PublicKey.ToBase58())
+	
 	nebulaMultisigAccount, err := GenerateNewAccount(deployerPrivateKey, MultisigAllocation, nebulaProgramID)
 	validateError(t, err)
+	t.Logf("nebula multisig state account: %v \n", nebulaMultisigAccount.Account.PublicKey.ToBase58())
 
 	nebulaDeploymentResponse, err := InitNebula(
 		deployerPrivateKey, 

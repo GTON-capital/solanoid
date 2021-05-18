@@ -108,7 +108,6 @@ func NewInitNebulaContractInstruction(fromAccount, programData, multisigData, ta
 }
 
 func InitNebula(privateKey, nebulaProgramID, nebulaDataAccount, nebulaMultisigDataAccount, clientEndpoint string, gravityProgramID common.PublicKey) (*models.CommandResponse, error) {
-	// pk, err := base58.Decode(UpdateConsulsPrivateKey)
 	pk, err := base58.Decode(privateKey)
 	if err != nil {
 		zap.L().Fatal(err.Error())
@@ -117,13 +116,15 @@ func InitNebula(privateKey, nebulaProgramID, nebulaDataAccount, nebulaMultisigDa
 	account := types.AccountFromPrivateKeyBytes(pk)
 
 	program := common.PublicKeyFromString(nebulaProgramID)
+	fmt.Printf("program str: %v \n", nebulaProgramID)
+	fmt.Printf("program bytes: %v \n", program)
 	nebulaAcc := common.PublicKeyFromString(nebulaDataAccount)
+	fmt.Printf("nebula: %v \n", nebulaDataAccount)
+	fmt.Printf("nebula: %v \n", nebulaAcc)
 	multisigAcc := common.PublicKeyFromString(nebulaMultisigDataAccount)
-	// program := common.PublicKeyFromString(GravityProgramID)
-	// dataAcc := common.PublicKeyFromString(GravityDataAccount)
-	// nebulaAcc := common.PublicKeyFromString(NebulaDataAccount)
-	// multisigAcc := common.PublicKeyFromString(MultisigDataAccount)
-	// c := client.NewClient("http://localhost:8899")
+	fmt.Printf("multisigAcc: %v \n", nebulaMultisigDataAccount)
+	fmt.Printf("multisigAcc: %v \n", multisigAcc)
+
 	c := client.NewClient(clientEndpoint)
 
 	res, err := c.GetRecentBlockhash()
