@@ -5,7 +5,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+
 	// "solanoid/commands/executor"
+	"solanoid/commands/executor"
 	"solanoid/models"
 	"solanoid/models/endpoint"
 	"solanoid/models/nebula"
@@ -61,21 +63,18 @@ func init() {
 	SolanoidCmd.AddCommand(initNebulaContractCmd)
 }
 
-func NewInitNebulaContractInstruction(fromAccount, programData, multisigData, targetProgramID, gravityProgramID common.PublicKey, Bft uint8, Consuls [5][32]byte) types.Instruction {
-	consuls := []byte{}
-	consuls = append(consuls, fromAccount.Bytes()...)
-	
+func NewInitNebulaContractInstruction(fromAccount, programData, multisigData, targetProgramID, gravityProgramID common.PublicKey, bft uint8, newConsuls [5][32]byte) types.Instruction {
+	var consuls []byte
+
+	for _, x := range newConsuls {
+		consuls = append(consuls, x[:]...)
+	}
+
 	fmt.Printf("Nebula programId: %s\n", targetProgramID.ToBase58())
 
-	data, err := common.SerializeData(struct {
-		Instruction              uint8
-		Bft                      uint8
-		NebulaDataType           uint8
-		GravityContractProgramID common.PublicKey
-		Consuls                  []byte
-	} {
+	data, err := common.SerializeData(executor.InitNebulaContractInstruction {
 		Instruction:              0,
-		Bft:                      1,
+		Bft:                      bft,
 		NebulaDataType:           nebula.Bytes,
 		GravityContractProgramID: gravityProgramID,
 		Consuls:                  consuls,
@@ -104,15 +103,8 @@ func NewNebulaUpdateOraclesContractInstruction(fromAccount, programData, multisi
 		oracles = append(oracles, x[:]...)
 	}
 
-	// oracles = append(oracles, fromAccount.Bytes()...)
-	
 	fmt.Printf("Nebula programId: %s\n", targetProgramID.ToBase58())
-	data, err := common.SerializeData(struct {
-		Instruction              uint8
-		Bft                      uint8
-		Oracles                  []byte
-		NewRound                 uint64
-	} {
+	data, err := common.SerializeData(executor.UpdateOraclesNebulaContractInstruction {
 		Instruction:              1,
 		Bft:                      bft,
 		Oracles:                  oracles,
@@ -200,30 +192,6 @@ func PerformPureInvocation(privateKey, clientEndpoint string, instructionBuilder
 }
 
 func InitNebula(privateKey, nebulaProgramID, nebulaDataAccount, nebulaMultisigDataAccount, clientEndpoint string, gravityProgramID common.PublicKey) (*models.CommandResponse, error) {
-	// pk, err := base58.Decode(privateKey)
-	// if err != nil {
-	// 	zap.L().Fatal(err.Error())
-	// 	return nil, err
-	// }
-	// account := types.AccountFromPrivateKeyBytes(pk)
-
-	// return PerformPureInvocation(
-	// 	privateKey,
-	// 	clientEndpoint,
-	// 	func() []types.Instruction {
-	// 		return []types.Instruction{
-	// 			NewInitNebulaContractInstruction(
-	// 				account.PublicKey,
-	// 				common.PublicKeyFromString(nebulaDataAccount),
-	// 				common.PublicKeyFromString(nebulaMultisigDataAccount),
-	// 				common.PublicKeyFromString(nebulaProgramID),
-	// 				gravityProgramID, 
-	// 				1, 
-	// 				[5][32]byte{},
-	// 			),
-	// 		}
-	// 	},
-	// )
 	pk, err := base58.Decode(privateKey)
 	if err != nil {
 		zap.L().Fatal(err.Error())
@@ -231,72 +199,23 @@ func InitNebula(privateKey, nebulaProgramID, nebulaDataAccount, nebulaMultisigDa
 	}
 	account := types.AccountFromPrivateKeyBytes(pk)
 
-	program := common.PublicKeyFromString(nebulaProgramID)
-	fmt.Printf("program str: %v \n", nebulaProgramID)
-	fmt.Printf("program bytes: %v \n", program)
-	nebulaAcc := common.PublicKeyFromString(nebulaDataAccount)
-	fmt.Printf("nebula: %v \n", nebulaDataAccount)
-	fmt.Printf("nebula: %v \n", nebulaAcc)
-	multisigAcc := common.PublicKeyFromString(nebulaMultisigDataAccount)
-	fmt.Printf("multisigAcc: %v \n", nebulaMultisigDataAccount)
-	fmt.Printf("multisigAcc: %v \n", multisigAcc)
-
-	c := client.NewClient(clientEndpoint)
-
-	res, err := c.GetRecentBlockhash()
-	if err != nil {
-		log.Fatalf("get recent block hash error, err: %v\n", err)
-		return nil, err
-	}
-
-	message := types.NewMessage(
-		account.PublicKey,
-		[]types.Instruction{
-			NewInitNebulaContractInstruction(
-				account.PublicKey, nebulaAcc, multisigAcc, program, gravityProgramID, 1, [5][32]byte{},
-			),
+	return PerformPureInvocation(
+		privateKey,
+		clientEndpoint,
+		func() []types.Instruction {
+			return []types.Instruction{
+				NewInitNebulaContractInstruction(
+					account.PublicKey,
+					common.PublicKeyFromString(nebulaDataAccount),
+					common.PublicKeyFromString(nebulaMultisigDataAccount),
+					common.PublicKeyFromString(nebulaProgramID),
+					gravityProgramID, 
+					1, 
+					[5][32]byte{},
+				),
+			}
 		},
-		res.Blockhash,
 	)
-
-	serializedMessage, err := message.Serialize()
-	if err != nil {
-		log.Fatalf("serialize message error, err: %v\n", err)
-		return nil, err
-	}
-
-	tx, err := types.CreateTransaction(message, map[common.PublicKey]types.Signature{
-		account.PublicKey: ed25519.Sign(account.PrivateKey, serializedMessage),
-	})
-	if err != nil {
-		log.Fatalf("generate tx error, err: %v\n", err)
-		return nil, err
-	}
-
-	rawTx, err := tx.Serialize()
-	if err != nil {
-		log.Fatalf("serialize tx error, err: %v\n", err)
-		return nil, err
-	}
-	fmt.Println("------ RAW TRANSACTION ------------------------")
-	fmt.Printf("%s\n", hex.EncodeToString(rawTx))
-	fmt.Println("------ END RAW TRANSACTION ------------------------")
-
-	fmt.Println("------ RAW MESSAGE ------------------------")
-	fmt.Printf("%s\n", hex.EncodeToString(serializedMessage))
-	fmt.Println("------ END RAW MESSAGE ------------------------")
-
-	txSig, err := c.SendRawTransaction(rawTx)
-	if err != nil {
-		log.Fatalf("send tx error, err: %v\n", err)
-		return nil, err
-	}
-
-	log.Println("txHash:", txSig)
-	return &models.CommandResponse{
-		SerializedMessage: hex.EncodeToString(serializedMessage),
-		TxSignature: txSig,
-	}, nil
 }
 
 
