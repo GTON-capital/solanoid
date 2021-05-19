@@ -47,7 +47,6 @@ func DeploySolanaProgram(t *testing.T, tag string, programPrivateKeysPath, progr
 	t.Log("deploying program")
 
 	cmd := exec.Command("solana", "program", "deploy", "--program-id", programPrivateKeysPath, programBinaryPath)
-	// cmd := exec.Command("solana", "program", "deploy", programBinaryPath)
 
 	output, err := cmd.CombinedOutput()
 	
@@ -138,10 +137,8 @@ func TestNebulaDeployment(t *testing.T) {
 		endpoint.LocalEnvironment,
 		common.PublicKeyFromString(gravityProgramID),
 	)
-
 	validateError(t, err)
 
 	t.Logf("Ser Message: %v \n", nebulaDeploymentResponse.SerializedMessage)
 
 }
-
