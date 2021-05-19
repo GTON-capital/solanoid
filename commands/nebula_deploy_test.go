@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"solanoid/commands/executor"
 	"solanoid/models/endpoint"
+	"solanoid/models/nebula"
+	"time"
 
 	// "os"
 	"os/exec"
@@ -114,6 +117,7 @@ func TestNebulaDeployment(t *testing.T) {
 
 	gravityProgramID := "BXDqLUQwWGDMQ6tFuca6mDLSZ1PgsS8T3R6oneXUUnoy"
 
+	// nebulaProgramID := "CybfUMjVa13jLASS6BD53VvkeWChKHCWWZrs96dv5orN"
 	nebulaProgramID, err := DeploySolanaProgram(t, "nebula", "../private-keys/nebula.json", "../binaries/nebula.so")
 	validateError(t, err)
 
@@ -129,7 +133,12 @@ func TestNebulaDeployment(t *testing.T) {
 	validateError(t, err)
 	t.Logf("nebula multisig state account: %v \n", nebulaMultisigAccount.Account.PublicKey.ToBase58())
 
-	nebulaDeploymentResponse, err := InitNebula(
+	confirmationTimeout := time.Second * 20
+	t.Log("timeout 20 seconds - wait for MAX confirmations.")
+
+	time.Sleep(confirmationTimeout)
+
+	nebulaExecutor, err := InitNebula(
 		deployerPrivateKey, 
 		nebulaProgramID,
 		nebulaStateAccount.Account.PublicKey.ToBase58(),
@@ -139,6 +148,38 @@ func TestNebulaDeployment(t *testing.T) {
 	)
 	validateError(t, err)
 
-	t.Logf("Ser Message: %v \n", nebulaDeploymentResponse.SerializedMessage)
+	// nebulaExecutor, err := InitNebula(
+	// 	deployerPrivateKey, 
+	// 	nebulaProgramID,
+	// 	"GPn2PfF1EPocWHffUPTuHubajdYrtAy9RV6KF5HqXz78",
+	// 	"J4MbLvyE9zgeLjJMt2KMcj3a5fZexPNHvCAqVU6CJ62i",
+	// 	endpoint.LocalEnvironment,
+	// 	common.PublicKeyFromString(gravityProgramID),
+	// )
+	// validateError(t, err)
+
+	nebulaInitResponse, err := nebulaExecutor.BuildAndInvoke(executor.InitNebulaContractInstruction {
+		Instruction: 0,
+		Bft: 1,
+		NebulaDataType: nebula.Bytes,
+		GravityContractProgramID: common.PublicKeyFromString(gravityProgramID),
+		InitialOracles: append(make([]byte, 0), nebulaExecutor.Deployer().Bytes()...),
+	})
+	validateError(t, err)
+
+	t.Logf("Init: %v \n", nebulaInitResponse.SerializedMessage)
+
+	time.Sleep(time.Second * 20)
+
+	nebulaUpdateOraclesResponse, err := nebulaExecutor.BuildAndInvoke(executor.UpdateOraclesNebulaContractInstruction {
+		Instruction: 1,
+		Bft: 1,
+		Oracles: append(make([]byte, 0), nebulaExecutor.Deployer().Bytes()...),
+		NewRound: 1,
+	})
+	validateError(t, err)
+
+	t.Logf("Update Oracles: %v \n", nebulaUpdateOraclesResponse.SerializedMessage)
+
 
 }
