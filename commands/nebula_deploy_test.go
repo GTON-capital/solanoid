@@ -8,6 +8,7 @@ import (
 	"solanoid/commands/executor"
 	"solanoid/models/endpoint"
 	"solanoid/models/nebula"
+	"solanoid/models/solana"
 	"time"
 
 	// "os"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/mr-tron/base58"
 	"github.com/portto/solana-go-sdk/common"
+	"github.com/portto/solana-go-sdk/types"
 	// "strings"
 )
 
@@ -167,7 +169,7 @@ func TestNebulaDeployment(t *testing.T) {
 
 	t.Logf("Init: %v \n", nebulaInitResponse.SerializedMessage)
 
-	time.Sleep(time.Second * 20)
+	time.Sleep(time.Second * 25)
 
 	// Vital for update oracles (multisig)
 	nebulaExecutor.SetAdditionalSigners([]executor.GravityBftSigner {
@@ -184,15 +186,21 @@ func TestNebulaDeployment(t *testing.T) {
 
 	t.Logf("Update Oracles: %v \n", nebulaUpdateOraclesResponse.SerializedMessage)
 
-	time.Sleep(time.Second * 3)
+	time.Sleep(time.Second * 25)
 
+
+	nebulaExecutor.SetAdditionalMeta([]types.AccountMeta {
+		{ PubKey: common.PublicKeyFromString(solana.ClockProgram), IsSigner: false, IsWritable: false },
+	})
 	nebulaSendHashValueResponse, err := nebulaExecutor.BuildAndInvoke(executor.SendHashValueNebulaContractInstructionn {
 		Instruction: 2,
-		DataHash: make([]byte, 32 * 3),
+		DataHash: make([]byte, 16),
 	})
 	ValidateError(t, err)
 
 	t.Logf("Send Hash Value: %v \n", nebulaSendHashValueResponse.SerializedMessage)
+
+	nebulaExecutor.EraseAdditionalMeta()
 
 	time.Sleep(time.Second * 3)
 
@@ -223,7 +231,7 @@ func TestNebulaDeployment(t *testing.T) {
 
 	t.Logf("Subscribe: %v \n", nebulaSubscribeResponse.SerializedMessage)
 
-	time.Sleep(time.Second * 3)
+	// time.Sleep(time.Second * 3)
 
 	nebulaExecutor.EraseAdditionalSigners()
 }

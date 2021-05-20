@@ -94,7 +94,8 @@ type NebulaInstructionExecutor struct {
 
 	clientEndpoint string
 
-	signers []GravityBftSigner
+	signers        []GravityBftSigner
+	additionalMeta []types.AccountMeta
 }
 
 func (nexe *NebulaInstructionExecutor) Deployer() common.PublicKey {
@@ -106,6 +107,13 @@ func (nexe *NebulaInstructionExecutor) SetAdditionalSigners(signers []GravityBft
 }
 func (nexe *NebulaInstructionExecutor) EraseAdditionalSigners() {
 	nexe.signers = make([]GravityBftSigner, 0)
+}
+
+func (nexe *NebulaInstructionExecutor) SetAdditionalMeta(meta []types.AccountMeta) {
+	nexe.additionalMeta = meta
+}
+func (nexe *NebulaInstructionExecutor) EraseAdditionalMeta() {
+	nexe.additionalMeta = make([]types.AccountMeta, 0)
 }
 
 func (nexe *NebulaInstructionExecutor) invokePureInstruction(instruction interface{}) (*models.CommandResponse, error) {
@@ -197,11 +205,13 @@ func (nexe *NebulaInstructionExecutor) BuildInstruction(instruction interface{})
 		{ PubKey: common.PublicKeyFromString(nexe.nebulaDataAccount), IsSigner: false, IsWritable: true },
 		{ PubKey: common.PublicKeyFromString(nexe.nebulaMultisigDataAccount), IsSigner: false, IsWritable: true },	
 	}
-
+	
 	for _, signer := range nexe.signers {
 		accountMeta = append(accountMeta, signer.Meta())
 	}
-
+	
+	accountMeta = append(accountMeta, nexe.additionalMeta...)
+	
 	return &types.Instruction{
 		Accounts: accountMeta,
 		ProgramID: common.PublicKeyFromString(nexe.nebulaProgramID),
