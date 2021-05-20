@@ -73,8 +73,8 @@ func init() {
 
 }
 
-func waitTx(tx string) {
-	u := url.URL{Scheme: "ws", Host: "testnet.solana.com", Path: "/"}
+func waitTx(tx string, host string) {
+	u := url.URL{Scheme: "ws", Host: host, Path: "/"}
 	log.Printf("connecting to %s", u.String())
 
 	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
