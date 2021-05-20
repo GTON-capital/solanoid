@@ -184,5 +184,46 @@ func TestNebulaDeployment(t *testing.T) {
 
 	t.Logf("Update Oracles: %v \n", nebulaUpdateOraclesResponse.SerializedMessage)
 
+	time.Sleep(time.Second * 3)
+
+	nebulaSendHashValueResponse, err := nebulaExecutor.BuildAndInvoke(executor.SendHashValueNebulaContractInstructionn {
+		Instruction: 2,
+		DataHash: make([]byte, 32 * 3),
+	})
+	ValidateError(t, err)
+
+	t.Logf("Send Hash Value: %v \n", nebulaSendHashValueResponse.SerializedMessage)
+
+	time.Sleep(time.Second * 3)
+
+	nebulaSendValueToSubsResponse, err := nebulaExecutor.BuildAndInvoke(executor.SendValueToSubsNebulaContractInstructionn {
+		Instruction: 3,
+		DataHash: make([]byte, 32 * 3),
+		DataType: [1]byte { nebula.Bytes },
+		PulseID: [8]byte{},
+		SubscriptionID: [16]byte{},
+	})
+	ValidateError(t, err)
+
+	t.Logf("Send Value To Subs: %v \n", nebulaSendValueToSubsResponse.SerializedMessage)
+	
+	time.Sleep(time.Second * 3)
+
+	mockedSubscriber, err := GenerateNewAccount(deployerPrivateKey, 1024, nebulaProgramID)
+	ValidateError(t, err)
+	t.Logf("mocked subscriber state account: %v \n", mockedSubscriber.Account.PublicKey.ToBase58())
+
+	nebulaSubscribeResponse, err := nebulaExecutor.BuildAndInvoke(executor.SubscribeNebulaContractInstructionn {
+		Instruction: 4,
+		Subscriber: mockedSubscriber.Account.PublicKey,
+		MinConfirmations: 1,
+		Reward: 1,
+	})
+	ValidateError(t, err)
+
+	t.Logf("Subscribe: %v \n", nebulaSubscribeResponse.SerializedMessage)
+
+	time.Sleep(time.Second * 3)
+
 	nebulaExecutor.EraseAdditionalSigners()
 }

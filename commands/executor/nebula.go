@@ -29,6 +29,31 @@ type UpdateOraclesNebulaContractInstruction struct {
 	NewRound                 uint64
 }
 
+type SendHashValueNebulaContractInstructionn struct {
+	Instruction              uint8
+	DataHash                 []byte
+}
+
+
+type DataType [1]byte
+type PulseID [8]byte
+type SubscriptionID [16]byte
+
+type SendValueToSubsNebulaContractInstructionn struct {
+	Instruction              uint8
+	DataHash                 []byte
+	DataType                 DataType
+	PulseID                  PulseID
+	SubscriptionID           SubscriptionID
+}
+
+type SubscribeNebulaContractInstructionn struct {
+	Instruction              uint8
+	Subscriber               [32]byte
+	MinConfirmations          uint8
+	Reward                   uint64
+}
+
 type SignerDelegate interface {
 	Sign([]byte) []byte
 	Pubkey() string
