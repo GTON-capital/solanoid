@@ -161,7 +161,7 @@ func TestNebulaDeployment(t *testing.T) {
 		Bft: 1,
 		NebulaDataType: nebula.Bytes,
 		GravityContractProgramID: common.PublicKeyFromString(gravityProgramID),
-		InitialOracles: append(make([]byte, 0), nebulaExecutor.Deployer().Bytes()...),
+		InitialOracles: nebulaExecutor.Deployer().Bytes(),
 	})
 	ValidateError(t, err)
 
@@ -169,15 +169,20 @@ func TestNebulaDeployment(t *testing.T) {
 
 	time.Sleep(time.Second * 20)
 
+	// Vital for update oracles (multisig)
+	nebulaExecutor.SetAdditionalSigners([]executor.GravityBftSigner {
+		*executor.NewGravityBftSigner(deployerPrivateKey),
+	})
+	
 	nebulaUpdateOraclesResponse, err := nebulaExecutor.BuildAndInvoke(executor.UpdateOraclesNebulaContractInstruction {
 		Instruction: 1,
 		Bft: 1,
-		Oracles: append(make([]byte, 0), nebulaExecutor.Deployer().Bytes()...),
+		// Oracles: nebulaExecutor.Deployer().Bytes(),
 		NewRound: 1,
 	})
 	ValidateError(t, err)
 
 	t.Logf("Update Oracles: %v \n", nebulaUpdateOraclesResponse.SerializedMessage)
 
-
+	nebulaExecutor.EraseAdditionalSigners()
 }

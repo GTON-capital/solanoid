@@ -25,8 +25,39 @@ type InitNebulaContractInstruction struct {
 type UpdateOraclesNebulaContractInstruction struct {
 	Instruction              uint8
 	Bft                      uint8
-	Oracles                  []byte
+	// Oracles                  []byte
 	NewRound                 uint64
+}
+
+type SignerDelegate interface {
+	Sign([]byte) []byte
+	Pubkey() string
+	Meta() types.AccountMeta
+}
+
+type GravityBftSigner struct {
+	account types.Account
+}
+
+func NewGravityBftSigner(privateKey string) *GravityBftSigner {
+	pk, _ := base58.Decode(privateKey)
+	account := types.AccountFromPrivateKeyBytes(pk)
+
+	return &GravityBftSigner{
+		account,
+	}
+}
+
+func (signer *GravityBftSigner) Sign(message []byte) []byte {
+	return ed25519.Sign(signer.account.PrivateKey, message)
+}
+
+func (signer *GravityBftSigner) Pubkey() string {
+	return signer.account.PublicKey.ToBase58()
+}
+
+func (signer *GravityBftSigner) Meta() types.AccountMeta {
+	return types.AccountMeta{ PubKey: signer.account.PublicKey, IsSigner: true, IsWritable: false }
 }
 
 type NebulaInstructionExecutor struct {
@@ -37,10 +68,19 @@ type NebulaInstructionExecutor struct {
 	nebulaMultisigDataAccount string
 
 	clientEndpoint string
+
+	signers []GravityBftSigner
 }
 
 func (nexe *NebulaInstructionExecutor) Deployer() common.PublicKey {
 	return nexe.deployerPrivKey.PublicKey
+}
+
+func (nexe *NebulaInstructionExecutor) SetAdditionalSigners(signers []GravityBftSigner) {
+	nexe.signers = signers
+}
+func (nexe *NebulaInstructionExecutor) EraseAdditionalSigners() {
+	nexe.signers = make([]GravityBftSigner, 0)
 }
 
 func (nexe *NebulaInstructionExecutor) invokePureInstruction(instruction interface{}) (*models.CommandResponse, error) {
@@ -71,9 +111,16 @@ func (nexe *NebulaInstructionExecutor) invokePureInstruction(instruction interfa
 		return nil, err
 	}
 
-	tx, err := types.CreateTransaction(message, map[common.PublicKey]types.Signature{
+	signatures := map[common.PublicKey]types.Signature{
 		account.PublicKey: ed25519.Sign(account.PrivateKey, serializedMessage),
-	})
+	}
+	for _, signer := range nexe.signers {
+		signatures[signer.Meta().PubKey] = signer.Sign(serializedMessage)
+	}
+
+	tx, err := types.CreateTransaction(message, signatures)
+
+
 	if err != nil {
 		log.Fatalf("generate tx error, err: %v\n", err)
 		return nil, err
@@ -120,12 +167,18 @@ func (nexe *NebulaInstructionExecutor) BuildInstruction(instruction interface{})
 	fmt.Printf("%s\n", hex.EncodeToString(data))
 	fmt.Println("------- END RAW INSTRUCTION DATA ---------")
 
+	accountMeta := []types.AccountMeta{
+		{ PubKey: nexe.deployerPrivKey.PublicKey, IsSigner: true, IsWritable: false },
+		{ PubKey: common.PublicKeyFromString(nexe.nebulaDataAccount), IsSigner: false, IsWritable: true },
+		{ PubKey: common.PublicKeyFromString(nexe.nebulaMultisigDataAccount), IsSigner: false, IsWritable: true },	
+	}
+
+	for _, signer := range nexe.signers {
+		accountMeta = append(accountMeta, signer.Meta())
+	}
+
 	return &types.Instruction{
-		Accounts: []types.AccountMeta{
-			{ PubKey: nexe.deployerPrivKey.PublicKey, IsSigner: true, IsWritable: false },
-			{ PubKey: common.PublicKeyFromString(nexe.nebulaDataAccount), IsSigner: false, IsWritable: true },
-			{ PubKey: common.PublicKeyFromString(nexe.nebulaMultisigDataAccount), IsSigner: false, IsWritable: true },
-		},
+		Accounts: accountMeta,
 		ProgramID: common.PublicKeyFromString(nexe.nebulaProgramID),
 		Data:      data,
 	}, nil
