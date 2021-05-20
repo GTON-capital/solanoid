@@ -21,12 +21,20 @@ import (
 )
 
 
-func validateError(t *testing.T, err error) {
+func ValidateError(t *testing.T, err error) {
 	if err != nil {
 		t.Errorf("Error: %v \n", err)
 		t.FailNow()
 	}
 }
+
+func ValidateErrorExistence(t *testing.T, err error) {
+	if err == nil {
+		t.Errorf("No error occured!")
+		t.FailNow()
+	}
+}
+
 
 func SystemFaucet(t *testing.T, privateKeyPath string, recipient string, amount uint64) (string, error) {
 	t.Logf("transfer %v SOL to %v address \n", amount, recipient)
@@ -119,18 +127,18 @@ func TestNebulaDeployment(t *testing.T) {
 
 	// nebulaProgramID := "CybfUMjVa13jLASS6BD53VvkeWChKHCWWZrs96dv5orN"
 	nebulaProgramID, err := DeploySolanaProgram(t, "nebula", "../private-keys/nebula.json", "../binaries/nebula.so")
-	validateError(t, err)
+	ValidateError(t, err)
 
 	deployerPrivateKeyPath := "../private-keys/gravity-deployer.json"
 	deployerPrivateKey, err := readPKFromPath(t, deployerPrivateKeyPath)
-	validateError(t, err)
+	ValidateError(t, err)
 
 	nebulaStateAccount, err := GenerateNewAccount(deployerPrivateKey, 2000, nebulaProgramID)
-	validateError(t, err)
+	ValidateError(t, err)
 	t.Logf("nebula state account: %v \n", nebulaStateAccount.Account.PublicKey.ToBase58())
 	
 	nebulaMultisigAccount, err := GenerateNewAccount(deployerPrivateKey, MultisigAllocation, nebulaProgramID)
-	validateError(t, err)
+	ValidateError(t, err)
 	t.Logf("nebula multisig state account: %v \n", nebulaMultisigAccount.Account.PublicKey.ToBase58())
 
 	confirmationTimeout := time.Second * 20
@@ -146,17 +154,7 @@ func TestNebulaDeployment(t *testing.T) {
 		endpoint.LocalEnvironment,
 		common.PublicKeyFromString(gravityProgramID),
 	)
-	validateError(t, err)
-
-	// nebulaExecutor, err := InitNebula(
-	// 	deployerPrivateKey, 
-	// 	nebulaProgramID,
-	// 	"GPn2PfF1EPocWHffUPTuHubajdYrtAy9RV6KF5HqXz78",
-	// 	"J4MbLvyE9zgeLjJMt2KMcj3a5fZexPNHvCAqVU6CJ62i",
-	// 	endpoint.LocalEnvironment,
-	// 	common.PublicKeyFromString(gravityProgramID),
-	// )
-	// validateError(t, err)
+	ValidateError(t, err)
 
 	nebulaInitResponse, err := nebulaExecutor.BuildAndInvoke(executor.InitNebulaContractInstruction {
 		Instruction: 0,
@@ -165,7 +163,7 @@ func TestNebulaDeployment(t *testing.T) {
 		GravityContractProgramID: common.PublicKeyFromString(gravityProgramID),
 		InitialOracles: append(make([]byte, 0), nebulaExecutor.Deployer().Bytes()...),
 	})
-	validateError(t, err)
+	ValidateError(t, err)
 
 	t.Logf("Init: %v \n", nebulaInitResponse.SerializedMessage)
 
@@ -177,7 +175,7 @@ func TestNebulaDeployment(t *testing.T) {
 		Oracles: append(make([]byte, 0), nebulaExecutor.Deployer().Bytes()...),
 		NewRound: 1,
 	})
-	validateError(t, err)
+	ValidateError(t, err)
 
 	t.Logf("Update Oracles: %v \n", nebulaUpdateOraclesResponse.SerializedMessage)
 
