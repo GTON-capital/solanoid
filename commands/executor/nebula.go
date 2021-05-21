@@ -25,7 +25,7 @@ type InitNebulaContractInstruction struct {
 type UpdateOraclesNebulaContractInstruction struct {
 	Instruction              uint8
 	Bft                      uint8
-	// Oracles                  []byte
+	Oracles                  []byte
 	NewRound                 uint64
 }
 
@@ -209,7 +209,7 @@ func (nexe *NebulaInstructionExecutor) BuildInstruction(instruction interface{})
 	for _, signer := range nexe.signers {
 		accountMeta = append(accountMeta, signer.Meta())
 	}
-	
+
 	accountMeta = append(accountMeta, nexe.additionalMeta...)
 	
 	return &types.Instruction{

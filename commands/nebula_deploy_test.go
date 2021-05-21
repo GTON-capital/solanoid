@@ -179,7 +179,7 @@ func TestNebulaDeployment(t *testing.T) {
 	nebulaUpdateOraclesResponse, err := nebulaExecutor.BuildAndInvoke(executor.UpdateOraclesNebulaContractInstruction {
 		Instruction: 1,
 		Bft: 1,
-		// Oracles: nebulaExecutor.Deployer().Bytes(),
+		Oracles: nebulaExecutor.Deployer().Bytes(),
 		NewRound: 1,
 	})
 	ValidateError(t, err)
