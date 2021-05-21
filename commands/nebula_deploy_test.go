@@ -1,10 +1,6 @@
 package commands
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"log"
 	"solanoid/commands/executor"
 	"solanoid/models/endpoint"
 	"solanoid/models/nebula"
@@ -12,93 +8,13 @@ import (
 	"time"
 
 	// "os"
-	"os/exec"
-	"strings"
+
 	"testing"
 
-	"github.com/mr-tron/base58"
 	"github.com/portto/solana-go-sdk/common"
 	"github.com/portto/solana-go-sdk/types"
 	// "strings"
 )
-
-
-func ValidateError(t *testing.T, err error) {
-	if err != nil {
-		t.Errorf("Error: %v \n", err)
-		t.FailNow()
-	}
-}
-
-func ValidateErrorExistence(t *testing.T, err error) {
-	if err == nil {
-		t.Errorf("No error occured!")
-		t.FailNow()
-	}
-}
-
-
-func SystemFaucet(t *testing.T, privateKeyPath string, recipient string, amount uint64) (string, error) {
-	t.Logf("transfer %v SOL to %v address \n", amount, recipient)
-
-	cmd := exec.Command("solana", "transfer", recipient, fmt.Sprint(amount))
-
-	output, err := cmd.CombinedOutput()
-	t.Log(string(output))
-
-	if err != nil {
-		t.Log(err.Error())
-		log.Fatal(err)
-	}
-
-	// t.Log(output)
-	
-	return programID, nil
-}
-
-func DeploySolanaProgram(t *testing.T, tag string, programPrivateKeysPath, programBinaryPath string) (string, error) {
-	t.Log("deploying program")
-
-	cmd := exec.Command("solana", "program", "deploy", "--program-id", programPrivateKeysPath, programBinaryPath)
-
-	output, err := cmd.CombinedOutput()
-	
-	t.Log(string(output))
-
-	outputList := strings.Split(string(output), " ")
-	programID := outputList[len(outputList) - 1]
-	programID = strings.Trim(programID, "\n\r")
-
-	t.Logf("Program: %v; Deployed Program ID is: %v\n", tag, programID)
-	// t.Logf("Program: %v; Deployed Program ID is: %v\n", tag, common.PublicKeyFromString(programID))
-
-	if err != nil {
-		t.Log(err.Error())
-		log.Fatal(err)
-	}
-
-	// t.Log(output)
-	
-	return programID, nil
-}
-
-func readPKFromPath(t *testing.T, path string) (string, error) {
-	result, err := ioutil.ReadFile(path)
-	if err != nil {
-		return "", err
-	}
-	var input []byte
-
-	err = json.Unmarshal(result, &input)
-	if err != nil {
-		return "", err
-	}
-
-	encodedPrivKey := base58.Encode(input)
-	t.Logf("priv key: %v \n", encodedPrivKey)
-
-	return encodedPrivKey, nil
-}
 
 // func deployGravity(t *testing.T) {
 
@@ -110,9 +26,9 @@ func readPKFromPath(t *testing.T, path string) (string, error) {
 
 // 	gravityMultisigAccount, err := GenerateNewAccount(deployerPrivateKey, MultisigAllocation, nebulaProgramID)
 // 	validateError(t, err)
-	
+
 // 	gravityDeploymentResponse, err := InitGravity(
-// 		deployerPrivateKey, gravityProgramID, 
+// 		deployerPrivateKey, gravityProgramID,
 // 		gravityStateAccount.Account.PublicKey.ToBase58(), gravityMultisigAccount.Account.PublicKey.ToBase58()
 // 	)
 // 	validateError(t, err)
@@ -132,7 +48,7 @@ func TestNebulaDeployment(t *testing.T) {
 	ValidateError(t, err)
 
 	deployerPrivateKeyPath := "../private-keys/gravity-deployer.json"
-	deployerPrivateKey, err := readPKFromPath(t, deployerPrivateKeyPath)
+	deployerPrivateKey, err := ReadPKFromPath(t, deployerPrivateKeyPath)
 	ValidateError(t, err)
 
 	nebulaStateAccount, err := GenerateNewAccount(deployerPrivateKey, 2000, nebulaProgramID)

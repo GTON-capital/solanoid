@@ -34,7 +34,6 @@ type SendHashValueNebulaContractInstructionn struct {
 	DataHash                 []byte
 }
 
-
 type DataType [1]byte
 type PulseID [8]byte
 type SubscriptionID [16]byte
@@ -52,6 +51,10 @@ type SubscribeNebulaContractInstructionn struct {
 	Subscriber               [32]byte
 	MinConfirmations          uint8
 	Reward                   uint64
+}
+
+type ExecutionVisitor interface {
+	InvokePureInstruction(interface{}) (*models.CommandResponse, error)
 }
 
 type SignerDelegate interface {
@@ -116,7 +119,7 @@ func (nexe *NebulaInstructionExecutor) EraseAdditionalMeta() {
 	nexe.additionalMeta = make([]types.AccountMeta, 0)
 }
 
-func (nexe *NebulaInstructionExecutor) invokePureInstruction(instruction interface{}) (*models.CommandResponse, error) {
+func (nexe *NebulaInstructionExecutor) InvokePureInstruction(instruction interface{}) (*models.CommandResponse, error) {
 	account := nexe.deployerPrivKey
 
 	c := client.NewClient(nexe.clientEndpoint)
@@ -186,7 +189,7 @@ func (nexe *NebulaInstructionExecutor) invokePureInstruction(instruction interfa
 }
 
 func (nexe *NebulaInstructionExecutor) BuildAndInvoke(instruction interface{}) (*models.CommandResponse, error) {
-	return nexe.invokePureInstruction(instruction)
+	return nexe.InvokePureInstruction(instruction)
 }
 
 func (nexe *NebulaInstructionExecutor) BuildInstruction(instruction interface{}) (*types.Instruction, error) {
