@@ -44,11 +44,13 @@ func TestNebulaDeployment(t *testing.T) {
 
 	gravityProgramID := "BXDqLUQwWGDMQ6tFuca6mDLSZ1PgsS8T3R6oneXUUnoy"
 	
-	deployerPrivateKeyPath := "../private-keys/gravity-deployer.json"
+	deployerPrivateKeyPath := "../private-keys/main-deployer.json"
+
+	// deployerPrivateKeyPath := "../private-keys/gravity-deployer.json"
 	deployerPrivateKey, err := ReadPKFromPath(t, deployerPrivateKeyPath)
 
 	// nebulaProgramID := "CybfUMjVa13jLASS6BD53VvkeWChKHCWWZrs96dv5orN"
-	nebulaProgramID, err := DeploySolanaProgram(t, "nebula", "../private-keys/nebula.json", deployerPrivateKeyPath, "../binaries/nebula.so")
+	nebulaProgramID, err := DeploySolanaProgram(t, "nebula", "../private-keys/nebula2.json", deployerPrivateKeyPath, "../binaries/nebula.so")
 	ValidateError(t, err)
 
 

@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"solanoid/commands/executor"
 	"solanoid/models"
 
 	"github.com/mr-tron/base58"
@@ -54,17 +55,12 @@ func init() {
 	SolanoidCmd.AddCommand(initGravityContractCmd)
 }
 
-func NewInitGravityContractInstruction(fromAccount, programData, multisigData, targetProgramID common.PublicKey, Bft uint8, Round uint64, consuls []byte) types.Instruction {
-	data, err := common.SerializeData(struct {
-		Instruction uint8
-		Bft         uint8
-		Consuls     []byte
-		Round       uint64
-	}{
+func NewInitGravityContractInstruction(fromAccount, programData, multisigData, targetProgramID common.PublicKey, bft uint8, round uint64, consuls []byte) types.Instruction {
+	data, err := common.SerializeData(executor.InitGravityContractInstruction {
 		Instruction: 0,
-		Bft:         1,
-		Consuls:     consuls,
-		Round:       0,
+		Bft:         bft,
+		InitRound:   round,
+		Consuls:     consuls[:],
 	})
 	if err != nil {
 		panic(err)

@@ -19,7 +19,7 @@ import (
 
 
 const (
-	GravityContractAllocation = 256
+	GravityContractAllocation = 299
 	MultisigAllocation = 355
 )
 

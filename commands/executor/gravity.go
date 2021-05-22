@@ -1,7 +1,15 @@
 package executor
 
 type InitGravityContractInstruction struct {
-	Bft       uint8
-	Consuls []byte
-	InitRound uint64 
+	Instruction   uint8 
+	Bft           uint8
+	InitRound     uint64 
+	Consuls     []byte
+}
+
+type UpdateConsulsGravityContractInstruction struct {
+	Instruction   uint8 
+	Bft           uint8
+	InitRound     uint64 
+	Consuls     []byte
 }
