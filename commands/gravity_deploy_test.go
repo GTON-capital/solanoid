@@ -14,7 +14,15 @@ import (
 func TestDeployGravity(t *testing.T) {
 
 	deployerPrivateKeyPath := "../private-keys/main-deployer.json"
+	// deployerPrivateKeyPath := "/Users/shamil/.config/solana/id.json"
 	deployerPrivateKey, err := ReadPKFromPath(t, deployerPrivateKeyPath)
+	ValidateError(t, err)
+
+	deployerAddress, err := ReadAccountAddress(deployerPrivateKeyPath)
+	ValidateError(t, err)
+	
+	initialBalance, err := ReadAccountBalance(deployerAddress)
+	ValidateError(t, err)
 
 	gravityProgramID, err := DeploySolanaProgram(t, "gravity", "../private-keys/devnet-gravity.json", deployerPrivateKeyPath, "../binaries/gravity.so")
 	ValidateError(t, err)
@@ -48,9 +56,12 @@ func TestDeployGravity(t *testing.T) {
 	)
 	ValidateError(t, err)
 
-	// _, err = SystemFaucet(t, deployerPrivateKeyPath, nebulaProgramID, 1)
-	// validateError(t, err)
+	aftermathBalance, err := ReadAccountBalance(deployerAddress)
+	ValidateError(t, err)
 
+	t.Log("Deploy result in a success")
+	t.Logf("Gravity Program ID: %v \n", gravityProgramID)
+	t.Logf("Spent: %v SOL \n", initialBalance - aftermathBalance)
 }
 
 // func TestGravityDeployment(t *testing.T) {

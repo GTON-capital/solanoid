@@ -7,6 +7,7 @@ import (
 	"log"
 	"os/exec"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -66,6 +67,44 @@ func InferSystemDefinedRPC() (string, error) {
 	// t.Log(output)
 	return rpcURL, nil
 }
+
+func ReadAccountAddress(privateKeysPath string) (string, error) {
+	cmd := exec.Command("solana-keygen", "pubkey", privateKeysPath)
+	output, err := cmd.CombinedOutput()
+
+	if err != nil {
+		return "", err
+	}
+	result := string(output)
+	account := strings.Trim(result, "\n\r ")
+	
+	fmt.Println(account)
+	return account, nil
+}
+
+func ReadAccountBalance(address string) (float64, error) {
+	cmd := exec.Command("solana", "balance", address)
+	output, err := cmd.CombinedOutput()
+	
+	if err != nil {
+		return 0, err
+	}
+	result := string(output)
+	resultStr := strings.Trim(string(result), "\n\r ")
+	resultList := strings.Split(resultStr, " ")
+	balance := resultList[0]
+	
+	balance = strings.Trim(balance, "\n\r")
+	castedBalance, err := strconv.ParseFloat(balance, 64)
+	
+	if err != nil {
+		return 0, err
+	}
+
+	return castedBalance, nil
+}
+
+
 
 func DeploySolanaProgram(t *testing.T, tag string, programPrivateKeysPath, deployerPrivateKeysPath, programBinaryPath string) (string, error) {
 	t.Log("deploying program")
