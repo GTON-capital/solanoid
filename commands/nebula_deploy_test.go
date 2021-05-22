@@ -109,7 +109,6 @@ func TestNebulaDeployment(t *testing.T) {
 
 	time.Sleep(time.Second * 25)
 
-
 	nebulaExecutor.SetAdditionalMeta([]types.AccountMeta {
 		{ PubKey: common.PublicKeyFromString(solana.ClockProgram), IsSigner: false, IsWritable: false },
 	})

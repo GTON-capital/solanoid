@@ -126,7 +126,7 @@ func (nexe *NebulaInstructionExecutor) InvokePureInstruction(instruction interfa
 
 	res, err := c.GetRecentBlockhash()
 	if err != nil {
-		log.Fatalf("get recent block hash error, err: %v\n", err)
+		fmt.Printf("get recent block hash error, err: %v\n", err)
 		return nil, err
 	}
 
@@ -143,7 +143,7 @@ func (nexe *NebulaInstructionExecutor) InvokePureInstruction(instruction interfa
 
 	serializedMessage, err := message.Serialize()
 	if err != nil {
-		log.Fatalf("serialize message error, err: %v\n", err)
+		fmt.Printf("serialize message error, err: %v\n", err)
 		return nil, err
 	}
 
@@ -158,13 +158,13 @@ func (nexe *NebulaInstructionExecutor) InvokePureInstruction(instruction interfa
 
 
 	if err != nil {
-		log.Fatalf("generate tx error, err: %v\n", err)
+		fmt.Printf("generate tx error, err: %v\n", err)
 		return nil, err
 	}
 
 	rawTx, err := tx.Serialize()
 	if err != nil {
-		log.Fatalf("serialize tx error, err: %v\n", err)
+		fmt.Printf("serialize tx error, err: %v\n", err)
 		return nil, err
 	}
 	fmt.Println("------ RAW TRANSACTION ------------------------")
@@ -177,7 +177,7 @@ func (nexe *NebulaInstructionExecutor) InvokePureInstruction(instruction interfa
 
 	txSig, err := c.SendRawTransaction(rawTx)
 	if err != nil {
-		log.Fatalf("send tx error, err: %v\n", err)
+		fmt.Printf("send tx error, err: %v\n", err)
 		return nil, err
 	}
 
