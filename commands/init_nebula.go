@@ -4,7 +4,6 @@ import (
 
 	// "solanoid/commands/executor"
 	"solanoid/commands/executor"
-	"solanoid/models/endpoint"
 
 	"github.com/portto/solana-go-sdk/common"
 	"github.com/spf13/cobra"
@@ -65,5 +64,7 @@ func InitNebula(privateKey, nebulaProgramID, nebulaDataAccount, nebulaMultisigDa
 
 
 func initNebula(ccmd *cobra.Command, args []string) {
-	_, _ = InitNebula(UpdateConsulsPrivateKey, GravityDataAccount, NebulaDataAccount, MultisigDataAccount, endpoint.LocalEnvironment, common.PublicKeyFromString(GravityProgramID))
+	endpoint, _ := InferSystemDefinedRPC()
+
+	_, _ = InitNebula(UpdateConsulsPrivateKey, GravityDataAccount, NebulaDataAccount, MultisigDataAccount, endpoint, common.PublicKeyFromString(GravityProgramID))
 }

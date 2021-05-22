@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"solanoid/models"
-	"solanoid/models/endpoint"
 
 	"github.com/mr-tron/base58"
 	"github.com/portto/solana-go-sdk/client"
@@ -55,14 +54,7 @@ func init() {
 	SolanoidCmd.AddCommand(initGravityContractCmd)
 }
 
-func NewInitGravityContractInstruction(fromAccount, programData, multisigData, targetProgramID common.PublicKey, Bft uint8, Round uint64, Consuls [5][32]byte) types.Instruction {
-	consuls := []byte{}
-	consuls = append(consuls, fromAccount.Bytes()...)
-	// for i := 0; i < 2; i++ {
-	// 	acc := types.NewAccount()
-	// 	zap.L().Sugar().Infof("consul %d pk %s", i, base58.Encode(acc.PrivateKey))
-	// 	consuls = append(consuls, acc.PublicKey.Bytes()...)
-	// }
+func NewInitGravityContractInstruction(fromAccount, programData, multisigData, targetProgramID common.PublicKey, Bft uint8, Round uint64, consuls []byte) types.Instruction {
 	data, err := common.SerializeData(struct {
 		Instruction uint8
 		Bft         uint8
@@ -91,7 +83,7 @@ func NewInitGravityContractInstruction(fromAccount, programData, multisigData, t
 	}
 }
 
-func InitGravity(privateKey, programID, stateID, multisigID, clientEndpoint string) (*models.CommandResponse, error) {
+func InitGravity(privateKey, programID, stateID, multisigID, clientEndpoint string, consuls []byte) (*models.CommandResponse, error) {
 	// pk, err := base58.Decode(UpdateConsulsPrivateKey)
 	pk, err := base58.Decode(privateKey)
 	if err != nil {
@@ -120,7 +112,7 @@ func InitGravity(privateKey, programID, stateID, multisigID, clientEndpoint stri
 		account.PublicKey,
 		[]types.Instruction{
 			NewInitGravityContractInstruction(
-				account.PublicKey, dataAcc, multisigAcc, program, 3, 1, [5][32]byte{},
+				account.PublicKey, dataAcc, multisigAcc, program, 3, 1, consuls,
 			),
 		},
 		res.Blockhash,
@@ -170,7 +162,8 @@ func InitGravity(privateKey, programID, stateID, multisigID, clientEndpoint stri
 }
 
 func initGravity(ccmd *cobra.Command, args []string) {
-	_, err := InitGravity(UpdateConsulsPrivateKey, GravityProgramID, GravityDataAccount, MultisigDataAccount, endpoint.LocalEnvironment)
+	endpoint, _ := InferSystemDefinedRPC()
+	_, err := InitGravity(UpdateConsulsPrivateKey, GravityProgramID, GravityDataAccount, MultisigDataAccount, endpoint, make([]byte, 0))
 	if err != nil {
 		log.Fatalf("Error on 'InitGravity': %v\n", err)
 	}
