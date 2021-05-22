@@ -25,7 +25,10 @@ func ValidateErrorExistence(t *testing.T, err error) {
 	if err == nil {
 		t.Errorf("No error occured!")
 		t.FailNow()
+		return
 	}
+
+	t.Errorf("Error: %v \n", err)
 }
 
 

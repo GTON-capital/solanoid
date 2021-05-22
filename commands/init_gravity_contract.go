@@ -100,7 +100,7 @@ func InitGravity(privateKey, programID, stateID, multisigID, clientEndpoint stri
 
 	res, err := c.GetRecentBlockhash()
 	if err != nil {
-		log.Fatalf("get recent block hash error, err: %v\n", err)
+		fmt.Printf("get recent block hash error, err: %v\n", err)
 		return nil, err
 	}
 
@@ -116,7 +116,7 @@ func InitGravity(privateKey, programID, stateID, multisigID, clientEndpoint stri
 
 	serializedMessage, err := message.Serialize()
 	if err != nil {
-		log.Fatalf("serialize message error, err: %v\n", err)
+		fmt.Printf("serialize message error, err: %v\n", err)
 		return nil, err
 	}
 
@@ -125,13 +125,13 @@ func InitGravity(privateKey, programID, stateID, multisigID, clientEndpoint stri
 	})
 
 	if err != nil {
-		log.Fatalf("generate tx error, err: %v\n", err)
+		fmt.Printf("generate tx error, err: %v\n", err)
 		return nil, err
 	}
 
 	rawTx, err := tx.Serialize()
 	if err != nil {
-		log.Fatalf("serialize tx error, err: %v\n", err)
+		fmt.Printf("serialize tx error, err: %v\n", err)
 		return nil, err
 	}
 	fmt.Println("------ RAW TRANSACTION ------------------------")
@@ -144,7 +144,7 @@ func InitGravity(privateKey, programID, stateID, multisigID, clientEndpoint stri
 
 	txSig, err := c.SendRawTransaction(rawTx)
 	if err != nil {
-		log.Fatalf("send tx error, err: %v\n", err)
+		fmt.Printf("send tx error, err: %v\n", err)
 		return nil, err
 	}
 

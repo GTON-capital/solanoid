@@ -10,6 +10,6 @@ type InitGravityContractInstruction struct {
 type UpdateConsulsGravityContractInstruction struct {
 	Instruction   uint8 
 	Bft           uint8
-	InitRound     uint64 
+	LastRound     uint64 
 	Consuls     []byte
 }

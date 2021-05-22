@@ -1,17 +1,21 @@
 package commands
 
 import (
+	"solanoid/commands/executor"
 	"time"
 
 	// "os"
 
 	"testing"
 
+	"github.com/mr-tron/base58"
 	"github.com/portto/solana-go-sdk/common"
+	"github.com/portto/solana-go-sdk/types"
 	// "strings"
 )
 
-func TestDeployGravity(t *testing.T) {
+func TestGravityContract(t *testing.T) {
+	var err, errFailing error
 
 	deployerPrivateKeyPath := "../private-keys/main-deployer.json"
 	// deployerPrivateKeyPath := "/Users/shamil/.config/solana/id.json"
@@ -35,31 +39,111 @@ func TestDeployGravity(t *testing.T) {
 	gravityMultisigAccount, err := GenerateNewAccount(deployerPrivateKey, MultisigAllocation, gravityProgramID, endpoint)
 	ValidateError(t, err)
 
-	time.Sleep(time.Second * 20)
+	bft := uint8(3)
+	consulsPKlist := make([]types.Account, bft)
+	
+	var consulsKeysList []common.PublicKey
 
-	consuls := make([]byte, 0)
+	for i := range consulsPKlist {
+		consul := types.NewAccount()
+		consulsPKlist[i] = consul
 
-	consulsKeysList := []common.PublicKey {
-		common.PublicKeyFromString("EnwGpvfZdCpkjs8jMShjo8evce2LbNfrYvREzdwGh5oc"),
-		common.PublicKeyFromString("ESgKDVemBdqDty6WExZ74kV8Re9yepth5tbKcsWTNXC9"),
-		common.PublicKeyFromString("5Ng92o7CPPWk5tT2pqrnRMndoD49d51f4QcocgJttGHS"),
-		common.PublicKeyFromString("5Ng92o7CPPWk5tT2pqrnRMndoD49d51f4QcocgJttGHS"),
-		common.PublicKeyFromString("5Ng92o7CPPWk5tT2pqrnRMndoD49d51f4QcocgJttGHS"),
-		common.PublicKeyFromString("5Ng92o7CPPWk5tT2pqrnRMndoD49d51f4QcocgJttGHS"),
+		consulsKeysList = append(consulsKeysList, consul.PublicKey)
 	}
 	
+	// consulsKeysList := []common.PublicKey {
+	// 	common.PublicKeyFromString("EnwGpvfZdCpkjs8jMShjo8evce2LbNfrYvREzdwGh5oc"),
+	// 	common.PublicKeyFromString("ESgKDVemBdqDty6WExZ74kV8Re9yepth5tbKcsWTNXC9"),
+	// 	common.PublicKeyFromString("5Ng92o7CPPWk5tT2pqrnRMndoD49d51f4QcocgJttGHS"),
+	// }
+		
+	consuls := make([]byte, 0)
 	for _, x := range consulsKeysList {
 		consuls = append(consuls, x.Bytes()...)
 	}
 
-	_, err = InitGravity(
-		deployerPrivateKey, gravityProgramID, 
+	// _, err = InitGravity(
+	// 	deployerPrivateKey, gravityProgramID, 
+	// 	gravityStateAccount.Account.PublicKey.ToBase58(),
+	// 	gravityMultisigAccount.Account.PublicKey.ToBase58(),
+	// 	endpoint,
+	// 	consuls,
+	// )
+	// ValidateError(t, err)
+	time.Sleep(time.Second * 20)
+
+	gravityExecutor, err := InitNebula(
+		deployerPrivateKey, 
+		gravityProgramID,
 		gravityStateAccount.Account.PublicKey.ToBase58(),
 		gravityMultisigAccount.Account.PublicKey.ToBase58(),
 		endpoint,
-		consuls,
+		common.PublicKeyFromString(gravityProgramID),
 	)
 	ValidateError(t, err)
+
+	// t.Logf("before - Gravity Consuls Update should fail - program account is not initialized: %v \n", errFailing)
+
+	_, errFailing = gravityExecutor.BuildAndInvoke(executor.UpdateConsulsGravityContractInstruction {
+		Instruction: 1,
+		Bft: bft,
+		LastRound: 10,
+		Consuls: append(consuls[:], consuls[:]...),
+	})
+	ValidateErrorExistence(t, errFailing)
+
+	t.Logf("Gravity Consuls Update should fail - program account is not initialized: %v \n", errFailing)
+
+	time.Sleep(time.Second * 20)
+
+	gravityInitResponse, err := gravityExecutor.BuildAndInvoke(executor.InitGravityContractInstruction {
+		Instruction: 0,
+		Bft: bft,
+		InitRound: 1,
+		Consuls: consuls[:],
+	})
+	ValidateError(t, err)
+	
+	t.Logf("Gravity Init: %v \n", gravityInitResponse.TxSignature)
+
+	time.Sleep(time.Second * 20)
+
+	var signers []executor.GravityBftSigner
+	// var additionalMeta []types.AccountMeta 
+
+	for _, signer := range consulsPKlist {
+		signers = append(signers, *executor.NewGravityBftSigner(base58.Encode(signer.PrivateKey)))
+		// additionalMeta = append(additionalMeta, types.AccountMeta{
+		// 	PubKey: common.PublicKeyFromString(solana.ClockProgram), IsSigner: false, IsWritable: false
+		// })
+	}
+
+	gravityExecutor.SetAdditionalSigners(signers)
+	// gravityExecutor.SetAdditionalMeta(additionalMeta)
+	// nebulaExecutor.SetAdditionalMeta([]types.AccountMeta {
+	// 	{ PubKey: common.PublicKeyFromString(solana.ClockProgram), IsSigner: false, IsWritable: false },
+	// })
+
+	gravityConsulsUpdateResponse, err := gravityExecutor.BuildAndInvoke(executor.UpdateConsulsGravityContractInstruction {
+		Instruction: 1,
+		Bft: bft,
+		LastRound: 10,
+		Consuls: consuls,
+	})
+	ValidateError(t, err)
+
+	t.Logf("Gravity Consuls Update: %v \n", gravityConsulsUpdateResponse.TxSignature)
+
+	time.Sleep(time.Second * 20)
+	_, errFailing = gravityExecutor.BuildAndInvoke(executor.UpdateConsulsGravityContractInstruction {
+		Instruction: 1,
+		Bft: bft,
+		LastRound: 0,
+		Consuls: consuls,
+	})
+	ValidateErrorExistence(t, errFailing)
+
+	t.Logf("Gravity Consuls Update should fail - invalid last round: %v \n", errFailing)
 
 	aftermathBalance, err := ReadAccountBalance(deployerAddress)
 	ValidateError(t, err)
@@ -68,39 +152,3 @@ func TestDeployGravity(t *testing.T) {
 	t.Logf("Gravity Program ID: %v \n", gravityProgramID)
 	t.Logf("Spent: %v SOL \n", initialBalance - aftermathBalance)
 }
-
-// func TestGravityDeployment(t *testing.T) {
-// 	// var err error
-
-// 	// gravityProgramID := "BXDqLUQwWGDMQ6tFuca6mDLSZ1PgsS8T3R6oneXUUnoy"
-
-// 	// nebulaProgramID := "CybfUMjVa13jLASS6BD53VvkeWChKHCWWZrs96dv5orN"
-// 	// nebulaProgramID, err := DeploySolanaProgram(t, "nebula", "../private-keys/nebula.json", "../binaries/nebula.so")
-// 	// ValidateError(t, err)
-
-// 	// deployerPrivateKeyPath := "../private-keys/gravity-deployer.json"
-// 	// deployerPrivateKey, err := readPKFromPath(t, deployerPrivateKeyPath)
-// 	// ValidateError(t, err)
-
-// 	// nebulaStateAccount, err := GenerateNewAccount(deployerPrivateKey, 2000, nebulaProgramID)
-// 	// ValidateError(t, err)
-// 	// t.Logf("nebula state account: %v \n", nebulaStateAccount.Account.PublicKey.ToBase58())
-	
-// 	// nebulaMultisigAccount, err := GenerateNewAccount(deployerPrivateKey, MultisigAllocation, nebulaProgramID)
-// 	// ValidateError(t, err)
-// 	// t.Logf("nebula multisig state account: %v \n", nebulaMultisigAccount.Account.PublicKey.ToBase58())
-
-// 	// confirmationTimeout := time.Second * 20
-// 	// t.Log("timeout 20 seconds - wait for MAX confirmations.")
-
-// 	// time.Sleep(confirmationTimeout)
-
-// 	nebulaExecutor, err := InitNebula(
-// 		deployerPrivateKey, 
-// 		nebulaProgramID,
-// 		nebulaStateAccount.Account.PublicKey.ToBase58(),
-// 		nebulaMultisigAccount.Account.PublicKey.ToBase58(),
-// 		endpoint.LocalEnvironment,
-// 		common.PublicKeyFromString(gravityProgramID),
-// 	)
-// }
