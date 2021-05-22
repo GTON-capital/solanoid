@@ -24,7 +24,7 @@ func TestDeployGravity(t *testing.T) {
 	initialBalance, err := ReadAccountBalance(deployerAddress)
 	ValidateError(t, err)
 
-	gravityProgramID, err := DeploySolanaProgram(t, "gravity", "../private-keys/devnet-gravity.json", deployerPrivateKeyPath, "../binaries/gravity.so")
+	gravityProgramID, err := DeploySolanaProgram(t, "gravity", "../private-keys/gravity3.json", deployerPrivateKeyPath, "../binaries/gravity.so")
 	ValidateError(t, err)
 
 	endpoint, _ := InferSystemDefinedRPC()
@@ -35,18 +35,23 @@ func TestDeployGravity(t *testing.T) {
 	gravityMultisigAccount, err := GenerateNewAccount(deployerPrivateKey, MultisigAllocation, gravityProgramID, endpoint)
 	ValidateError(t, err)
 
-	time.Sleep(time.Second * 30)
+	time.Sleep(time.Second * 20)
 
 	consuls := make([]byte, 0)
+
 	consulsKeysList := []common.PublicKey {
 		common.PublicKeyFromString("EnwGpvfZdCpkjs8jMShjo8evce2LbNfrYvREzdwGh5oc"),
 		common.PublicKeyFromString("ESgKDVemBdqDty6WExZ74kV8Re9yepth5tbKcsWTNXC9"),
 		common.PublicKeyFromString("5Ng92o7CPPWk5tT2pqrnRMndoD49d51f4QcocgJttGHS"),
+		common.PublicKeyFromString("5Ng92o7CPPWk5tT2pqrnRMndoD49d51f4QcocgJttGHS"),
+		common.PublicKeyFromString("5Ng92o7CPPWk5tT2pqrnRMndoD49d51f4QcocgJttGHS"),
+		common.PublicKeyFromString("5Ng92o7CPPWk5tT2pqrnRMndoD49d51f4QcocgJttGHS"),
 	}
+	
 	for _, x := range consulsKeysList {
 		consuls = append(consuls, x.Bytes()...)
 	}
-	
+
 	_, err = InitGravity(
 		deployerPrivateKey, gravityProgramID, 
 		gravityStateAccount.Account.PublicKey.ToBase58(),
