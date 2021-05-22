@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"solanoid/models"
+
 	"github.com/mr-tron/base58"
 	"github.com/portto/solana-go-sdk/client"
 	"github.com/portto/solana-go-sdk/common"
@@ -56,13 +57,14 @@ func init() {
 }
 
 func newAccCommand(ccmd *cobra.Command, args []string) {
-	_, _ = GenerateNewAccount(newDataAccPrivateKey, space, programID)
+	endpoint, _ := InferSystemDefinedRPC()
+	_, _ = GenerateNewAccount(newDataAccPrivateKey, space, programID, endpoint)
 	// if err != nil {
 	// 	return 
 	// }
 }
 
-func GenerateNewAccount(privateKey string, space uint64, programID string) (*models.CommandResponse, error) {
+func GenerateNewAccount(privateKey string, space uint64, programID, clientEndpoint string) (*models.CommandResponse, error) {
 	// pk, err := base58.Decode(newDataAccPrivateKey)
 	pk, err := base58.Decode(privateKey)
 	if err != nil {
@@ -77,7 +79,7 @@ func GenerateNewAccount(privateKey string, space uint64, programID string) (*mod
 
 	program := common.PublicKeyFromString(programID)
 
-	c := client.NewClient("http://localhost:8899")
+	c := client.NewClient(clientEndpoint)
 
 	res, err := c.GetRecentBlockhash()
 	if err != nil {

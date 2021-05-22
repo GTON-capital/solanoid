@@ -16,3 +16,8 @@ const (
 	SlotHistoryProgram = "SysvarS1otHistory11111111111111111111111111"
 	StakeHistoryProgram = "SysvarStakeHistory1111111111111111111111111"
 )
+
+
+const (
+	
+)

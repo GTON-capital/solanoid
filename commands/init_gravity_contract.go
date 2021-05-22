@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"solanoid/models"
-	"solanoid/models/endpoint"
 
 	"github.com/mr-tron/base58"
 	"github.com/portto/solana-go-sdk/client"
@@ -163,7 +162,8 @@ func InitGravity(privateKey, programID, stateID, multisigID, clientEndpoint stri
 }
 
 func initGravity(ccmd *cobra.Command, args []string) {
-	_, err := InitGravity(UpdateConsulsPrivateKey, GravityProgramID, GravityDataAccount, MultisigDataAccount, endpoint.LocalEnvironment, make([]byte, 0))
+	endpoint, _ := InferSystemDefinedRPC()
+	_, err := InitGravity(UpdateConsulsPrivateKey, GravityProgramID, GravityDataAccount, MultisigDataAccount, endpoint, make([]byte, 0))
 	if err != nil {
 		log.Fatalf("Error on 'InitGravity': %v\n", err)
 	}

@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os/exec"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -45,10 +46,31 @@ func SystemFaucet(t *testing.T, privateKeyPath string, recipient string, amount 
 	return programID, nil
 }
 
-func DeploySolanaProgram(t *testing.T, tag string, programPrivateKeysPath, programBinaryPath string) (string, error) {
+func InferSystemDefinedRPC() (string, error) {
+	cmd := exec.Command("solana", "config", "get")
+	output, err := cmd.CombinedOutput()
+	
+	rgx, _ := regexp.Compile("RPC URL: .+")
+	result := rgx.Find(output)
+	resultStr := strings.Trim(string(result), "\n\r ")
+	resultList := strings.Split(resultStr, " ")
+	rpcURL := resultList[len(resultList) - 1]
+	
+	fmt.Println(resultList)
+	rpcURL = strings.Trim(rpcURL, "\n\r")
+
+	if err != nil {
+		return "", err
+	}
+
+	// t.Log(output)
+	return rpcURL, nil
+}
+
+func DeploySolanaProgram(t *testing.T, tag string, programPrivateKeysPath, deployerPrivateKeysPath, programBinaryPath string) (string, error) {
 	t.Log("deploying program")
 
-	cmd := exec.Command("solana", "program", "deploy", "--program-id", programPrivateKeysPath, programBinaryPath)
+	cmd := exec.Command("solana", "program", "deploy", "--keypair", deployerPrivateKeysPath, "--program-id", programPrivateKeysPath, programBinaryPath)
 
 	output, err := cmd.CombinedOutput()
 	

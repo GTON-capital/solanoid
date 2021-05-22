@@ -2,7 +2,6 @@ package commands
 
 import (
 	"solanoid/commands/executor"
-	"solanoid/models/endpoint"
 	"solanoid/models/nebula"
 	"solanoid/models/solana"
 	"time"
@@ -41,21 +40,25 @@ import (
 func TestNebulaDeployment(t *testing.T) {
 	var err error
 
+	endpoint, _ := InferSystemDefinedRPC()
+
 	gravityProgramID := "BXDqLUQwWGDMQ6tFuca6mDLSZ1PgsS8T3R6oneXUUnoy"
-
-	// nebulaProgramID := "CybfUMjVa13jLASS6BD53VvkeWChKHCWWZrs96dv5orN"
-	nebulaProgramID, err := DeploySolanaProgram(t, "nebula", "../private-keys/nebula.json", "../binaries/nebula.so")
-	ValidateError(t, err)
-
+	
 	deployerPrivateKeyPath := "../private-keys/gravity-deployer.json"
 	deployerPrivateKey, err := ReadPKFromPath(t, deployerPrivateKeyPath)
+
+	// nebulaProgramID := "CybfUMjVa13jLASS6BD53VvkeWChKHCWWZrs96dv5orN"
+	nebulaProgramID, err := DeploySolanaProgram(t, "nebula", "../private-keys/nebula.json", deployerPrivateKeyPath, "../binaries/nebula.so")
 	ValidateError(t, err)
 
-	nebulaStateAccount, err := GenerateNewAccount(deployerPrivateKey, 2000, nebulaProgramID)
+
+	ValidateError(t, err)
+
+	nebulaStateAccount, err := GenerateNewAccount(deployerPrivateKey, 2000, nebulaProgramID, endpoint)
 	ValidateError(t, err)
 	t.Logf("nebula state account: %v \n", nebulaStateAccount.Account.PublicKey.ToBase58())
 	
-	nebulaMultisigAccount, err := GenerateNewAccount(deployerPrivateKey, MultisigAllocation, nebulaProgramID)
+	nebulaMultisigAccount, err := GenerateNewAccount(deployerPrivateKey, MultisigAllocation, nebulaProgramID, endpoint)
 	ValidateError(t, err)
 	t.Logf("nebula multisig state account: %v \n", nebulaMultisigAccount.Account.PublicKey.ToBase58())
 
@@ -69,7 +72,7 @@ func TestNebulaDeployment(t *testing.T) {
 		nebulaProgramID,
 		nebulaStateAccount.Account.PublicKey.ToBase58(),
 		nebulaMultisigAccount.Account.PublicKey.ToBase58(),
-		endpoint.LocalEnvironment,
+		endpoint,
 		common.PublicKeyFromString(gravityProgramID),
 	)
 	ValidateError(t, err)
@@ -133,7 +136,7 @@ func TestNebulaDeployment(t *testing.T) {
 	
 	time.Sleep(time.Second * 3)
 
-	mockedSubscriber, err := GenerateNewAccount(deployerPrivateKey, 1024, nebulaProgramID)
+	mockedSubscriber, err := GenerateNewAccount(deployerPrivateKey, 1024, nebulaProgramID, endpoint)
 	ValidateError(t, err)
 	t.Logf("mocked subscriber state account: %v \n", mockedSubscriber.Account.PublicKey.ToBase58())
 

@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"solanoid/models/endpoint"
+	"time"
 
 	// "os"
 
@@ -11,18 +11,23 @@ import (
 	// "strings"
 )
 
-func DeployGravity(t *testing.T) {
-
-	gravityProgramID, err := DeploySolanaProgram(t, "gravity", "../private-keys/main-deployer.json", "../binaries/gravity.so")
-	ValidateError(t, err)
+func TestDeployGravity(t *testing.T) {
 
 	deployerPrivateKeyPath := "../private-keys/main-deployer.json"
 	deployerPrivateKey, err := ReadPKFromPath(t, deployerPrivateKeyPath)
-	gravityStateAccount, err := GenerateNewAccount(deployerPrivateKey, GravityContractAllocation, gravityProgramID)
+
+	gravityProgramID, err := DeploySolanaProgram(t, "gravity", "../private-keys/devnet-gravity.json", deployerPrivateKeyPath, "../binaries/gravity.so")
 	ValidateError(t, err)
 
-	gravityMultisigAccount, err := GenerateNewAccount(deployerPrivateKey, MultisigAllocation, gravityProgramID)
+	endpoint, _ := InferSystemDefinedRPC()
+	
+	gravityStateAccount, err := GenerateNewAccount(deployerPrivateKey, GravityContractAllocation, gravityProgramID, endpoint)
 	ValidateError(t, err)
+
+	gravityMultisigAccount, err := GenerateNewAccount(deployerPrivateKey, MultisigAllocation, gravityProgramID, endpoint)
+	ValidateError(t, err)
+
+	time.Sleep(time.Second * 30)
 
 	consuls := make([]byte, 0)
 	consulsKeysList := []common.PublicKey {
@@ -38,7 +43,7 @@ func DeployGravity(t *testing.T) {
 		deployerPrivateKey, gravityProgramID, 
 		gravityStateAccount.Account.PublicKey.ToBase58(),
 		gravityMultisigAccount.Account.PublicKey.ToBase58(),
-		endpoint.LocalEnvironment,
+		endpoint,
 		consuls,
 	)
 	ValidateError(t, err)
