@@ -155,25 +155,38 @@ func TestGravityContract(t *testing.T) {
 
 
 func TestIBPortContract(t *testing.T) {
+	var err error
+	deployerPrivateKeysPath := "../private-keys/_test_only-port-deployer.json"
 	tokenOwnerPath := "../private-keys/_test_only-token-owner.json"
 	ibportProgramPath := "../private-keys/_test_only_ibport-owner.json"
 
-	err := CreatePersistedAccount(tokenOwnerPath, true)
+	err = CreatePersistedAccount(deployerPrivateKeysPath, true)
+	ValidateError(t, err)
+	err = CreatePersistedAccount(tokenOwnerPath, true)
 	ValidateError(t, err)
 	err = CreatePersistedAccount(ibportProgramPath, true)
 	ValidateError(t, err)
+
+	// tokenOwnerPrivateKey, err := ReadPKFromPath(t, tokenOwnerPath) 
+	// ValidateError(t, err)
 	
+	deployerAddress, err := ReadAccountAddress(deployerPrivateKeysPath)
+	ValidateError(t, err)
+
 	tokenOwnerAddress, err := ReadAccountAddress(tokenOwnerPath)
 	ValidateError(t, err)
 	
 	ibportAddress, err := ReadAccountAddress(ibportProgramPath)
 	ValidateError(t, err)
 	
+	// SystemFaucet(t, deployerAddress, 10)
+	// ValidateError(t, err)
+
 	SystemFaucet(t, tokenOwnerAddress, 10)
 	ValidateError(t, err)
 
-	SystemFaucet(t, ibportAddress, 10)
-	ValidateError(t, err)
+	// SystemFaucet(t, ibportAddress, 10)
+	// ValidateError(t, err)
 	
 	tokenDeployResult, err := CreateToken(tokenOwnerPath)
 	ValidateError(t, err)
@@ -181,24 +194,38 @@ func TestIBPortContract(t *testing.T) {
 	tokenProgramAddress := tokenDeployResult.Token.ToBase58()
 	associatedTokenAccount, err := CreateTokenAccount(tokenOwnerPath, tokenProgramAddress)
 
+	t.Logf("tokenProgramAddress: %v", tokenProgramAddress)
+	// t.Logf("deployerAddress: %v", deployerAddress)
+	t.Logf("tokenOwnerAddress: %v", tokenOwnerAddress)
+	t.Logf("ibportAddress: %v", ibportAddress)
 	// deployerAddress, err := ReadAccountAddress(tokenOwnerPath)
 	// ValidateError(t, err)
 	
 	// initialBalance, err := ReadAccountBalance(deployerAddress)
 	// ValidateError(t, err)
 
-	portProgramID, err := DeploySolanaProgram(t, "ibport", ibportProgramPath, tokenOwnerPath, "../binaries/ibport.so")
+	deployerPrivateKey, err := ReadPKFromPath(t, deployerPrivateKeysPath)
+	ValidateError(t, err)
+
+	// ibportPrivateKey, err := ReadPKFromPath(t, ibportProgramPath)
+	// ValidateError(t, err)
+
+	SystemFaucet(t, deployerAddress, 10)
+	ValidateError(t, err)
+	
+	// love this *ucking timeouts
+	time.Sleep(time.Second * 5)
+
+	portProgramID, err := DeploySolanaProgram(t, "ibport", ibportProgramPath, deployerPrivateKeysPath, "../binaries/ibport.so")
 	ValidateError(t, err)
 
 	endpoint, _ := InferSystemDefinedRPC()
 	
-	portDataAccount, err := GenerateNewAccount(tokenOwnerPath, GravityContractAllocation, portProgramID, endpoint)
+	portDataAccount, err := GenerateNewAccount(deployerPrivateKey, IBPortAllocation, portProgramID, endpoint)
 	ValidateError(t, err)
 
-	time.Sleep(time.Second * 20)
-
 	ibportExecutor, err := InitNebula(
-		ibportProgramPath, 
+		deployerPrivateKey, 
 		portProgramID,
 		portDataAccount.Account.PublicKey.ToBase58(),
 		"",
@@ -208,7 +235,6 @@ func TestIBPortContract(t *testing.T) {
 	ValidateError(t, err)
 
 	time.Sleep(time.Second * 20)
-
 	ibportInitResult, err := ibportExecutor.BuildAndInvoke(executor.InitIBPortInstruction {
 		Instruction: 0,
 		NebulaDataAccount: common.PublicKeyFromBytes(make([]byte, 32)),

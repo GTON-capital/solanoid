@@ -21,6 +21,7 @@ import (
 const (
 	GravityContractAllocation = 299
 	MultisigAllocation = 355
+	IBPortAllocation = 777
 )
 
 var (

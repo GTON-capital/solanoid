@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -17,19 +16,19 @@ import (
 
 func ValidateError(t *testing.T, err error) {
 	if err != nil {
-		t.Errorf("Error: %v \n", err)
+		t.Logf("Error: %v \n", err)
 		t.FailNow()
 	}
 }
 
 func ValidateErrorExistence(t *testing.T, err error) {
 	if err == nil {
-		t.Errorf("No error occured!")
+		t.Logf("No error occured!")
 		t.FailNow()
 		return
 	}
 
-	t.Errorf("Error: %v \n", err)
+	t.Logf("Error: %v \n", err)
 }
 
 
@@ -265,8 +264,8 @@ func DeploySolanaProgram(t *testing.T, tag string, programPrivateKeysPath, deplo
 	// t.Logf("Program: %v; Deployed Program ID is: %v\n", tag, common.PublicKeyFromString(programID))
 
 	if err != nil {
-		t.Log(err.Error())
-		log.Fatal(err)
+		return "", err
+		// log.Fatal(err)
 	}
 
 	// t.Log(output)

@@ -205,8 +205,11 @@ func (nexe *NebulaInstructionExecutor) BuildInstruction(instruction interface{})
 
 	accountMeta := []types.AccountMeta{
 		{ PubKey: nexe.deployerPrivKey.PublicKey, IsSigner: true, IsWritable: false },
-		{ PubKey: common.PublicKeyFromString(nexe.nebulaDataAccount), IsSigner: false, IsWritable: true },
-		{ PubKey: common.PublicKeyFromString(nexe.nebulaMultisigDataAccount), IsSigner: false, IsWritable: true },	
+		{ PubKey: common.PublicKeyFromString(nexe.nebulaDataAccount), IsSigner: false, IsWritable: true },	
+	}
+
+	if nexe.nebulaMultisigDataAccount != "" {
+		accountMeta = append(accountMeta, types.AccountMeta{ PubKey: common.PublicKeyFromString(nexe.nebulaMultisigDataAccount), IsSigner: false, IsWritable: true })
 	}
 	
 	for _, signer := range nexe.signers {
