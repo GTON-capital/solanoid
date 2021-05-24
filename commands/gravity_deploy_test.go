@@ -152,3 +152,71 @@ func TestGravityContract(t *testing.T) {
 	t.Logf("Gravity Program ID: %v \n", gravityProgramID)
 	t.Logf("Spent: %v SOL \n", initialBalance - aftermathBalance)
 }
+
+
+func TestIBPortContract(t *testing.T) {
+	tokenOwnerPath := "../private-keys/_test_only-token-owner.json"
+	ibportProgramPath := "../private-keys/_test_only_ibport-owner.json"
+
+	err := CreatePersistedAccount(tokenOwnerPath, true)
+	ValidateError(t, err)
+	err = CreatePersistedAccount(ibportProgramPath, true)
+	ValidateError(t, err)
+	
+	tokenOwnerAddress, err := ReadAccountAddress(tokenOwnerPath)
+	ValidateError(t, err)
+	
+	ibportAddress, err := ReadAccountAddress(ibportProgramPath)
+	ValidateError(t, err)
+	
+	SystemFaucet(t, tokenOwnerAddress, 10)
+	ValidateError(t, err)
+
+	SystemFaucet(t, ibportAddress, 10)
+	ValidateError(t, err)
+	
+	tokenDeployResult, err := CreateToken(tokenOwnerPath)
+	ValidateError(t, err)
+	
+	tokenProgramAddress := tokenDeployResult.Token.ToBase58()
+	associatedTokenAccount, err := CreateTokenAccount(tokenOwnerPath, tokenProgramAddress)
+
+	// deployerAddress, err := ReadAccountAddress(tokenOwnerPath)
+	// ValidateError(t, err)
+	
+	// initialBalance, err := ReadAccountBalance(deployerAddress)
+	// ValidateError(t, err)
+
+	portProgramID, err := DeploySolanaProgram(t, "ibport", ibportProgramPath, tokenOwnerPath, "../binaries/ibport.so")
+	ValidateError(t, err)
+
+	endpoint, _ := InferSystemDefinedRPC()
+	
+	portDataAccount, err := GenerateNewAccount(tokenOwnerPath, GravityContractAllocation, portProgramID, endpoint)
+	ValidateError(t, err)
+
+	time.Sleep(time.Second * 20)
+
+	ibportExecutor, err := InitNebula(
+		ibportProgramPath, 
+		portProgramID,
+		portDataAccount.Account.PublicKey.ToBase58(),
+		"",
+		endpoint,
+		common.PublicKeyFromString(portProgramID),
+	)
+	ValidateError(t, err)
+
+	time.Sleep(time.Second * 20)
+
+	ibportInitResult, err := ibportExecutor.BuildAndInvoke(executor.InitIBPortInstruction {
+		Instruction: 0,
+		NebulaDataAccount: common.PublicKeyFromBytes(make([]byte, 32)),
+		TokenDataAccount: common.PublicKeyFromString(associatedTokenAccount),
+	})
+	ValidateError(t, err)
+
+	t.Logf("IBPort Init: %v \n", ibportInitResult.TxSignature)
+
+	// time.Sleep(time.Second * 20)
+}

@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/mr-tron/base58"
+	"github.com/portto/solana-go-sdk/common"
 )
 
 func ValidateError(t *testing.T, err error) {
@@ -32,22 +33,23 @@ func ValidateErrorExistence(t *testing.T, err error) {
 }
 
 
-func SystemFaucet(t *testing.T, privateKeyPath string, recipient string, amount uint64) (string, error) {
+func SystemFaucet(t *testing.T, recipient string, amount uint64) error {
 	t.Logf("transfer %v SOL to %v address \n", amount, recipient)
 
-	cmd := exec.Command("solana", "transfer", recipient, fmt.Sprint(amount))
+	cmd := exec.Command("solana", "transfer", recipient, fmt.Sprint(amount), "--allow-unfunded-recipient")
 
 	output, err := cmd.CombinedOutput()
 	t.Log(string(output))
 
 	if err != nil {
 		t.Log(err.Error())
-		log.Fatal(err)
+		// log.Fatal(err)
+		return err
 	}
 
 	// t.Log(output)
 	
-	return programID, nil
+	return nil
 }
 
 func InferSystemDefinedRPC() (string, error) {
@@ -69,6 +71,49 @@ func InferSystemDefinedRPC() (string, error) {
 
 	// t.Log(output)
 	return rpcURL, nil
+}
+
+type TokenCreateResult struct {
+	Token     common.PublicKey
+	Owner     common.PublicKey
+	Signature string
+}
+
+
+func trimAndTakeLast(str, del string) string {
+	resultStr := strings.Trim(str, "\n\r ")
+	resultList := strings.Split(resultStr, del)
+	lastEl := resultList[len(resultList) - 1]
+	return lastEl
+}
+	
+func CreateToken(ownerPrivateKeysPath string) (*TokenCreateResult, error) {
+	cmd := exec.Command("spl-token", "create-token", "--owner", ownerPrivateKeysPath)
+	output, err := cmd.CombinedOutput()
+
+	if err != nil {
+		return nil, err
+	}
+
+	tokenCatchRegex, _ := regexp.Compile("Creating token .+")
+	signatureCatchRegex, _ := regexp.Compile("Signature: .+")
+	tokenAddress := trimAndTakeLast(string(tokenCatchRegex.Find(output)), " ")
+	signature := trimAndTakeLast(string(signatureCatchRegex.Find(output)), " ")
+	
+	fmt.Println(tokenAddress)
+	fmt.Println(signature)
+
+	owner, err := ReadAccountAddress(ownerPrivateKeysPath)
+	if err != nil {
+		return nil, err
+	}
+
+	return &TokenCreateResult{
+		Token: common.PublicKeyFromString(tokenAddress),
+		Owner: common.PublicKeyFromString(owner),
+		Signature: signature,
+	}, nil
+	// spl-token create-token --owner private-keys/main-deployer.json 
 }
 
 func ReadAccountAddress(privateKeysPath string) (string, error) {
@@ -107,7 +152,101 @@ func ReadAccountBalance(address string) (float64, error) {
 	return castedBalance, nil
 }
 
+func CreatePersistedAccount(path string, forceRewrite bool) error {
+	var forceArg string
+	if forceRewrite {
+		forceArg = "--force"
+	}
 
+	cmd := exec.Command("solana-keygen", "new", "-o", path, "--no-bip39-passphrase", forceArg)
+
+	_, err := cmd.CombinedOutput()
+	// t.Log(string(output))
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+
+func ReadSPLTokenBalance(ownerPrivateKeysPath, tokenProgramAddress string) (float64, error) {
+	cmd := exec.Command("spl-token", "balance", "--owner", ownerPrivateKeysPath, tokenProgramAddress)
+	output, err := cmd.CombinedOutput()
+	
+	if err != nil {
+		return 0, err
+	}
+	result := string(output)
+	balance := strings.Trim(result, "\n\r")
+	castedBalance, err := strconv.ParseFloat(balance, 64)
+	
+	if err != nil {
+		return 0, err
+	}
+
+	return castedBalance, nil
+}
+
+// On mint we provide token program address & account data address
+// spl-token mint --owner private-keys/token-owner.json $TOKEN_PROGRAM 10 GMuGCTYcCV7FiKg3kQ7LArfZQdhagvUYWNXb1DNZQSGK
+func MintToken(minterPrivateKeysPath, tokenProgramAddress string, amount float64, tokenDataAccount string) error {
+	cmd := exec.Command("spl-token", "mint", "--owner", minterPrivateKeysPath, tokenProgramAddress, fmt.Sprintf("%v", amount), tokenDataAccount)
+	output, err := cmd.CombinedOutput()
+	fmt.Printf(string(output))
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// On burn - only token data account address
+// spl-token burn GMuGCTYcCV7FiKg3kQ7LArfZQdhagvUYWNXb1DNZQSGK 1 --owner private-keys/token-owner.json 
+func BurnToken(burnerPrivateKeysPath, tokenDataAccount string, amount float64) error {
+	cmd := exec.Command("spl-token", "burn", tokenDataAccount, fmt.Sprintf("%v", amount), "--owner", burnerPrivateKeysPath)
+	output, err := cmd.CombinedOutput()
+	fmt.Printf(string(output))
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+
+func CreateTokenAccount(currentOwnerPrivateKeyPath, tokenAddress string) (string, error) {
+	cmd := exec.Command("spl-token", "create-account", "--owner", currentOwnerPrivateKeyPath, tokenAddress)
+	output, err := cmd.CombinedOutput()
+	// t.Log(string(output))
+
+	// Creating account GMuGCTYcCV7FiKg3kQ7LArfZQdhagvUYWNXb1DNZQSGK
+	dataAccountCatchRegex, _ := regexp.Compile("Creating account .+")
+	tokenDataAccount := trimAndTakeLast(string(dataAccountCatchRegex.Find(output)), " ")
+
+	fmt.Println(tokenDataAccount)
+
+	if err != nil {
+		return "", err
+	}
+
+	return tokenDataAccount, nil
+}
+
+func AuthorizeToken(t *testing.T, currentOwnerPrivateKeyPath, tokenAddress, authority, recipient string) error {
+	cmd := exec.Command("spl-token", "authorize", "--owner", currentOwnerPrivateKeyPath, tokenAddress, authority, recipient)
+	output, err := cmd.CombinedOutput()
+	t.Log(string(output))
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func DeploySolanaProgram(t *testing.T, tag string, programPrivateKeysPath, deployerPrivateKeysPath, programBinaryPath string) (string, error) {
 	t.Log("deploying program")
@@ -148,7 +287,7 @@ func ReadPKFromPath(t *testing.T, path string) (string, error) {
 	}
 
 	encodedPrivKey := base58.Encode(input)
-	t.Logf("priv key: %v \n", encodedPrivKey)
+	// t.Logf("priv key: %v \n", encodedPrivKey)
 
 	return encodedPrivKey, nil
 }
