@@ -87,7 +87,8 @@ func trimAndTakeLast(str, del string) string {
 }
 	
 func CreateToken(ownerPrivateKeysPath string) (*TokenCreateResult, error) {
-	cmd := exec.Command("spl-token", "create-token", "--owner", ownerPrivateKeysPath)
+	decimals := 8
+	cmd := exec.Command("spl-token", "create-token", "--owner", ownerPrivateKeysPath,  "--decimals", fmt.Sprintf("%v", decimals))
 	output, err := cmd.CombinedOutput()
 
 	if err != nil {
@@ -205,7 +206,7 @@ func MintToken(minterPrivateKeysPath, tokenProgramAddress string, amount float64
 // On burn - only token data account address
 // spl-token burn GMuGCTYcCV7FiKg3kQ7LArfZQdhagvUYWNXb1DNZQSGK 1 --owner private-keys/token-owner.json 
 func BurnToken(burnerPrivateKeysPath, tokenDataAccount string, amount float64) error {
-	cmd := exec.Command("spl-token", "burn", tokenDataAccount, fmt.Sprintf("%v", amount), "--owner", burnerPrivateKeysPath)
+	cmd := exec.Command("spl-token", "burn", "--owner", burnerPrivateKeysPath, tokenDataAccount, fmt.Sprintf("%v", amount))
 	output, err := cmd.CombinedOutput()
 	fmt.Printf(string(output))
 
