@@ -73,7 +73,7 @@ func TestGravityContract(t *testing.T) {
 	// ValidateError(t, err)
 	time.Sleep(time.Second * 20)
 
-	gravityExecutor, err := InitNebula(
+	gravityExecutor, err := InitGenericExecutor(
 		deployerPrivateKey,
 		gravityProgramID,
 		gravityStateAccount.Account.PublicKey.ToBase58(),
@@ -210,15 +210,13 @@ func TestIBPortContract(t *testing.T) {
 	associatedDeployerTokenAccount, err := CreateTokenAccount(deployerPrivateKeysPath, tokenProgramAddress)
 	ValidateError(t, err)
 
-	fmt.Println("Generateing PDA")
-	var tokenPDA common.PublicKey
-	tokenPDA, err = common.CreateProgramAddress([][]byte{[]byte("ibport")}, common.PublicKeyFromString(ibportAddress))
+	var ibPortPDA common.PublicKey
+	ibPortPDA, err = common.CreateProgramAddress([][]byte{[]byte("ibport")}, common.PublicKeyFromString(ibportAddress))
 	if err != nil {
 		fmt.Printf("PDA error: %v", err)
 		t.FailNow()
 	}
 
-	fmt.Printf("tokenPDA address: %s\n", tokenPDA.ToBase58())
 	fmt.Printf("token program address: %s\n", tokenProgramAddress)
 
 	t.Logf("tokenProgramAddress: %v", tokenProgramAddress)
@@ -244,21 +242,21 @@ func TestIBPortContract(t *testing.T) {
 	// love this *ucking timeouts
 	time.Sleep(time.Second * 15)
 
-	portProgramID, err := DeploySolanaProgram(t, "ibport", ibportProgramPath, deployerPrivateKeysPath, "../binaries/ibport.so")
+	_, err = DeploySolanaProgram(t, "ibport", ibportProgramPath, deployerPrivateKeysPath, "../binaries/ibport.so")
 	ValidateError(t, err)
 
 	endpoint, _ := InferSystemDefinedRPC()
 
-	portDataAccount, err := GenerateNewAccount(deployerPrivateKey, IBPortAllocation, portProgramID, endpoint)
+	portDataAccount, err := GenerateNewAccount(deployerPrivateKey, IBPortAllocation, ibportAddress, endpoint)
 	ValidateError(t, err)
 
-	ibportExecutor, err := InitNebula(
+	ibportExecutor, err := InitGenericExecutor(
 		deployerPrivateKey,
-		portProgramID,
+		ibportAddress,
 		portDataAccount.Account.PublicKey.ToBase58(),
 		"",
 		endpoint,
-		common.PublicKeyFromString(portProgramID),
+		common.PublicKeyFromString(ibportAddress),
 	)
 	ValidateError(t, err)
 
@@ -276,7 +274,7 @@ func TestIBPortContract(t *testing.T) {
 	// authorize ib port to mint token to provided account
 
 	// AuthorizeToken
-	err = AuthorizeToken(t, tokenOwnerPath, tokenProgramAddress, "mint", ibportAddress)
+	err = AuthorizeToken(t, tokenOwnerPath, tokenProgramAddress, "mint", ibPortPDA.ToBase58())
 	ValidateError(t, err)
 
 	time.Sleep(10 * time.Second)
@@ -286,12 +284,16 @@ func TestIBPortContract(t *testing.T) {
 	ValidateError(t, err)
 
 	ibportExecutor.SetAdditionalMeta([]types.AccountMeta{
-		{PubKey: common.PublicKeyFromString(associatedDeployerTokenAccount), IsSigner: false, IsWritable: true},
-		{PubKey: tokenPDA, IsSigner: false, IsWritable: false},
+		// {PubKey: common.PublicKeyFromString(associatedDeployerTokenAccount), IsSigner: false, IsWritable: true},
+		// {PubKey: tokenPDA, IsSigner: false, IsWritable: false},
+		{ PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false },
+		{ PubKey: common.PublicKeyFromString(tokenProgramAddress), IsWritable: true, IsSigner: false },
+		{ PubKey: common.PublicKeyFromString(associatedDeployerTokenAccount), IsWritable: true, IsSigner: false },
+		{ PubKey: ibPortPDA, IsWritable: false, IsSigner: false },
 	})
 
 	ibportTestMintResult, err := ibportExecutor.BuildAndInvoke(
-		instructionBuilder.TestMint(common.PublicKeyFromString(associatedDeployerTokenAccount), mintAmount),
+		instructionBuilder.TestMint(common.PublicKeyFromBytes(make([]byte, 32)), mintAmount),
 	)
 	ValidateError(t, err)
 
@@ -304,6 +306,7 @@ func TestIBPortContract(t *testing.T) {
 		t.Log("error: balance mismatch")
 		t.Logf("deployerBeforeMintBalance: %v", deployerBeforeMintBalance)
 		t.Logf("deployerAfterMintBalance: %v", deployerAfterMintBalance)
+		t.FailNow()
 	}
 
 	t.Logf("IBPort Test Mint: %v \n", ibportTestMintResult.TxSignature)

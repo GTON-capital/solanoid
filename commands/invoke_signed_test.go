@@ -101,10 +101,8 @@ func TestMinterContract(t *testing.T) {
 	ix := types.Instruction{
 		ProgramID: common.PublicKeyFromString(ibportAddress),
 		Accounts: []types.AccountMeta{
-			//{PubKey: deployerAcc.PublicKey, IsWritable: false, IsSigner: true},
 			{PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false},
 			{PubKey: common.PublicKeyFromString(tokenProgramAddress), IsWritable: true, IsSigner: false},
-			//{PubKey: common.PublicKeyFromString(ibportAddress), IsWritable: false, IsSigner: false},
 			{PubKey: common.PublicKeyFromString(associatedDeployerTokenAccount), IsWritable: true, IsSigner: false},
 			{PubKey: ibPortPDA, IsWritable: false, IsSigner: false},
 		},
