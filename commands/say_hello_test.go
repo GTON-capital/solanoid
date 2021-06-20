@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
@@ -25,13 +26,13 @@ func Test_hello(t *testing.T) {
 }
 
 func resent(c *client.Client) {
-	res, _ := c.GetRecentBlockhash()
+	res, _ := c.GetRecentBlockhash(context.Background())
 	log.Print(res.Blockhash)
 }
 
 func Test_info(t *testing.T) {
 	c := client.NewClient(client.TestnetRPCEndpoint)
-	r, err := c.GetAccountInfo("9M8v1uHdMT96K8QN4rGz8BQ96hjASKhRN3cJKRZe6vtW", client.GetAccountInfoConfig{
+	r, err := c.GetAccountInfo(context.Background(), "9M8v1uHdMT96K8QN4rGz8BQ96hjASKhRN3cJKRZe6vtW", client.GetAccountInfoConfig{
 		Encoding: "base64",
 		DataSlice: client.GetAccountInfoConfigDataSlice{
 			Length: 8,
@@ -59,7 +60,7 @@ func Test_info(t *testing.T) {
 
 func Test_BFT(t *testing.T) {
 	c := client.NewClient(client.TestnetRPCEndpoint)
-	r, err := c.GetAccountInfo("9M8v1uHdMT96K8QN4rGz8BQ96hjASKhRN3cJKRZe6vtW", client.GetAccountInfoConfig{
+	r, err := c.GetAccountInfo(context.Background(), "9M8v1uHdMT96K8QN4rGz8BQ96hjASKhRN3cJKRZe6vtW", client.GetAccountInfoConfig{
 		Encoding: "base64",
 		DataSlice: client.GetAccountInfoConfigDataSlice{
 			Length: 1,

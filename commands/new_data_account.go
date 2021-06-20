@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"crypto/ed25519"
 	"encoding/hex"
 	"fmt"
@@ -17,11 +18,10 @@ import (
 	"go.uber.org/zap"
 )
 
-
 const (
 	GravityContractAllocation = 299
-	MultisigAllocation = 355
-	IBPortAllocation = 777
+	MultisigAllocation        = 355
+	IBPortAllocation          = 777
 )
 
 var (
@@ -61,7 +61,7 @@ func newAccCommand(ccmd *cobra.Command, args []string) {
 	endpoint, _ := InferSystemDefinedRPC()
 	_, _ = GenerateNewAccount(newDataAccPrivateKey, space, programID, endpoint)
 	// if err != nil {
-	// 	return 
+	// 	return
 	// }
 }
 
@@ -82,7 +82,7 @@ func GenerateNewAccount(privateKey string, space uint64, programID, clientEndpoi
 
 	c := client.NewClient(clientEndpoint)
 
-	res, err := c.GetRecentBlockhash()
+	res, err := c.GetRecentBlockhash(context.Background())
 	if err != nil {
 		log.Fatalf("get recent block hash error, err: %v\n", err)
 		return nil, err
@@ -90,7 +90,7 @@ func GenerateNewAccount(privateKey string, space uint64, programID, clientEndpoi
 
 	newAcc := types.NewAccount()
 
-	rentBalance, err := c.GetMinimumBalanceForRentExemption(space)
+	rentBalance, err := c.GetMinimumBalanceForRentExemption(context.Background(), space)
 	if err != nil {
 		zap.L().Fatal(err.Error())
 		return nil, err
@@ -135,7 +135,7 @@ func GenerateNewAccount(privateKey string, space uint64, programID, clientEndpoi
 		return nil, err
 	}
 
-	txSig, err := c.SendRawTransaction(rawTx)
+	txSig, err := c.SendRawTransaction(context.Background(), rawTx)
 	if err != nil {
 		log.Fatalf("send tx error, err: %v\n", err)
 		return nil, err
@@ -151,8 +151,8 @@ func GenerateNewAccount(privateKey string, space uint64, programID, clientEndpoi
 
 	return &models.CommandResponse{
 		SerializedMessage: hex.EncodeToString(serializedMessage),
-		TxSignature: txSig,
-		Message: &message,
-		Account: &newAcc,
+		TxSignature:       txSig,
+		Message:           &message,
+		Account:           &newAcc,
 	}, nil
 }

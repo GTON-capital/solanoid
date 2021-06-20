@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"crypto/ed25519"
 	"encoding/hex"
 	"fmt"
@@ -76,7 +77,7 @@ func callMemo(ccmd *cobra.Command, args []string) {
 
 	c := client.NewClient(client.TestnetRPCEndpoint)
 
-	res, err := c.GetRecentBlockhash()
+	res, err := c.GetRecentBlockhash(context.Background())
 	if err != nil {
 		log.Fatalf("get recent block hash error, err: %v\n", err)
 	}
@@ -115,7 +116,7 @@ func callMemo(ccmd *cobra.Command, args []string) {
 	fmt.Printf("%s\n", hex.EncodeToString(serializedMessage))
 	fmt.Println("------ END RAW MESSAGE ------------------------")
 
-	txSig, err := c.SendRawTransaction(rawTx)
+	txSig, err := c.SendRawTransaction(context.Background(), rawTx)
 	if err != nil {
 		log.Fatalf("send tx error, err: %v\n", err)
 	}
