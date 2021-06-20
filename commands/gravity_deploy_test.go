@@ -162,6 +162,7 @@ func TestPDA(t *testing.T) {
 	fmt.Printf("PDA: %s\n", tokenPDA.ToBase58())
 	t.FailNow()
 }
+
 func TestIBPortContract(t *testing.T) {
 	var err error
 	deployerPrivateKeysPath := "../private-keys/_test_only-port-deployer.json"
@@ -184,11 +185,9 @@ func TestIBPortContract(t *testing.T) {
 	tokenOwnerAddress, err := ReadAccountAddress(tokenOwnerPath)
 	ValidateError(t, err)
 
-	ibportAddress, err := ReadAccountAddress(ibportProgramPath)
-	ValidateError(t, err)
 
 	waitTransactionConfirmations := func() {
-		time.Sleep(time.Second * 30)
+		time.Sleep(time.Second * 20)
 	}
 
 	// SystemFaucet(t, deployerAddress, 10)
@@ -210,12 +209,19 @@ func TestIBPortContract(t *testing.T) {
 	associatedDeployerTokenAccount, err := CreateTokenAccount(deployerPrivateKeysPath, tokenProgramAddress)
 	ValidateError(t, err)
 
-	var ibPortPDA common.PublicKey
-	ibPortPDA, err = common.CreateProgramAddress([][]byte{[]byte("ibport")}, common.PublicKeyFromString(ibportAddress))
+
+	// ibportAddress, err := ReadAccountAddress(ibportProgramPath)
+	// ValidateError(t, err)
+
+	// var ibPortPDA common.PublicKey
+	// ibPortPDA, err = common.CreateProgramAddress([][]byte{[]byte("ibport")}, common.PublicKeyFromString(ibportAddress))
+	
+	ibportAddressPubkey, ibPortPDA, err := CreatePersistentAccountWithPDA(ibportProgramPath, true, [][]byte{[]byte("ibport")})
 	if err != nil {
 		fmt.Printf("PDA error: %v", err)
 		t.FailNow()
 	}
+	ibportAddress := ibportAddressPubkey.ToBase58()
 
 	fmt.Printf("token program address: %s\n", tokenProgramAddress)
 
@@ -223,6 +229,7 @@ func TestIBPortContract(t *testing.T) {
 	t.Logf("deployerAddress: %v", deployerAddress)
 	t.Logf("tokenOwnerAddress: %v", tokenOwnerAddress)
 	t.Logf("ibportAddress: %v", ibportAddress)
+	t.Logf("ibPortPDA: %v", ibPortPDA.ToBase58())
 	t.Logf("associated token acc: %v", associatedDeployerTokenAccount)
 	// deployerAddress, err := ReadAccountAddress(tokenOwnerPath)
 	// ValidateError(t, err)
@@ -240,7 +247,7 @@ func TestIBPortContract(t *testing.T) {
 	ValidateError(t, err)
 
 	// love this *ucking timeouts
-	time.Sleep(time.Second * 15)
+	waitTransactionConfirmations()
 
 	_, err = DeploySolanaProgram(t, "ibport", ibportProgramPath, deployerPrivateKeysPath, "../binaries/ibport.so")
 	ValidateError(t, err)
@@ -273,11 +280,16 @@ func TestIBPortContract(t *testing.T) {
 
 	// authorize ib port to mint token to provided account
 
+	t.Logf("Setting token minting authority to IB Port PDA \n")
 	// AuthorizeToken
 	err = AuthorizeToken(t, tokenOwnerPath, tokenProgramAddress, "mint", ibPortPDA.ToBase58())
 	ValidateError(t, err)
+	if err != nil {
+		t.Logf("Set successfully token minting authority to IB Port PDA \n")
 
-	time.Sleep(10 * time.Second)
+	}
+
+	waitTransactionConfirmations()
 	mintAmount := float64(55.5)
 
 	deployerBeforeMintBalance, err := ReadSPLTokenBalance(deployerPrivateKeysPath, tokenProgramAddress)
@@ -311,5 +323,5 @@ func TestIBPortContract(t *testing.T) {
 
 	t.Logf("IBPort Test Mint: %v \n", ibportTestMintResult.TxSignature)
 
-	time.Sleep(time.Second * 20)
+
 }

@@ -152,6 +152,27 @@ func ReadAccountBalance(address string) (float64, error) {
 	return castedBalance, nil
 }
 
+// AccountAddress, PDA, error
+func CreatePersistentAccountWithPDA(path string, forceRewrite bool, seeds [][]byte) (common.PublicKey, common.PublicKey, error) {
+	var err error
+	err = CreatePersistedAccount(path, forceRewrite)
+	if err != nil {
+		return *new(common.PublicKey), *new(common.PublicKey), err
+	}
+
+	accountAddress, err := ReadAccountAddress(path)
+	if err != nil {
+		return *new(common.PublicKey), *new(common.PublicKey), err
+	}
+
+	var targetAddressPDA common.PublicKey
+	targetAddressPDA, err = common.CreateProgramAddress(seeds, common.PublicKeyFromString(accountAddress))
+	if err != nil {
+		return CreatePersistentAccountWithPDA(path, forceRewrite, seeds)
+	}
+	return common.PublicKeyFromString(accountAddress), targetAddressPDA, nil
+}
+
 func CreatePersistedAccount(path string, forceRewrite bool) error {
 	var forceArg string
 	if forceRewrite {
