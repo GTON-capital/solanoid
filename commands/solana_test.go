@@ -126,9 +126,11 @@ func TestTokenDelegation(t *testing.T) {
 	// CreateTokenAccount
 	testMockedPrivateKeyPath := "../private-keys/_test_owner-full-token-behaviour.json"
 	delegatePrivateKeysPath := "../private-keys/_test_burner-full-token-behaviour.json"
+	distinctPrivateKeysPath := "../private-keys/_test_dist-full-token-behaviour.json"
 
 	_ = CreatePersistedAccount(testMockedPrivateKeyPath, true)
 	_ = CreatePersistedAccount(delegatePrivateKeysPath, true)
+	_ = CreatePersistedAccount(distinctPrivateKeysPath, true)
 
 	tokenRes, err := CreateToken(testMockedPrivateKeyPath)
 
@@ -142,7 +144,13 @@ func TestTokenDelegation(t *testing.T) {
 	t.Log(tokenRes.Owner.ToBase58())
 	t.Log(tokenRes.Token.ToBase58())
 	t.Log(tokenRes.Signature)
-	
+
+	delegateAddress, err := ReadAccountAddress(delegatePrivateKeysPath)
+	if err != nil {
+		t.Log(err)
+		t.FailNow()
+	}
+
 	associatedTokenDataAccount, err := CreateTokenAccount(testMockedPrivateKeyPath, tokenAddress)
 	if err != nil || associatedTokenDataAccount == "" {
 		t.Log(err)
@@ -150,6 +158,11 @@ func TestTokenDelegation(t *testing.T) {
 	}
 	tokenDelegateTokenDataAccount, err := CreateTokenAccount(delegatePrivateKeysPath, tokenAddress)
 	if err != nil || tokenDelegateTokenDataAccount == "" {
+		t.Log(err)
+		t.FailNow()
+	}
+	distinctTokenDataAccount, err := CreateTokenAccount(distinctPrivateKeysPath, tokenAddress)
+	if err != nil || distinctTokenDataAccount == "" {
 		t.Log(err)
 		t.FailNow()
 	}
@@ -186,7 +199,7 @@ func TestTokenDelegation(t *testing.T) {
 		t.FailNow()
 	}
 
-	err = DelegateSPLTokenAmount(testMockedPrivateKeyPath, associatedTokenDataAccount, tokenDelegateTokenDataAccount, 1)
+	err = DelegateSPLTokenAmount(testMockedPrivateKeyPath, associatedTokenDataAccount, delegateAddress, mintableAmount)
 	if err != nil {
 		t.Log(err)
 		t.FailNow()
@@ -198,7 +211,12 @@ func TestTokenDelegation(t *testing.T) {
 	t.Logf("delegateBalance: %v \n", delegateBalance)
 	t.Logf("mintable amount: %v \n", mintableAmount)
 
-	err = BurnToken(delegatePrivateKeysPath, associatedTokenDataAccount, 1)
+	// err = TransferSPLTokens(delegatePrivateKeysPath, tokenAddress, distinctTokenDataAccount, associatedTokenDataAccount, 1)
+	// if err != nil {
+	// 	t.Log(err)
+	// 	t.FailNow()
+	// }
+	err = BurnToken(delegatePrivateKeysPath, associatedTokenDataAccount, mintableAmount)
 	if err != nil {
 		t.Log(err)
 		t.FailNow()
@@ -213,7 +231,7 @@ func TestTokenDelegation(t *testing.T) {
 		t.FailNow()
 	}
 
-
+	t.Log("Test passed successfully.")
 }
 
 

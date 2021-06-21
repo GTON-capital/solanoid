@@ -210,6 +210,19 @@ func ReadSPLTokenBalance(ownerPrivateKeysPath, tokenProgramAddress string) (floa
 	return castedBalance, nil
 }
 
+// spl-token transfer <TOKEN_ADDRESS> <TOKEN_AMOUNT> <RECIPIENT_ADDRESS or RECIPIENT_TOKEN_ACCOUNT_ADDRESS> --config <PATH>
+func TransferSPLTokens(tokenHolderPath, tokenAddress, recipientTokenAccountAddress, delegate string, amount float64) error {
+	cmd := exec.Command("spl-token", "transfer", "--owner", tokenHolderPath, "--from", delegate, tokenAddress, fmt.Sprintf("%v", amount), recipientTokenAccountAddress)
+	output, err := cmd.CombinedOutput()
+	fmt.Printf(string(output))
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // spl-token approve [FLAGS] [OPTIONS] <TOKEN_ACCOUNT_ADDRESS> <TOKEN_AMOUNT> <DELEGATE_TOKEN_ACCOUNT_ADDRESS>
 func DelegateSPLTokenAmount(tokenOwnerPath, tokenAccountAddress, delegateTokenAccountAddress string, amount float64) error {
 	cmd := exec.Command("spl-token", "approve", "--owner", tokenOwnerPath, tokenAccountAddress, fmt.Sprintf("%v", amount), delegateTokenAccountAddress)
