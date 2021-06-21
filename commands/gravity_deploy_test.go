@@ -187,7 +187,7 @@ func TestIBPortContract(t *testing.T) {
 
 
 	waitTransactionConfirmations := func() {
-		time.Sleep(time.Second * 20)
+		time.Sleep(time.Second * 40)
 	}
 
 	// SystemFaucet(t, deployerAddress, 10)
@@ -323,5 +323,22 @@ func TestIBPortContract(t *testing.T) {
 
 	t.Logf("IBPort Test Mint: %v \n", ibportTestMintResult.TxSignature)
 
+	ibportTestBurnResult, err := ibportExecutor.BuildAndInvoke(
+		instructionBuilder.TestBurn(common.PublicKeyFromBytes(make([]byte, 32)), mintAmount),
+	)
+	ValidateError(t, err)
 
+	waitTransactionConfirmations()
+
+	deployerAfterBurnBalance, err := ReadSPLTokenBalance(deployerPrivateKeysPath, tokenProgramAddress)
+	ValidateError(t, err)
+
+	if deployerAfterBurnBalance != deployerBeforeMintBalance {
+		t.Log("error: balance mismatch")
+		t.Logf("deployerBeforeMintBalance: %v", deployerBeforeMintBalance)
+		t.Logf("deployerAfterBurnBalance: %v", deployerAfterBurnBalance)
+		t.FailNow()
+	}
+
+	t.Logf("IBPort Test Burn: %v \n", ibportTestBurnResult.TxSignature)
 }

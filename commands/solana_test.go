@@ -46,6 +46,7 @@ func TestPersistedAccount(t *testing.T) {
 	t.Log(err)
 }
 
+
 func TestFullTokenBehaviour(t *testing.T) {
 	// CreateTokenAccount
 	testMockedPrivateKeyPath := "../private-keys/_test_owner-full-token-behaviour.json"
@@ -121,7 +122,99 @@ func TestFullTokenBehaviour(t *testing.T) {
 
 }
 
+func TestTokenDelegation(t *testing.T) {
+	// CreateTokenAccount
+	testMockedPrivateKeyPath := "../private-keys/_test_owner-full-token-behaviour.json"
+	delegatePrivateKeysPath := "../private-keys/_test_burner-full-token-behaviour.json"
 
+	_ = CreatePersistedAccount(testMockedPrivateKeyPath, true)
+	_ = CreatePersistedAccount(delegatePrivateKeysPath, true)
+
+	tokenRes, err := CreateToken(testMockedPrivateKeyPath)
+
+	if err != nil || tokenRes == nil {
+		t.Log(err)
+		t.FailNow()
+	}
+
+	tokenAddress := tokenRes.Token.ToBase58()
+
+	t.Log(tokenRes.Owner.ToBase58())
+	t.Log(tokenRes.Token.ToBase58())
+	t.Log(tokenRes.Signature)
+	
+	associatedTokenDataAccount, err := CreateTokenAccount(testMockedPrivateKeyPath, tokenAddress)
+	if err != nil || associatedTokenDataAccount == "" {
+		t.Log(err)
+		t.FailNow()
+	}
+	tokenDelegateTokenDataAccount, err := CreateTokenAccount(delegatePrivateKeysPath, tokenAddress)
+	if err != nil || tokenDelegateTokenDataAccount == "" {
+		t.Log(err)
+		t.FailNow()
+	}
+	
+	// mint some
+
+	var ownerBalance, delegateBalance float64
+	mintableAmount :=  10.2352
+
+	updateCurrentBalance := func() {
+		ownerBalance, err = ReadSPLTokenBalance(testMockedPrivateKeyPath, tokenAddress)
+		if err != nil {
+			t.Log(err)
+			t.FailNow()
+		}
+		delegateBalance, err = ReadSPLTokenBalance(delegatePrivateKeysPath, tokenAddress)
+		if err != nil {
+			t.Log(err)
+			t.FailNow()
+		}
+	}
+
+	err = MintToken(testMockedPrivateKeyPath, tokenAddress, mintableAmount, associatedTokenDataAccount)
+	if err != nil {
+		t.Log(err)
+		t.FailNow()
+	}
+	updateCurrentBalance()
+
+	if ownerBalance != mintableAmount {
+		t.Log("balance mismatch")
+		t.Logf("current: %v \n", ownerBalance)
+		t.Logf("mintable amount: %v \n", mintableAmount)
+		t.FailNow()
+	}
+
+	err = DelegateSPLTokenAmount(testMockedPrivateKeyPath, associatedTokenDataAccount, tokenDelegateTokenDataAccount, 1)
+	if err != nil {
+		t.Log(err)
+		t.FailNow()
+	}
+	t.Log("delegation occured successfully!")
+	updateCurrentBalance()
+
+	t.Logf("current: %v \n", ownerBalance)
+	t.Logf("delegateBalance: %v \n", delegateBalance)
+	t.Logf("mintable amount: %v \n", mintableAmount)
+
+	err = BurnToken(delegatePrivateKeysPath, associatedTokenDataAccount, 1)
+	if err != nil {
+		t.Log(err)
+		t.FailNow()
+	}
+	updateCurrentBalance()
+
+	if ownerBalance != 0 || delegateBalance != 0 {
+		t.Log("balance mismatch")
+		t.Logf("ownerBalance: %v \n", ownerBalance)
+		t.Logf("delegateBalance: %v \n", delegateBalance)
+		t.Logf("desired balance: %v \n", 0)
+		t.FailNow()
+	}
+
+
+}
 
 
 func TestBalanceRead(t *testing.T) {

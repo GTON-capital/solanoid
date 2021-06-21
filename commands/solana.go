@@ -210,6 +210,19 @@ func ReadSPLTokenBalance(ownerPrivateKeysPath, tokenProgramAddress string) (floa
 	return castedBalance, nil
 }
 
+// spl-token approve [FLAGS] [OPTIONS] <TOKEN_ACCOUNT_ADDRESS> <TOKEN_AMOUNT> <DELEGATE_TOKEN_ACCOUNT_ADDRESS>
+func DelegateSPLTokenAmount(tokenOwnerPath, tokenAccountAddress, delegateTokenAccountAddress string, amount float64) error {
+	cmd := exec.Command("spl-token", "approve", "--owner", tokenOwnerPath, tokenAccountAddress, fmt.Sprintf("%v", amount), delegateTokenAccountAddress)
+	output, err := cmd.CombinedOutput()
+	fmt.Printf(string(output))
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // On mint we provide token program address & account data address
 // spl-token mint --owner private-keys/token-owner.json $TOKEN_PROGRAM 10 GMuGCTYcCV7FiKg3kQ7LArfZQdhagvUYWNXb1DNZQSGK
 func MintToken(minterPrivateKeysPath, tokenProgramAddress string, amount float64, tokenDataAccount string) error {
