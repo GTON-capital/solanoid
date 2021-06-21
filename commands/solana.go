@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os/exec"
 	"regexp"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"testing"
@@ -17,6 +18,7 @@ import (
 func ValidateError(t *testing.T, err error) {
 	if err != nil {
 		t.Logf("Error: %v \n", err)
+		debug.PrintStack()
 		t.FailNow()
 	}
 }
@@ -24,6 +26,7 @@ func ValidateError(t *testing.T, err error) {
 func ValidateErrorExistence(t *testing.T, err error) {
 	if err == nil {
 		t.Logf("No error occured!")
+		debug.PrintStack()
 		t.FailNow()
 		return
 	}

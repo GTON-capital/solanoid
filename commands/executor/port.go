@@ -36,33 +36,48 @@ func float64ToByte(f float64) []byte {
 	return buf.Bytes()
 }
 
-func (port *IBPortInstructionBuilder) TestMint(receiver common.PublicKey, amount float64) interface{} {
+func (port *IBPortInstructionBuilder) CreateTransferUnwrapRequest(receiver [32]byte, amount float64) interface{} {
+	fmt.Printf("CreateTransferUnwrapRequest - amount: %v", amount)
 	amountBytes := float64ToByte(amount)
-	fmt.Printf("TestMint - amountBytes: %v", amountBytes)
-
-	// binary.LittleEndian.
 
 	return struct {
 		Instruction uint8
-		Receiver    common.PublicKey
 		TokenAmount []byte
+		Receiver    []byte
 	}{
-		Instruction: 4,
-		Receiver:    receiver,
+		Instruction: 1,
 		TokenAmount: amountBytes,
+		Receiver:    receiver[:],
 	}
 }
-func (port *IBPortInstructionBuilder) TestBurn(burner common.PublicKey, amount float64) interface{} {
-	amountBytes := float64ToByte(amount)
-	fmt.Printf("TestBurn - amountBytes: %v", amountBytes)
 
-	return struct {
-		Instruction uint8
-		Burner      common.PublicKey
-		TokenAmount []byte
-	}{
-		Instruction: 5,
-		Burner:      burner,
-		TokenAmount: amountBytes,
-	}
-}
+// func (port *IBPortInstructionBuilder) TestMint(receiver common.PublicKey, amount float64) interface{} {
+// 	amountBytes := float64ToByte(amount)
+// 	fmt.Printf("TestMint - amountBytes: %v", amountBytes)
+
+// 	// binary.LittleEndian.
+
+// 	return struct {
+// 		Instruction uint8
+// 		Receiver    common.PublicKey
+// 		TokenAmount []byte
+// 	}{
+// 		Instruction: 4,
+// 		Receiver:    receiver,
+// 		TokenAmount: amountBytes,
+// 	}
+// }
+// func (port *IBPortInstructionBuilder) TestBurn(burner common.PublicKey, amount float64) interface{} {
+// 	amountBytes := float64ToByte(amount)
+// 	fmt.Printf("TestBurn - amountBytes: %v", amountBytes)
+
+// 	return struct {
+// 		Instruction uint8
+// 		Burner      common.PublicKey
+// 		TokenAmount []byte
+// 	}{
+// 		Instruction: 5,
+// 		Burner:      burner,
+// 		TokenAmount: amountBytes,
+// 	}
+// }
