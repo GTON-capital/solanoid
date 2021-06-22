@@ -184,10 +184,10 @@ func TestIBPortContract(t *testing.T) {
 
 
 	waitTransactionConfirmations := func() {
-		time.Sleep(time.Second * 20)
+		time.Sleep(time.Second * 30)
 	}
 
-	SystemFaucet(t, tokenOwnerAddress, 10)
+	err = SystemFaucet(t, tokenOwnerAddress, 10)
 	ValidateError(t, err)
 
 	tokenDeployResult, err := CreateToken(tokenOwnerPath)
@@ -205,10 +205,7 @@ func TestIBPortContract(t *testing.T) {
 	}
 	ibportAddress := ibportAddressPubkey.ToBase58()
 
-	// ibportTokenAccount, err := CreateTokenAccount(ibportProgramPath, tokenProgramAddress)
-	// ValidateError(t, err)
-
-	fmt.Printf("token program address: %s\n", tokenProgramAddress)
+	fmt.Printf("token  program address: %s\n", tokenProgramAddress)
 
 	t.Logf("tokenProgramAddress: %v", tokenProgramAddress)
 	t.Logf("deployerAddress: %v", deployerAddress)
@@ -254,53 +251,31 @@ func TestIBPortContract(t *testing.T) {
 	t.Logf("IBPort Init: %v \n", ibportInitResult.TxSignature)
 
 	ibportExecutor.SetAdditionalMeta([]types.AccountMeta{
-		// {PubKey: common.PublicKeyFromString(associatedDeployerTokenAccount), IsSigner: false, IsWritable: true},
-		// {PubKey: tokenPDA, IsSigner: false, IsWritable: false},
 		{ PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false },
 		{ PubKey: common.PublicKeyFromString(tokenProgramAddress), IsWritable: true, IsSigner: false },
 		{ PubKey: common.PublicKeyFromString(deployerTokenAccount), IsWritable: true, IsSigner: false },
 		{ PubKey: ibPortPDA, IsWritable: false, IsSigner: false },
 	})
 
-	// ibportTestMintResult, err := ibportExecutor.BuildAndInvoke(
-	// 	instructionBuilder.TestMint(common.PublicKeyFromBytes(make([]byte, 32)), mintAmount),
-	// )
-
-	// ValidateError(t, err)
-
-	// waitTransactionConfirmations()
-
-	// deployerAfterMintBalance, err := ReadSPLTokenBalance(deployerPrivateKeysPath, tokenProgramAddress)
-	// ValidateError(t, err)
-
-	// if deployerAfterMintBalance-deployerBeforeMintBalance != mintAmount {
-	// 	t.Log("error: balance mismatch")
-	// 	t.Logf("deployerBeforeMintBalance: %v", deployerBeforeMintBalance)
-	// 	t.Logf("deployerAfterMintBalance: %v", deployerAfterMintBalance)
-	// 	t.FailNow()
-	// }
-
-	// t.Logf("IBPort Test Mint: %v \n", ibportTestMintResult.TxSignature)
-
 	burnAmount := float64(10)
 
 	// mint some tokens for deployer
 	err = MintToken(tokenOwnerPath, tokenProgramAddress, burnAmount, deployerTokenAccount)
 	ValidateError(t, err)
-	t.Log("Minted some tokens")
+	t.Log("Minted  some tokens")
 
 	waitTransactionConfirmations()
 
 	// delegate amount to port BINARY for burning and request creation
-	err = DelegateSPLTokenAmount(deployerPrivateKeysPath, deployerTokenAccount, ibPortPDA.ToBase58(), 1)
+	err = DelegateSPLTokenAmount(deployerPrivateKeysPath, deployerTokenAccount, ibPortPDA.ToBase58(), burnAmount)
 	ValidateError(t, err)
-	t.Log("Delegated some tokens to ibport from deployer")
+	t.Log("Delegated some tokens to ibport from  deployer")
 	t.Log("Creating cross chain transfer tx")
 
 	waitTransactionConfirmations()
 
 	ibportCreateTransferUnwrapRequestResult, err := ibportExecutor.BuildAndInvoke(
-		instructionBuilder.CreateTransferUnwrapRequest(common.PublicKeyFromBytes(make([]byte, 32)), 1),
+		instructionBuilder.CreateTransferUnwrapRequest(common.PublicKeyFromBytes(make([]byte, 32)), burnAmount),
 	)
 	ValidateError(t, err)
 	t.Logf("CreateTransferUnwrapRequest - Tx: %v \n", ibportCreateTransferUnwrapRequestResult.TxSignature)

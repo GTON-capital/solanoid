@@ -34,6 +34,24 @@ func ValidateErrorExistence(t *testing.T, err error) {
 	t.Logf("Error: %v \n", err)
 }
 
+func SystemAirdrop(t *testing.T, recipient string, amount uint64) error {
+	t.Logf("transfer %v SOL to %v address \n", amount, recipient)
+
+	cmd := exec.Command("solana", "airdrop", fmt.Sprint(amount), recipient)
+
+	output, err := cmd.CombinedOutput()
+	t.Log(string(output))
+
+	if err != nil {
+		t.Log(err.Error())
+		// log.Fatal(err)
+		return err
+	}
+
+	// t.Log(output)
+	
+	return nil
+}
 
 func SystemFaucet(t *testing.T, recipient string, amount uint64) error {
 	t.Logf("transfer %v SOL to %v address \n", amount, recipient)
