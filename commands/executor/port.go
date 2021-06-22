@@ -26,6 +26,10 @@ func (port *IBPortInstructionBuilder) Init(nebula, token common.PublicKey) inter
 	}
 }
 
+func Float64ToBytes(f float64) []byte {
+	return float64ToByte(f)
+}
+
 func float64ToByte(f float64) []byte {
 	//bits := math.Float64bits(f)
 	var buf bytes.Buffer
@@ -48,6 +52,36 @@ func (port *IBPortInstructionBuilder) CreateTransferUnwrapRequest(receiver [32]b
 		Instruction: 1,
 		TokenAmount: amountBytes,
 		Receiver:    receiver[:],
+	}
+}
+
+func BuildCrossChainMintByteVector(swapId []byte, receiver common.PublicKey, amount float64) []byte {
+	var res []byte
+
+	// action
+	res = append(res, 'm')
+	// swap id
+	res = append(res, swapId[0:16]...)
+	// amount
+	res = append(res, Float64ToBytes(amount)...)
+	// receiver
+	res = append(res, receiver[:]...)
+	
+	fmt.Printf("byte array len: %v \n", len(res))
+	fmt.Printf("byte array cap: %v \n", len(res))
+
+	return res
+}
+
+func (port *IBPortInstructionBuilder) AttachValue(byte_vector []byte) interface{} {
+	fmt.Printf("AttachValue - byte_vector: %v", byte_vector)
+
+	return struct {
+		Instruction uint8
+		ByteVector []byte
+	}{
+		Instruction: 2,
+		ByteVector: byte_vector,
 	}
 }
 

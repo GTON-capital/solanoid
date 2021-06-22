@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"crypto/rand"
 	"fmt"
 	"solanoid/commands/executor"
 	"time"
@@ -279,5 +280,127 @@ func TestIBPortContract(t *testing.T) {
 	)
 	ValidateError(t, err)
 	t.Logf("CreateTransferUnwrapRequest - Tx: %v \n", ibportCreateTransferUnwrapRequestResult.TxSignature)
+}
+
+
+func TestIBPortAttachValue(t *testing.T) {
+	var err error
+	deployerPrivateKeysPath := "../private-keys/_test_deployer-pk-deployer.json"
+	tokenOwnerPath := "../private-keys/_test_only-token-owner.json"
+	ibportProgramPath := "../private-keys/_test_only_ibport-owner.json"
+
+	err = CreatePersistedAccount(deployerPrivateKeysPath, true)
+	ValidateError(t, err)
+	err = CreatePersistedAccount(tokenOwnerPath, true)
+	ValidateError(t, err)
+	err = CreatePersistedAccount(ibportProgramPath, true)
+	ValidateError(t, err)
+
+	deployerAddress, err := ReadAccountAddress(deployerPrivateKeysPath)
+	ValidateError(t, err)
+
+	tokenOwnerAddress, err := ReadAccountAddress(tokenOwnerPath)
+	ValidateError(t, err)
+
+
+	waitTransactionConfirmations := func() {
+		time.Sleep(time.Second * 30)
+	}
+
+	err = SystemFaucet(t, tokenOwnerAddress, 10)
+	ValidateError(t, err)
+
+	tokenDeployResult, err := CreateToken(tokenOwnerPath)
+	ValidateError(t, err)
+
+	tokenProgramAddress := tokenDeployResult.Token.ToBase58()
+
+	deployerTokenAccount, err := CreateTokenAccount(deployerPrivateKeysPath, tokenProgramAddress)
+	ValidateError(t, err)
+	
+	ibportAddressPubkey, ibPortPDA, err := CreatePersistentAccountWithPDA(ibportProgramPath, true, [][]byte{[]byte("ibport")})
+	if err != nil {
+		fmt.Printf("PDA error: %v", err)
+		t.FailNow()
+	}
+	ibportAddress := ibportAddressPubkey.ToBase58()
+
+	fmt.Printf("token  program address: %s\n", tokenProgramAddress)
+
+	t.Logf("tokenProgramAddress: %v", tokenProgramAddress)
+	t.Logf("deployerAddress: %v", deployerAddress)
+	t.Logf("tokenOwnerAddress: %v", tokenOwnerAddress)
+	t.Logf("ibportAddress: %v", ibportAddress)
+	t.Logf("ibPortPDA: %v", ibPortPDA.ToBase58())
+	t.Logf("deployerTokenAccount: %v", deployerTokenAccount)
+
+	deployerPrivateKey, err := ReadPKFromPath(t, deployerPrivateKeysPath)
+	ValidateError(t, err)
+
+	SystemFaucet(t, deployerAddress, 10)
+	ValidateError(t, err)
+
+	// love this *ucking timeouts
+	waitTransactionConfirmations()
+
+	_, err = DeploySolanaProgram(t, "ibport", ibportProgramPath, deployerPrivateKeysPath, "../binaries/ibport.so")
+	ValidateError(t, err)
+
+	endpoint, _ := InferSystemDefinedRPC()
+
+	portDataAccount, err := GenerateNewAccount(deployerPrivateKey, IBPortAllocation, ibportAddress, endpoint)
+	ValidateError(t, err)
+
+	ibportExecutor, err := InitGenericExecutor(
+		deployerPrivateKey,
+		ibportAddress,
+		portDataAccount.Account.PublicKey.ToBase58(),
+		"",
+		endpoint,
+		common.PublicKeyFromString(ibportAddress),
+	)
+	ValidateError(t, err)
+
+	instructionBuilder := executor.NewIBPortInstructionBuilder()
+
+	waitTransactionConfirmations()
+	ibportInitResult, err := ibportExecutor.BuildAndInvoke(
+		instructionBuilder.Init(common.PublicKeyFromBytes(make([]byte, 32)), common.TokenProgramID),
+	)
+	ValidateError(t, err)
+	t.Logf("IBPort Init: %v \n", ibportInitResult.TxSignature)
+
+	ibportExecutor.SetAdditionalMeta([]types.AccountMeta{
+		{ PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false },
+		{ PubKey: common.PublicKeyFromString(tokenProgramAddress), IsWritable: true, IsSigner: false },
+		{ PubKey: common.PublicKeyFromString(deployerTokenAccount), IsWritable: true, IsSigner: false },
+		{ PubKey: ibPortPDA, IsWritable: false, IsSigner: false },
+	})
+	
+	// allow ibport to mint
+	err = AuthorizeToken(t, tokenOwnerPath, tokenProgramAddress, "mint", ibPortPDA.ToBase58())
+	ValidateError(t, err)
+	t.Log("Authorizing ib port to allow minting")
+	t.Log("Call attach value ")
+
+	waitTransactionConfirmations()
+
+	swapId := make([]byte, 16)
+    rand.Read(swapId)
+
+	t.Logf("Token Swap Id: %v \n", swapId)
+
+	attachedAmount := float64(227)
+
+	t.Logf("15 - Float As Bytes: %v \n", executor.Float64ToBytes(attachedAmount))
+
+	dataHashForAttach := executor.BuildCrossChainMintByteVector(swapId, common.PublicKeyFromString(deployerTokenAccount), attachedAmount)
+
+	ibportCreateTransferUnwrapRequestResult, err := ibportExecutor.BuildAndInvoke(
+		instructionBuilder.AttachValue(dataHashForAttach),
+	)
+	ValidateError(t, err)
+
+	t.Logf("AttachValue - Tx:  %v \n", ibportCreateTransferUnwrapRequestResult.TxSignature)
 	
 }
