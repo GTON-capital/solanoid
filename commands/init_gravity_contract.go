@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"crypto/ed25519"
 	"encoding/hex"
 	"fmt"
@@ -56,7 +57,7 @@ func init() {
 }
 
 func NewInitGravityContractInstruction(fromAccount, programData, multisigData, targetProgramID common.PublicKey, bft uint8, round uint64, consuls []byte) types.Instruction {
-	data, err := common.SerializeData(executor.InitGravityContractInstruction {
+	data, err := common.SerializeData(executor.InitGravityContractInstruction{
 		Instruction: 0,
 		Bft:         bft,
 		InitRound:   round,
@@ -98,7 +99,7 @@ func InitGravity(privateKey, programID, stateID, multisigID, clientEndpoint stri
 
 	c := client.NewClient(clientEndpoint)
 
-	res, err := c.GetRecentBlockhash()
+	res, err := c.GetRecentBlockhash(context.Background())
 	if err != nil {
 		fmt.Printf("get recent block hash error, err: %v\n", err)
 		return nil, err
@@ -142,18 +143,18 @@ func InitGravity(privateKey, programID, stateID, multisigID, clientEndpoint stri
 	fmt.Printf("%s\n", hex.EncodeToString(serializedMessage))
 	fmt.Println("------ END RAW MESSAGE ------------------------")
 
-	txSig, err := c.SendRawTransaction(rawTx)
+	txSig, err := c.SendRawTransaction(context.Background(), rawTx)
 	if err != nil {
 		fmt.Printf("send tx error, err: %v\n", err)
 		return nil, err
 	}
 
 	log.Println("txHash:", txSig)
-	
+
 	return &models.CommandResponse{
 		SerializedMessage: hex.EncodeToString(serializedMessage),
-		TxSignature: txSig,
-		Message: &message,
+		TxSignature:       txSig,
+		Message:           &message,
 	}, nil
 }
 

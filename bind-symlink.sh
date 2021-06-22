@@ -25,6 +25,7 @@ bind-symlink() {
 # bind nebula to symlink
 bind-symlink "../solana-adapter/src/gravity-core-adapter" "gravity.so" "gravity/target/deploy/solana_gravity_contract.so"
 bind-symlink "../solana-adapter/src/gravity-core-adapter" "nebula.so" "nebula/target/deploy/solana_nebula_contract.so"
+bind-symlink "../solana-adapter/src/gravity-core-adapter" "ibport.so" "port/target/deploy/solana_port_contract.so"
 
 echo "build symlinks for binaries"
 ls -la binaries/

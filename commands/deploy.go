@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"crypto/ed25519"
 	"fmt"
 	"io/ioutil"
@@ -62,14 +63,14 @@ func init() {
 }
 func createNewAccountForProgram(c *client.Client, account types.Account, space uint64) types.Account {
 
-	res, err := c.GetRecentBlockhash()
+	res, err := c.GetRecentBlockhash(context.Background())
 	if err != nil {
 		log.Fatalf("get recent block hash error, err: %v\n", err)
 	}
 
 	program := types.NewAccount()
 
-	rentBalance, err := c.GetMinimumBalanceForRentExemption(space)
+	rentBalance, err := c.GetMinimumBalanceForRentExemption(context.Background(), space)
 	if err != nil {
 		zap.L().Fatal(err.Error())
 	}
@@ -106,7 +107,7 @@ func createNewAccountForProgram(c *client.Client, account types.Account, space u
 		log.Fatalf("serialize tx error, err: %v\n", err)
 	}
 
-	txSig, err := c.SendRawTransaction(rawTx)
+	txSig, err := c.SendRawTransaction(context.Background(), rawTx)
 	if err != nil {
 		log.Fatalf("send tx error, err: %v\n", err)
 	}
@@ -133,7 +134,7 @@ func uploadDataToProgram(c *client.Client, program types.Account, account types.
 			log.Fatalf("Serialize error, err: %v\n", err)
 		}
 		//zap.L().Sugar().Debug("data: ", chunkData)
-		res, err := c.GetRecentBlockhash()
+		res, err := c.GetRecentBlockhash(context.Background())
 		if err != nil {
 			log.Fatalf("get recent block hash error, err: %v\n", err)
 		}
@@ -174,7 +175,7 @@ func uploadDataToProgram(c *client.Client, program types.Account, account types.
 			log.Fatalf("serialize tx error, err: %v\n", err)
 		}
 
-		tx2Sig, err := c.SendRawTransaction(rawTx2)
+		tx2Sig, err := c.SendRawTransaction(context.Background(), rawTx2)
 		if err != nil {
 			log.Fatalf("send tx error, err: %v\n", err)
 		}
@@ -187,7 +188,7 @@ func uploadDataToProgram(c *client.Client, program types.Account, account types.
 
 func finalizeProgramDeployment(c *client.Client, program types.Account, account types.Account) {
 	finalizeData, err := common.SerializeData(uint32(1))
-	res, err := c.GetRecentBlockhash()
+	res, err := c.GetRecentBlockhash(context.Background())
 	if err != nil {
 		log.Fatalf("get recent block hash error, err: %v\n", err)
 	}
@@ -228,7 +229,7 @@ func finalizeProgramDeployment(c *client.Client, program types.Account, account 
 		log.Fatalf("serialize tx error, err: %v\n", err)
 	}
 
-	tx3Sig, err := c.SendRawTransaction(rawTx3)
+	tx3Sig, err := c.SendRawTransaction(context.Background(), rawTx3)
 	if err != nil {
 		log.Fatalf("send tx error, err: %v\n", err)
 	}
@@ -236,14 +237,14 @@ func finalizeProgramDeployment(c *client.Client, program types.Account, account 
 }
 
 func createAttachedAccountToProgram(c *client.Client, program types.Account, account types.Account, space uint64) types.Account {
-	res, err := c.GetRecentBlockhash()
+	res, err := c.GetRecentBlockhash(context.Background())
 	if err != nil {
 		log.Fatalf("get recent block hash error, err: %v\n", err)
 	}
 
 	newAcc := types.NewAccount()
 
-	rentBalance, err := c.GetMinimumBalanceForRentExemption(space)
+	rentBalance, err := c.GetMinimumBalanceForRentExemption(context.Background(), space)
 	if err != nil {
 		zap.L().Fatal(err.Error())
 	}
@@ -280,7 +281,7 @@ func createAttachedAccountToProgram(c *client.Client, program types.Account, acc
 		log.Fatalf("serialize tx error, err: %v\n", err)
 	}
 
-	txSig, err := c.SendRawTransaction(rawTx)
+	txSig, err := c.SendRawTransaction(context.Background(), rawTx)
 	if err != nil {
 		log.Fatalf("send tx error, err: %v\n", err)
 	}

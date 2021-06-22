@@ -69,7 +69,7 @@ func TestNebulaDeployment(t *testing.T) {
 
 	time.Sleep(confirmationTimeout)
 
-	nebulaExecutor, err := InitNebula(
+	nebulaExecutor, err := InitGenericExecutor(
 		deployerPrivateKey, 
 		nebulaProgramID,
 		nebulaStateAccount.Account.PublicKey.ToBase58(),

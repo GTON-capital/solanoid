@@ -53,8 +53,8 @@ func init() {
 }
 
 
-func InitNebula(privateKey, nebulaProgramID, nebulaDataAccount, nebulaMultisigDataAccount, clientEndpoint string, gravityProgramID common.PublicKey) (*executor.NebulaInstructionExecutor, error) {
-	nebulaExec, err := executor.NewNebulaExecutor(privateKey, nebulaProgramID, nebulaDataAccount, nebulaMultisigDataAccount, clientEndpoint, gravityProgramID)
+func InitGenericExecutor(privateKey, nebulaProgramID, dataAccount, multisigDataAccount, clientEndpoint string, gravityProgramID common.PublicKey) (*executor.GenericExecutor, error) {
+	nebulaExec, err := executor.NewNebulaExecutor(privateKey, nebulaProgramID, dataAccount, multisigDataAccount, clientEndpoint, gravityProgramID)
 	if err != nil {
 		return nil, err
 	}
@@ -66,5 +66,5 @@ func InitNebula(privateKey, nebulaProgramID, nebulaDataAccount, nebulaMultisigDa
 func initNebula(ccmd *cobra.Command, args []string) {
 	endpoint, _ := InferSystemDefinedRPC()
 
-	_, _ = InitNebula(UpdateConsulsPrivateKey, GravityDataAccount, NebulaDataAccount, MultisigDataAccount, endpoint, common.PublicKeyFromString(GravityProgramID))
+	_, _ = InitGenericExecutor(UpdateConsulsPrivateKey, GravityDataAccount, NebulaDataAccount, MultisigDataAccount, endpoint, common.PublicKeyFromString(GravityProgramID))
 }

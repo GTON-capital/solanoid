@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"context"
 	"crypto/ed25519"
 	"encoding/hex"
 	"fmt"
@@ -23,15 +24,15 @@ type InitNebulaContractInstruction struct {
 }
 
 type UpdateOraclesNebulaContractInstruction struct {
-	Instruction              uint8
-	Bft                      uint8
-	Oracles                  []byte
-	NewRound                 uint64
+	Instruction uint8
+	Bft         uint8
+	Oracles     []byte
+	NewRound    uint64
 }
 
 type SendHashValueNebulaContractInstructionn struct {
-	Instruction              uint8
-	DataHash                 []byte
+	Instruction uint8
+	DataHash    []byte
 }
 
 type DataType [1]byte
@@ -39,18 +40,18 @@ type PulseID [8]byte
 type SubscriptionID [16]byte
 
 type SendValueToSubsNebulaContractInstructionn struct {
-	Instruction              uint8
-	DataHash                 []byte
-	DataType                 DataType
-	PulseID                  PulseID
-	SubscriptionID           SubscriptionID
+	Instruction    uint8
+	DataHash       []byte
+	DataType       DataType
+	PulseID        PulseID
+	SubscriptionID SubscriptionID
 }
 
 type SubscribeNebulaContractInstructionn struct {
-	Instruction              uint8
-	Subscriber               [32]byte
-	MinConfirmations          uint8
-	Reward                   uint64
+	Instruction      uint8
+	Subscriber       [32]byte
+	MinConfirmations uint8
+	Reward           uint64
 }
 
 type ExecutionVisitor interface {
@@ -85,15 +86,15 @@ func (signer *GravityBftSigner) Pubkey() string {
 }
 
 func (signer *GravityBftSigner) Meta() types.AccountMeta {
-	return types.AccountMeta{ PubKey: signer.account.PublicKey, IsSigner: true, IsWritable: false }
+	return types.AccountMeta{PubKey: signer.account.PublicKey, IsSigner: true, IsWritable: false}
 }
 
-type NebulaInstructionExecutor struct {
+type GenericExecutor struct {
 	deployerPrivKey types.Account
 	nebulaProgramID string
 
-	nebulaDataAccount string
-	nebulaMultisigDataAccount string
+	dataAccount         string
+	multisigDataAccount string
 
 	clientEndpoint string
 
@@ -101,43 +102,46 @@ type NebulaInstructionExecutor struct {
 	additionalMeta []types.AccountMeta
 }
 
-func (nexe *NebulaInstructionExecutor) Deployer() common.PublicKey {
-	return nexe.deployerPrivKey.PublicKey
+func (ge *GenericExecutor) Deployer() common.PublicKey {
+	return ge.deployerPrivKey.PublicKey
 }
 
-func (nexe *NebulaInstructionExecutor) SetAdditionalSigners(signers []GravityBftSigner) {
-	nexe.signers = signers
+func (ge *GenericExecutor) SetAdditionalSigners(signers []GravityBftSigner) {
+	ge.signers = signers
 }
-func (nexe *NebulaInstructionExecutor) EraseAdditionalSigners() {
-	nexe.signers = make([]GravityBftSigner, 0)
-}
-
-func (nexe *NebulaInstructionExecutor) SetAdditionalMeta(meta []types.AccountMeta) {
-	nexe.additionalMeta = meta
-}
-func (nexe *NebulaInstructionExecutor) EraseAdditionalMeta() {
-	nexe.additionalMeta = make([]types.AccountMeta, 0)
+func (ge *GenericExecutor) EraseAdditionalSigners() {
+	ge.signers = make([]GravityBftSigner, 0)
 }
 
-func (nexe *NebulaInstructionExecutor) InvokePureInstruction(instruction interface{}) (*models.CommandResponse, error) {
-	account := nexe.deployerPrivKey
+func (ge *GenericExecutor) SetAdditionalMeta(meta []types.AccountMeta) {
+	ge.additionalMeta = meta
+}
+func (ge *GenericExecutor) EraseAdditionalMeta() {
+	ge.additionalMeta = make([]types.AccountMeta, 0)
+}
 
-	c := client.NewClient(nexe.clientEndpoint)
+func (ge *GenericExecutor) InvokePureInstruction(instruction interface{}) (*models.CommandResponse, error) {
+	account := ge.deployerPrivKey
 
-	res, err := c.GetRecentBlockhash()
+	c := client.NewClient(ge.clientEndpoint)
+
+	res, err := c.GetRecentBlockhash(context.Background())
 	if err != nil {
 		fmt.Printf("get recent block hash error, err: %v\n", err)
 		return nil, err
 	}
 
-	builtInstruction, err := nexe.BuildInstruction(instruction)
+	builtInstruction, err := ge.BuildInstruction(instruction)
 	if err != nil {
 		return nil, err
+	}
+	for i, v := range builtInstruction.Accounts {
+		fmt.Printf("INSTRUCTION ACCOUNT #%d - %s\n", i, v.PubKey.ToBase58())
 	}
 
 	message := types.NewMessage(
 		account.PublicKey,
-		[]types.Instruction { *builtInstruction },
+		[]types.Instruction{*builtInstruction},
 		res.Blockhash,
 	)
 
@@ -150,12 +154,11 @@ func (nexe *NebulaInstructionExecutor) InvokePureInstruction(instruction interfa
 	signatures := map[common.PublicKey]types.Signature{
 		account.PublicKey: ed25519.Sign(account.PrivateKey, serializedMessage),
 	}
-	for _, signer := range nexe.signers {
+	for _, signer := range ge.signers {
 		signatures[signer.Meta().PubKey] = signer.Sign(serializedMessage)
 	}
 
 	tx, err := types.CreateTransaction(message, signatures)
-
 
 	if err != nil {
 		fmt.Printf("generate tx error, err: %v\n", err)
@@ -175,7 +178,7 @@ func (nexe *NebulaInstructionExecutor) InvokePureInstruction(instruction interfa
 	fmt.Printf("%s\n", hex.EncodeToString(serializedMessage))
 	fmt.Println("------ END RAW MESSAGE ------------------------")
 
-	txSig, err := c.SendRawTransaction(rawTx)
+	txSig, err := c.SendRawTransaction(context.Background(), rawTx)
 	if err != nil {
 		fmt.Printf("send tx error, err: %v\n", err)
 		return nil, err
@@ -184,15 +187,15 @@ func (nexe *NebulaInstructionExecutor) InvokePureInstruction(instruction interfa
 	log.Println("txHash:", txSig)
 	return &models.CommandResponse{
 		SerializedMessage: hex.EncodeToString(serializedMessage),
-		TxSignature: txSig,
+		TxSignature:       txSig,
 	}, nil
 }
 
-func (nexe *NebulaInstructionExecutor) BuildAndInvoke(instruction interface{}) (*models.CommandResponse, error) {
-	return nexe.InvokePureInstruction(instruction)
+func (ge *GenericExecutor) BuildAndInvoke(instruction interface{}) (*models.CommandResponse, error) {
+	return ge.InvokePureInstruction(instruction)
 }
 
-func (nexe *NebulaInstructionExecutor) BuildInstruction(instruction interface{}) (*types.Instruction, error) {
+func (ge *GenericExecutor) BuildInstruction(instruction interface{}) (*types.Instruction, error) {
 	data, err := common.SerializeData(instruction)
 
 	if err != nil {
@@ -203,26 +206,29 @@ func (nexe *NebulaInstructionExecutor) BuildInstruction(instruction interface{})
 	fmt.Printf("%s\n", hex.EncodeToString(data))
 	fmt.Println("------- END RAW INSTRUCTION DATA ---------")
 
-	accountMeta := []types.AccountMeta{
-		{ PubKey: nexe.deployerPrivKey.PublicKey, IsSigner: true, IsWritable: false },
-		{ PubKey: common.PublicKeyFromString(nexe.nebulaDataAccount), IsSigner: false, IsWritable: true },
-		{ PubKey: common.PublicKeyFromString(nexe.nebulaMultisigDataAccount), IsSigner: false, IsWritable: true },	
+	accountMeta := []types.AccountMeta {
+		{ PubKey: ge.deployerPrivKey.PublicKey, IsSigner: true, IsWritable: false },
+		{ PubKey: common.PublicKeyFromString(ge.dataAccount), IsSigner: false, IsWritable: true },
 	}
-	
-	for _, signer := range nexe.signers {
+
+	if ge.multisigDataAccount != "" {
+		accountMeta = append(accountMeta, types.AccountMeta{PubKey: common.PublicKeyFromString(ge.multisigDataAccount), IsSigner: false, IsWritable: true})
+	}
+
+	for _, signer := range ge.signers {
 		accountMeta = append(accountMeta, signer.Meta())
 	}
 
-	accountMeta = append(accountMeta, nexe.additionalMeta...)
-	
+	accountMeta = append(accountMeta, ge.additionalMeta...)
+
 	return &types.Instruction{
-		Accounts: accountMeta,
-		ProgramID: common.PublicKeyFromString(nexe.nebulaProgramID),
+		Accounts:  accountMeta,
+		ProgramID: common.PublicKeyFromString(ge.nebulaProgramID),
 		Data:      data,
 	}, nil
 }
 
-func NewNebulaExecutor(privateKey, nebulaProgramID, nebulaDataAccount, nebulaMultisigDataAccount, clientEndpoint string, gravityProgramID common.PublicKey) (*NebulaInstructionExecutor, error) {
+func NewNebulaExecutor(privateKey, nebulaProgramID, dataAccount, multisigDataAccount, clientEndpoint string, gravityProgramID common.PublicKey) (*GenericExecutor, error) {
 	pk, err := base58.Decode(privateKey)
 	if err != nil {
 		zap.L().Fatal(err.Error())
@@ -230,14 +236,13 @@ func NewNebulaExecutor(privateKey, nebulaProgramID, nebulaDataAccount, nebulaMul
 	}
 	account := types.AccountFromPrivateKeyBytes(pk)
 
-	return &NebulaInstructionExecutor{
+	return &GenericExecutor{
 		deployerPrivKey: account,
 		nebulaProgramID: nebulaProgramID,
 
-		nebulaDataAccount: nebulaDataAccount,
-		nebulaMultisigDataAccount: nebulaMultisigDataAccount,
-	
+		dataAccount:         dataAccount,
+		multisigDataAccount: multisigDataAccount,
+
 		clientEndpoint: clientEndpoint,
 	}, nil
 }
-
