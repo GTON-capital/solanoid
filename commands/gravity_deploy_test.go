@@ -363,9 +363,11 @@ func TestIBPortAttachValue(t *testing.T) {
 
 	instructionBuilder := executor.NewIBPortInstructionBuilder()
 
+	mockedNebulaAddress := common.PublicKeyFromString(deployerAddress)
+
 	waitTransactionConfirmations()
 	ibportInitResult, err := ibportExecutor.BuildAndInvoke(
-		instructionBuilder.Init(common.PublicKeyFromBytes(make([]byte, 32)), common.TokenProgramID),
+		instructionBuilder.Init(mockedNebulaAddress, common.TokenProgramID),
 	)
 	ValidateError(t, err)
 	t.Logf("IBPort Init: %v \n", ibportInitResult.TxSignature)
