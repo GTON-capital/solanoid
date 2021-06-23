@@ -1,10 +1,11 @@
 package commands
 
 import (
-	"solanoid/commands/executor"
-	"solanoid/models/nebula"
-	"solanoid/models/solana"
 	"time"
+
+	"github.com/Gravity-Tech/solanoid/commands/executor"
+	"github.com/Gravity-Tech/solanoid/models/nebula"
+	"github.com/Gravity-Tech/solanoid/models/solana"
 
 	// "os"
 

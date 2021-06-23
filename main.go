@@ -3,7 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
-	"solanoid/commands"
+
+	"github.com/Gravity-Tech/solanoid/commands"
 )
 
 func main() {

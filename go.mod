@@ -1,4 +1,4 @@
-module solanoid
+module github.com/Gravity-Tech/solanoid
 
 go 1.15
 

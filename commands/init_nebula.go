@@ -2,8 +2,8 @@ package commands
 
 import (
 
-	// "solanoid/commands/executor"
-	"solanoid/commands/executor"
+	// "github.com/Gravity-Tech/solanoid/commands/executor"
+	"github.com/Gravity-Tech/solanoid/commands/executor"
 
 	"github.com/portto/solana-go-sdk/common"
 	"github.com/spf13/cobra"

@@ -3,8 +3,9 @@ package commands
 import (
 	"crypto/rand"
 	"fmt"
-	"solanoid/commands/executor"
 	"time"
+
+	"github.com/Gravity-Tech/solanoid/commands/executor"
 
 	// "os"
 
