@@ -164,6 +164,22 @@ func TestPDA(t *testing.T) {
 	t.FailNow()
 }
 
+func waitTransactionConfirmations() {
+	time.Sleep(time.Second * 30)
+}
+
+func WrappedFaucet(t *testing.T, receiverPath, receiverAddress string, amount uint64) {
+	// err := SystemFaucet(t, receiverAddress, amount)
+	// if err != nil {
+	// 	err = SystemAirdrop(t, receiverPath, amount)
+	// 	ValidateError(t, err)
+	// }
+	t.Logf("Faucet %v SOL to %v \n", receiverAddress, fmt.Sprint(amount))
+	err := SystemAirdrop(t, receiverPath, amount)
+	ValidateError(t, err)
+}
+
+
 func TestIBPortContract(t *testing.T) {
 	var err error
 	deployerPrivateKeysPath := "../private-keys/_test_deployer-pk-deployer.json"
@@ -184,11 +200,8 @@ func TestIBPortContract(t *testing.T) {
 	ValidateError(t, err)
 
 
-	waitTransactionConfirmations := func() {
-		time.Sleep(time.Second * 30)
-	}
-
-	err = SystemFaucet(t, tokenOwnerAddress, 10)
+	// err = SystemFaucet(t, tokenOwnerAddress, 10)
+	WrappedFaucet(t, tokenOwnerPath, tokenOwnerAddress, 10)
 	ValidateError(t, err)
 
 	tokenDeployResult, err := CreateToken(tokenOwnerPath)
@@ -218,8 +231,8 @@ func TestIBPortContract(t *testing.T) {
 	deployerPrivateKey, err := ReadPKFromPath(t, deployerPrivateKeysPath)
 	ValidateError(t, err)
 
-	SystemFaucet(t, deployerAddress, 10)
-	ValidateError(t, err)
+	// SystemFaucet(t, deployerAddress, 10)
+	// ValidateError(t, err)
 
 	// love this *ucking timeouts
 	waitTransactionConfirmations()
@@ -302,13 +315,11 @@ func TestIBPortAttachValue(t *testing.T) {
 	tokenOwnerAddress, err := ReadAccountAddress(tokenOwnerPath)
 	ValidateError(t, err)
 
-
-	waitTransactionConfirmations := func() {
-		time.Sleep(time.Second * 30)
-	}
-
-	err = SystemFaucet(t, tokenOwnerAddress, 10)
-	ValidateError(t, err)
+	WrappedFaucet(t, tokenOwnerPath, tokenOwnerAddress, 10)
+	WrappedFaucet(t, deployerPrivateKeysPath, deployerAddress, 10)
+	// err = SystemAirdrop(t, deployerPrivateKeysPath, 10)
+	// ValidateError(t, err)
+	waitTransactionConfirmations()
 
 	tokenDeployResult, err := CreateToken(tokenOwnerPath)
 	ValidateError(t, err)
@@ -337,8 +348,8 @@ func TestIBPortAttachValue(t *testing.T) {
 	deployerPrivateKey, err := ReadPKFromPath(t, deployerPrivateKeysPath)
 	ValidateError(t, err)
 
-	SystemFaucet(t, deployerAddress, 10)
-	ValidateError(t, err)
+	// SystemFaucet(t, deployerAddress, 10)
+	// ValidateError(t, err)
 
 	// love this *ucking timeouts
 	waitTransactionConfirmations()
@@ -403,6 +414,46 @@ func TestIBPortAttachValue(t *testing.T) {
 	)
 	ValidateError(t, err)
 
-	t.Logf("AttachValue - Tx:  %v \n", ibportCreateTransferUnwrapRequestResult.TxSignature)
-	
+	t.Logf("#1 AttachValue - Tx:  %v \n", ibportCreateTransferUnwrapRequestResult.TxSignature)
+
+	t.Logf("Checking for double spend problem \n")
+
+	swapIdSecond := make([]byte, 16)
+    rand.Read(swapIdSecond)
+
+	dataHashForAttachSecond := executor.BuildCrossChainMintByteVector(swapIdSecond, common.PublicKeyFromString(deployerTokenAccount), attachedAmount)
+
+	waitTransactionConfirmations()
+
+	ibportCreateTransferUnwrapRequestResult, err = ibportExecutor.BuildAndInvoke(
+		instructionBuilder.AttachValue(dataHashForAttachSecond),
+	)
+	ValidateError(t, err)
+
+	t.Logf("#2 AttachValue - Tx:  %v \n", ibportCreateTransferUnwrapRequestResult.TxSignature)
+
+	waitTransactionConfirmations()
+
+	swapIdThird := make([]byte, 16)
+    rand.Read(swapIdThird)
+
+	dataHashForAttachThird := executor.BuildCrossChainMintByteVector(swapIdThird, common.PublicKeyFromString(deployerTokenAccount), attachedAmount)
+
+	waitTransactionConfirmations()
+
+	ibportCreateTransferUnwrapRequestResult, err = ibportExecutor.BuildAndInvoke(
+		instructionBuilder.AttachValue(dataHashForAttachThird),
+	)
+	ValidateError(t, err)
+
+	t.Logf("#3 AttachValue - Tx:  %v \n", ibportCreateTransferUnwrapRequestResult.TxSignature)
+
+	ibportCreateTransferUnwrapRequestResult, err = ibportExecutor.BuildAndInvoke(
+		instructionBuilder.AttachValue(dataHashForAttachThird),
+	)
+
+	if err != nil {
+		t.Logf("Program must fail with error 0x1 \n")
+		t.Logf("If so - double spend has been prevented \n")
+	}
 }
