@@ -6,14 +6,13 @@ import (
 	"solanoid/commands/executor"
 	"time"
 
-	// "os"
-
 	"testing"
 
 	"github.com/mr-tron/base58"
 	"github.com/portto/solana-go-sdk/common"
 	"github.com/portto/solana-go-sdk/types"
-	// "strings"
+
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
 
 func TestGravityContract(t *testing.T) {
@@ -203,6 +202,8 @@ func TestIBPortContract(t *testing.T) {
 	// err = SystemFaucet(t, tokenOwnerAddress, 10)
 	WrappedFaucet(t, tokenOwnerPath, tokenOwnerAddress, 10)
 	ValidateError(t, err)
+	WrappedFaucet(t, deployerPrivateKeysPath, deployerAddress, 10)
+	ValidateError(t, err)
 
 	tokenDeployResult, err := CreateToken(tokenOwnerPath)
 	ValidateError(t, err)
@@ -288,11 +289,34 @@ func TestIBPortContract(t *testing.T) {
 
 	waitTransactionConfirmations()
 
+	ethReceiverPK, err := ethcrypto.GenerateKey()
+	ValidateError(t, err)
+
+	var ethReceiverAddress [32]byte
+	copy(ethReceiverAddress[:], ethcrypto.PubkeyToAddress(ethReceiverPK.PublicKey).Bytes())
+
+	t.Logf("#1 EVM Receiver: %v \n", ethcrypto.PubkeyToAddress(ethReceiverPK.PublicKey).String())
+	t.Logf("#1 EVM Receiver (bytes): %v \n", ethReceiverAddress[:])
+
 	ibportCreateTransferUnwrapRequestResult, err := ibportExecutor.BuildAndInvoke(
-		instructionBuilder.CreateTransferUnwrapRequest(common.PublicKeyFromBytes(make([]byte, 32)), burnAmount),
+		instructionBuilder.CreateTransferUnwrapRequest(ethReceiverAddress, 2.22274234),
 	)
 	ValidateError(t, err)
-	t.Logf("CreateTransferUnwrapRequest - Tx: %v \n", ibportCreateTransferUnwrapRequestResult.TxSignature)
+	t.Logf("#1 CreateTransferUnwrapRequest - Tx: %v \n", ibportCreateTransferUnwrapRequestResult.TxSignature)
+
+	ethReceiverPK, err = ethcrypto.GenerateKey()
+	ValidateError(t, err)
+
+	copy(ethReceiverAddress[:], ethcrypto.PubkeyToAddress(ethReceiverPK.PublicKey).Bytes())
+
+	t.Logf("#2 EVM Receiver: %v \n", ethcrypto.PubkeyToAddress(ethReceiverPK.PublicKey).String())
+	t.Logf("#2 EVM Receiver (bytes): %v \n", ethReceiverAddress[:])
+
+	ibportCreateTransferUnwrapRequestResult, err = ibportExecutor.BuildAndInvoke(
+		instructionBuilder.CreateTransferUnwrapRequest(ethReceiverAddress, 3.23441),
+	)
+	ValidateError(t, err)
+	t.Logf("#2 CreateTransferUnwrapRequest -  Tx: %v \n", ibportCreateTransferUnwrapRequestResult.TxSignature)
 }
 
 
