@@ -47,11 +47,20 @@ type SendValueToSubsNebulaContractInstructionn struct {
 	SubscriptionID SubscriptionID
 }
 
-type SubscribeNebulaContractInstructionn struct {
-	Instruction      uint8
+type SubscribeNebulaContractInstruction struct {
+	Instruction          uint8
 	Subscriber       [32]byte
-	MinConfirmations uint8
-	Reward           uint64
+	MinConfirmations      uint8
+	Reward               uint64
+	SubscriptionID   [16]byte
+}
+
+type SendValueToSubsNebulaContractInstruction struct {
+	Instruction        uint8
+	DataValue        []byte
+	DataType           uint8
+	PulseID            uint64
+	SubscriptionID [16]byte
 }
 
 
@@ -66,6 +75,26 @@ func (port *NebulaInstructionBuilder) Init(bft, dataType uint8, gravityProgramID
 		InitialOracles:           oracles,
 	}
 }
+
+func (port *NebulaInstructionBuilder) Subscribe(subscriber common.PublicKey, minConfirmations uint8, reward uint64, subscriptionID [16]byte) interface{} {
+	return SubscribeNebulaContractInstruction {
+		Instruction:     4,
+		Subscriber:      subscriber,    
+		MinConfirmations: minConfirmations, 
+		Reward:          reward,
+		SubscriptionID:  subscriptionID,
+	}
+}
+func (port *NebulaInstructionBuilder) SendValueToSubs(data []byte, dataType uint8, pulseID uint64, subscriptionID [16]byte) interface{} {
+	return SendValueToSubsNebulaContractInstruction {
+		Instruction:     3,
+		DataValue:       data,
+		DataType:        dataType,
+		PulseID:         pulseID, 
+		SubscriptionID:  subscriptionID,
+	}
+}
+
 
 type ExecutionVisitor interface {
 	InvokePureInstruction(interface{}) (*models.CommandResponse, error)
@@ -179,21 +208,27 @@ func (ge *GenericExecutor) InvokePureInstruction(instruction interface{}) (*mode
 	}
 
 	rawTx, err := tx.Serialize()
+
+	logTx := func() {
+		fmt.Println("------ RAW TRANSACTION ------------------------")
+		fmt.Printf("%s\n", hex.EncodeToString(rawTx))
+		fmt.Println("------ END RAW TRANSACTION ------------------------")
+
+		fmt.Println("------ RAW MESSAGE ------------------------")
+		fmt.Printf("%s\n", hex.EncodeToString(serializedMessage))
+		fmt.Println("------ END RAW MESSAGE ------------------------")
+	}
+
 	if err != nil {
 		fmt.Printf("serialize tx error, err: %v\n", err)
+		logTx()
 		return nil, err
 	}
-	fmt.Println("------ RAW TRANSACTION ------------------------")
-	fmt.Printf("%s\n", hex.EncodeToString(rawTx))
-	fmt.Println("------ END RAW TRANSACTION ------------------------")
-
-	fmt.Println("------ RAW MESSAGE ------------------------")
-	fmt.Printf("%s\n", hex.EncodeToString(serializedMessage))
-	fmt.Println("------ END RAW MESSAGE ------------------------")
 
 	txSig, err := c.SendRawTransaction(context.Background(), rawTx)
 	if err != nil {
 		fmt.Printf("send tx error, err: %v\n", err)
+		logTx()
 		return nil, err
 	}
 

@@ -325,7 +325,7 @@ func DeploySolanaProgram(t *testing.T, tag string, programPrivateKeysPath, deplo
 
 	output, err := cmd.CombinedOutput()
 	
-	t.Log(string(output))
+	// t.Log(string(output))
 
 	outputList := strings.Split(string(output), " ")
 	programID := outputList[len(outputList) - 1]

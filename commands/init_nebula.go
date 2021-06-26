@@ -53,8 +53,8 @@ func init() {
 }
 
 
-func InitGenericExecutor(privateKey, nebulaProgramID, dataAccount, multisigDataAccount, clientEndpoint string, gravityProgramID common.PublicKey) (*executor.GenericExecutor, error) {
-	nebulaExec, err := executor.NewNebulaExecutor(privateKey, nebulaProgramID, dataAccount, multisigDataAccount, clientEndpoint, gravityProgramID)
+func InitGenericExecutor(privateKey, programID, dataAccount, multisigDataAccount, clientEndpoint string, gravityProgramID common.PublicKey) (*executor.GenericExecutor, error) {
+	nebulaExec, err := executor.NewNebulaExecutor(privateKey, programID, dataAccount, multisigDataAccount, clientEndpoint, gravityProgramID)
 	if err != nil {
 		return nil, err
 	}

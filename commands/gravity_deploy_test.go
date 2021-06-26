@@ -480,16 +480,41 @@ func TestIBPortAttachValue(t *testing.T) {
 	}
 }
 
-type OperatingAddress struct {
-	PublicKey  common.PublicKey
-	PrivateKey string
-	PKPath     string
+type OperatingAddressBuilderOptions struct {
+	WithPDASeeds []byte
 }
 
-func NewOperatingAddress(t *testing.T, path string) (*OperatingAddress, error) {
-	var err error
-	err = CreatePersistedAccount(path, true)
+type OperatingAddress struct {
+	// DataAccount common.PublicKey
+	PublicKey   common.PublicKey
+	PDA         common.PublicKey
+	PrivateKey  string
+	PKPath      string
+}
 
+func NewOperatingAddress(t *testing.T, path string, options *OperatingAddressBuilderOptions) (*OperatingAddress, error) {
+	var err error
+
+	if options != nil && len(options.WithPDASeeds) > 0 {
+		publicKey, pda, err := CreatePersistentAccountWithPDA(path, true, [][]byte{options.WithPDASeeds})
+		if err != nil {
+			return nil, err
+		}
+
+		privateKey, err := ReadPKFromPath(t, path)
+		if err != nil {
+			return nil, err
+		}
+
+		return &OperatingAddress {
+			PublicKey:  publicKey,
+			PrivateKey: privateKey,
+			PKPath:     path,
+			PDA:        pda,
+		}, nil
+	}
+
+	err = CreatePersistedAccount(path, true)
 	if err != nil {
 		return nil, err
 	}
@@ -500,28 +525,43 @@ func NewOperatingAddress(t *testing.T, path string) (*OperatingAddress, error) {
 	}
 
 	privateKey, err := ReadPKFromPath(t, path)
-	ValidateError(t, err)
+	if err != nil {
+		return nil, err
+	}
 
 	address := &OperatingAddress {
 		PublicKey: common.PublicKeyFromString(pubkey),
 		PrivateKey: privateKey,
 		PKPath:     path,
 	}
-	// fmt.Printf("address: %v \n", address)
 	
 	return address, nil
 }
 
-func GenerateConsuls(t *testing.T, consulPathPrefix string, count uint) (*[]OperatingAddress, error) {
+type ConsulsHandler struct {
+	BFT  uint8
+	List []OperatingAddress
+}
+
+func (ch *ConsulsHandler) ConcatConsuls() []byte {
+	var oracles []byte
+	for _, consul := range ch.List {
+		oracles = append(oracles, consul.PublicKey.Bytes()...)
+	}
+
+	return oracles
+}
+
+func GenerateConsuls(t *testing.T, consulPathPrefix string, count uint8) (*ConsulsHandler, error) {
 	result := make([]OperatingAddress, count)
 	
-	var i uint
+	var i uint8
 
 	for i < count {
 		path := fmt.Sprintf("%v_%v.json", consulPathPrefix, i)
-		// consulPubKeys[i] = 
-		// consulPKPaths[i] = 
-		address, err := NewOperatingAddress(t, path)
+
+		address, err := NewOperatingAddress(t, path, nil)
+
 		if err != nil {
 			return nil, err
 		}
@@ -530,7 +570,10 @@ func GenerateConsuls(t *testing.T, consulPathPrefix string, count uint) (*[]Oper
 		i++
 	}
 
-	return &result, nil
+	return &ConsulsHandler{
+		BFT:  count,
+		List: result,
+	}, nil
 }
 
 func ParallelExecution(callbacks []func()) {
@@ -538,19 +581,36 @@ func ParallelExecution(callbacks []func()) {
 
 	wg.Add(len(callbacks))
 	for _, fn := range callbacks {
+		// aliasing
+		fn := fn
 		go func() {
+			defer wg.Done()
 			fn()
-			wg.Done()
 		}()
 	}
 
 	wg.Wait()
 }
 
+/*
+ * Test logical steps
+ *
+ * 1. Deploy Nebula
+ * 2. Init Nebula
+ * 3. Deploy Port
+ * 4. Subscribe Port to Nebula
+ * 5. Call mocked attach data.
+ *
+ * Goals:
+ * 1. Validate minting flow.
+ * 2. Validate oracle multisig. (with various bft*)
+ * 3. Validate double spend on attach
+ * 4. Validate the atomic call: nebula.send_value_to_subs() -> nebula.attach()
+ */
 func TestNebulaSendValueToIBPortSubscriber (t *testing.T) {
 	var err error
 
-	deployer, err := NewOperatingAddress(t, "../private-keys/_test_deployer-pk-deployer.json")
+	deployer, err := NewOperatingAddress(t, "../private-keys/_test_deployer-pk-deployer.json", nil)
 	ValidateError(t, err)
 
 	// tokenOwner, err := NewOperatingAddress(t, "../private-keys/_test_only-token-owner.json")
@@ -559,21 +619,36 @@ func TestNebulaSendValueToIBPortSubscriber (t *testing.T) {
 	// gravityProgram, err := NewOperatingAddress(t, "../private-keys/_test_only-gravity-program.json")
 	// ValidateError(t, err)
 
-	nebulaProgram, err := NewOperatingAddress(t, "../private-keys/_test_only-nebula-program.json")
+	nebulaProgram, err := NewOperatingAddress(t, "../private-keys/_test_only-nebula-program.json", nil)
 	ValidateError(t, err)
 
-	ibportProgram, err := NewOperatingAddress(t, "../private-keys/_test_only_ibport-program.json")
+	ibportProgram, err := NewOperatingAddress(t, "../private-keys/_test_only_ibport-program.json", &OperatingAddressBuilderOptions{
+		WithPDASeeds: []byte("ibport"),
+	})
 	ValidateError(t, err)
 
 	const BFT = 3
 
-
-	WrappedFaucet(t, deployer.PKPath, deployer.PublicKey.ToBase58(), 10)
+	WrappedFaucet(t, deployer.PKPath, "", 10)
 
 	consulsList, err := GenerateConsuls(t, "../private-keys/_test_consul_prefix_", BFT)
 	ValidateError(t, err)
 
 	endpoint, _ := InferSystemDefinedRPC()
+
+	tokenDeployResult, err := CreateToken(deployer.PKPath)
+	ValidateError(t, err)
+
+	tokenProgramAddress := tokenDeployResult.Token.ToBase58()
+
+	// deployerTokenAccount, err := CreateTokenAccount(deployer.PKPath, tokenProgramAddress)
+	// ValidateError(t, err)
+
+	waitTransactionConfirmations()
+
+
+	deployerTokenAccount, err := CreateTokenAccount(deployer.PKPath, tokenProgramAddress)
+	ValidateError(t, err)
 
 	nebulaDataAccount, err := GenerateNewAccount(deployer.PrivateKey, NebulaAllocation, nebulaProgram.PublicKey.ToBase58(), endpoint)
 	ValidateError(t, err)
@@ -581,17 +656,29 @@ func TestNebulaSendValueToIBPortSubscriber (t *testing.T) {
 	nebulaMultisigAccount, err := GenerateNewAccount(deployer.PrivateKey, MultisigAllocation, nebulaProgram.PublicKey.ToBase58(), endpoint)
 	ValidateError(t, err)
 
-	fmt.Printf("deploying in parallel 3 contracts \n")
-
-	// _, err = DeploySolanaProgram(t, "gravity", gravityProgram.PKPath, deployer.PKPath, "../binaries/gravity.so")
-	// ValidateError(t, err)
-
-	_, err = DeploySolanaProgram(t, "nebula", nebulaProgram.PKPath, deployer.PKPath, "../binaries/nebula.so")
+	ibportDataAccount, err := GenerateNewAccount(deployer.PrivateKey, IBPortAllocation, ibportProgram.PublicKey.ToBase58(), endpoint)
 	ValidateError(t, err)
 
-	_, err = DeploySolanaProgram(t, "ibport", ibportProgram.PKPath, deployer.PKPath, "../binaries/ibport.so")
-	ValidateError(t, err)
 
+	ParallelExecution(
+		[]func() {
+			func() {
+				_, err = DeploySolanaProgram(t, "nebula", nebulaProgram.PKPath, deployer.PKPath, "../binaries/nebula.so")
+				ValidateError(t, err)
+			},
+			func() {
+				_, err = DeploySolanaProgram(t, "ibport", ibportProgram.PKPath, deployer.PKPath, "../binaries/ibport.so")
+				ValidateError(t, err)
+			},
+			func() {
+				// allow ibport to mint
+				err = AuthorizeToken(t, deployer.PKPath, tokenProgramAddress, "mint", ibportProgram.PDA.ToBase58())
+				ValidateError(t, err)
+				t.Log("Authorizing ib port to allow minting")
+				// t.Log("Call attach value ")
+			},
+		},
+	)
 	
 	nebulaBuilder := executor.NebulaInstructionBuilder{}
 	nebulaExecutor, err := InitGenericExecutor(
@@ -604,16 +691,100 @@ func TestNebulaSendValueToIBPortSubscriber (t *testing.T) {
 	)
 	ValidateError(t, err)
 
-	var oracles []byte
-	for _, consul := range *consulsList {
-		oracles = append(oracles, consul.PublicKey.Bytes()...)
-	}
+	ibportBuilder := executor.IBPortInstructionBuilder{}
+	ibportExecutor, err := InitGenericExecutor(
+		deployer.PrivateKey,
+		ibportProgram.PublicKey.ToBase58(),
+		ibportDataAccount.Account.PublicKey.ToBase58(),
+		"",
+		endpoint,
+		common.PublicKeyFromString(""),
+	)
+	ValidateError(t, err)
 
-	nebulaInitResponse, err := nebulaExecutor.BuildAndInvoke(
-		nebulaBuilder.Init(BFT, nebula.Bytes, common.PublicKeyFromString(""), oracles),
+	waitTransactionConfirmations()
+
+	oracles := consulsList.ConcatConsuls()
+
+
+	ParallelExecution(
+		[]func() {
+			func() {
+				// (2)
+				nebulaInitResponse, err := nebulaExecutor.BuildAndInvoke(
+					nebulaBuilder.Init(BFT, nebula.Bytes, common.PublicKeyFromString(""), oracles),
+				)
+				fmt.Printf("Nebula Init: %v \n", nebulaInitResponse.TxSignature)
+				ValidateError(t, err)
+			},
+			func() {
+				ibportInitResult, err := ibportExecutor.BuildAndInvoke(
+					ibportBuilder.Init(nebulaProgram.PublicKey, common.TokenProgramID),
+				)
+
+				fmt.Printf("IB Port Init: %v \n", ibportInitResult.TxSignature)
+				ValidateError(t, err)
+			},
+		},
 	)
 
-	fmt.Printf("Nebula Init: %v \n", nebulaInitResponse.TxSignature)
+	waitTransactionConfirmations()
+	waitTransactionConfirmations()
+
+	fmt.Println("IB Port Program is being subscribed to Nebula")
+
+	var subID [16]byte
+    rand.Read(subID[:])
+	
+	fmt.Printf("subID: %v \n", subID)
+
+	// (4)
+	nebulaSubscribePortResponse, err := nebulaExecutor.BuildAndInvoke(
+		nebulaBuilder.Subscribe(ibportProgram.PublicKey, 1, 1, subID),
+	)
+	ValidateError(t, err)
+
+	fmt.Printf("Nebula Subscribe: %v \n", nebulaSubscribePortResponse.TxSignature)
+
+	waitTransactionConfirmations()
+	waitTransactionConfirmations()
+
+	_, err = nebulaExecutor.BuildAndInvoke(
+		nebulaBuilder.Subscribe(ibportProgram.PublicKey, 1, 1, subID),
+	)
+	ValidateErrorExistence(t, err)
+
+	fmt.Printf("Nebula Subscribe with the same subID must have failed: %v \n", err.Error())
+
+	waitTransactionConfirmations()
+	waitTransactionConfirmations()
+
+	fmt.Println("Testing SendValueToSubs call from one of the consuls")
+
+	swapId := make([]byte, 16)
+    rand.Read(swapId)
+
+	t.Logf("Token Swap Id: %v \n", swapId)
+
+	attachedAmount := float64(227)
+
+	t.Logf("227 - Float As Bytes: %v \n", executor.Float64ToBytes(attachedAmount))
+
+	dataHashForAttach := executor.BuildCrossChainMintByteVector(swapId, deployer.PublicKey, attachedAmount)
+
+	nebulaExecutor.SetAdditionalMeta([]types.AccountMeta{
+		{ PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false },
+		{ PubKey: common.PublicKeyFromString(tokenProgramAddress), IsWritable: true, IsSigner: false },
+		{ PubKey: common.PublicKeyFromString(deployerTokenAccount), IsWritable: true, IsSigner: false },
+		{ PubKey: ibportProgram.PDA, IsWritable: false, IsSigner: false },
+	})
+
+	nebulaAttachResponse, err := nebulaExecutor.BuildAndInvoke(
+		nebulaBuilder.SendValueToSubs(dataHashForAttach[:], nebula.Bytes, 1, subID),
+	)
+	ValidateError(t, err)
+
+	fmt.Printf("Nebula Attach Call: %v \n", nebulaAttachResponse.TxSignature)
 
 	// deployerAddress, err := ReadAccountAddress(deployerPrivateKeysPath)
 	// ValidateError(t, err)

@@ -22,7 +22,7 @@ const (
 	GravityContractAllocation = 299
 	MultisigAllocation        = 355
 	IBPortAllocation          = 1000
-	NebulaAllocation          = 2000
+	NebulaAllocation          = 1500
 )
 
 var (

@@ -141,7 +141,7 @@ func TestNebulaDeployment(t *testing.T) {
 	ValidateError(t, err)
 	t.Logf("mocked subscriber state account: %v \n", mockedSubscriber.Account.PublicKey.ToBase58())
 
-	nebulaSubscribeResponse, err := nebulaExecutor.BuildAndInvoke(executor.SubscribeNebulaContractInstructionn {
+	nebulaSubscribeResponse, err := nebulaExecutor.BuildAndInvoke(executor.SubscribeNebulaContractInstruction {
 		Instruction: 4,
 		Subscriber: mockedSubscriber.Account.PublicKey,
 		MinConfirmations: 1,
