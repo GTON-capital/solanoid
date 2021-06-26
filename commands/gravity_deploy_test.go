@@ -4,6 +4,8 @@ import (
 	"crypto/rand"
 	"fmt"
 	"solanoid/commands/executor"
+	"solanoid/models/nebula"
+	"sync"
 	"time"
 
 	"testing"
@@ -371,11 +373,7 @@ func TestIBPortAttachValue(t *testing.T) {
 
 	deployerPrivateKey, err := ReadPKFromPath(t, deployerPrivateKeysPath)
 	ValidateError(t, err)
-
-	// SystemFaucet(t, deployerAddress, 10)
-	// ValidateError(t, err)
-
-	// love this *ucking timeouts
+	
 	waitTransactionConfirmations()
 
 	_, err = DeploySolanaProgram(t, "ibport", ibportProgramPath, deployerPrivateKeysPath, "../binaries/ibport.so")
@@ -480,4 +478,179 @@ func TestIBPortAttachValue(t *testing.T) {
 		t.Logf("Program must fail with error 0x1 \n")
 		t.Logf("If so - double spend has been prevented \n")
 	}
+}
+
+type OperatingAddress struct {
+	PublicKey  common.PublicKey
+	PrivateKey string
+	PKPath     string
+}
+
+func NewOperatingAddress(t *testing.T, path string) (*OperatingAddress, error) {
+	var err error
+	err = CreatePersistedAccount(path, true)
+
+	if err != nil {
+		return nil, err
+	}
+
+	pubkey, err := ReadAccountAddress(path)
+	if err != nil {
+		return nil, err
+	}
+
+	privateKey, err := ReadPKFromPath(t, path)
+	ValidateError(t, err)
+
+	address := &OperatingAddress {
+		PublicKey: common.PublicKeyFromString(pubkey),
+		PrivateKey: privateKey,
+		PKPath:     path,
+	}
+	// fmt.Printf("address: %v \n", address)
+	
+	return address, nil
+}
+
+func GenerateConsuls(t *testing.T, consulPathPrefix string, count uint) (*[]OperatingAddress, error) {
+	result := make([]OperatingAddress, count)
+	
+	var i uint
+
+	for i < count {
+		path := fmt.Sprintf("%v_%v.json", consulPathPrefix, i)
+		// consulPubKeys[i] = 
+		// consulPKPaths[i] = 
+		address, err := NewOperatingAddress(t, path)
+		if err != nil {
+			return nil, err
+		}
+		result[i] = *address
+
+		i++
+	}
+
+	return &result, nil
+}
+
+func ParallelExecution(callbacks []func()) {
+	var wg sync.WaitGroup
+
+	wg.Add(len(callbacks))
+	for _, fn := range callbacks {
+		go func() {
+			fn()
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
+}
+
+func TestNebulaSendValueToIBPortSubscriber (t *testing.T) {
+	var err error
+
+	deployer, err := NewOperatingAddress(t, "../private-keys/_test_deployer-pk-deployer.json")
+	ValidateError(t, err)
+
+	// tokenOwner, err := NewOperatingAddress(t, "../private-keys/_test_only-token-owner.json")
+	// ValidateError(t, err)
+
+	// gravityProgram, err := NewOperatingAddress(t, "../private-keys/_test_only-gravity-program.json")
+	// ValidateError(t, err)
+
+	nebulaProgram, err := NewOperatingAddress(t, "../private-keys/_test_only-nebula-program.json")
+	ValidateError(t, err)
+
+	ibportProgram, err := NewOperatingAddress(t, "../private-keys/_test_only_ibport-program.json")
+	ValidateError(t, err)
+
+	const BFT = 3
+
+
+	WrappedFaucet(t, deployer.PKPath, deployer.PublicKey.ToBase58(), 10)
+
+	consulsList, err := GenerateConsuls(t, "../private-keys/_test_consul_prefix_", BFT)
+	ValidateError(t, err)
+
+	endpoint, _ := InferSystemDefinedRPC()
+
+	nebulaDataAccount, err := GenerateNewAccount(deployer.PrivateKey, NebulaAllocation, nebulaProgram.PublicKey.ToBase58(), endpoint)
+	ValidateError(t, err)
+
+	nebulaMultisigAccount, err := GenerateNewAccount(deployer.PrivateKey, MultisigAllocation, nebulaProgram.PublicKey.ToBase58(), endpoint)
+	ValidateError(t, err)
+
+	fmt.Printf("deploying in parallel 3 contracts \n")
+
+	// _, err = DeploySolanaProgram(t, "gravity", gravityProgram.PKPath, deployer.PKPath, "../binaries/gravity.so")
+	// ValidateError(t, err)
+
+	_, err = DeploySolanaProgram(t, "nebula", nebulaProgram.PKPath, deployer.PKPath, "../binaries/nebula.so")
+	ValidateError(t, err)
+
+	_, err = DeploySolanaProgram(t, "ibport", ibportProgram.PKPath, deployer.PKPath, "../binaries/ibport.so")
+	ValidateError(t, err)
+
+	
+	nebulaBuilder := executor.NebulaInstructionBuilder{}
+	nebulaExecutor, err := InitGenericExecutor(
+		deployer.PrivateKey,
+		nebulaProgram.PublicKey.ToBase58(),
+		nebulaDataAccount.Account.PublicKey.ToBase58(),
+		nebulaMultisigAccount.Account.PublicKey.ToBase58(),
+		endpoint,
+		common.PublicKeyFromString(""),
+	)
+	ValidateError(t, err)
+
+	var oracles []byte
+	for _, consul := range *consulsList {
+		oracles = append(oracles, consul.PublicKey.Bytes()...)
+	}
+
+	nebulaInitResponse, err := nebulaExecutor.BuildAndInvoke(
+		nebulaBuilder.Init(BFT, nebula.Bytes, common.PublicKeyFromString(""), oracles),
+	)
+
+	fmt.Printf("Nebula Init: %v \n", nebulaInitResponse.TxSignature)
+
+	// deployerAddress, err := ReadAccountAddress(deployerPrivateKeysPath)
+	// ValidateError(t, err)
+
+	// tokenOwnerAddress, err := ReadAccountAddress(tokenOwnerPath)
+	// ValidateError(t, err)
+
+	// WrappedFaucet(t, tokenOwnerPath, tokenOwnerAddress, 10)
+	// WrappedFaucet(t, deployerPrivateKeysPath, deployerAddress, 10)
+
+	// waitTransactionConfirmations()
+
+	// tokenDeployResult, err := CreateToken(tokenOwnerPath)
+	// ValidateError(t, err)
+
+	// tokenProgramAddress := tokenDeployResult.Token.ToBase58()
+
+	// deployerTokenAccount, err := CreateTokenAccount(deployerPrivateKeysPath, tokenProgramAddress)
+	// ValidateError(t, err)
+	
+	// ibportAddressPubkey, ibPortPDA, err := CreatePersistentAccountWithPDA(ibportProgramPath, true, [][]byte{[]byte("ibport")})
+	// if err != nil {
+	// 	fmt.Printf("PDA error: %v", err)
+	// 	t.FailNow()
+	// }
+	// ibportAddress := ibportAddressPubkey.ToBase58()
+
+	// fmt.Printf("token  program address: %s\n", tokenProgramAddress)
+
+	// t.Logf("tokenProgramAddress: %v", tokenProgramAddress)
+	// t.Logf("deployerAddress: %v", deployerAddress)
+	// t.Logf("tokenOwnerAddress: %v", tokenOwnerAddress)
+	// t.Logf("ibportAddress: %v", ibportAddress)
+	// t.Logf("ibPortPDA: %v", ibPortPDA.ToBase58())
+	// t.Logf("deployerTokenAccount: %v", deployerTokenAccount)
+
+	// deployerPrivateKey, err := ReadPKFromPath(t, deployerPrivateKeysPath)
+	// ValidateError(t, err)
+	
 }

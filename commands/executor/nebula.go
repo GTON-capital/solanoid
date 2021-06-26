@@ -54,6 +54,19 @@ type SubscribeNebulaContractInstructionn struct {
 	Reward           uint64
 }
 
+
+type NebulaInstructionBuilder struct{}
+
+func (port *NebulaInstructionBuilder) Init(bft, dataType uint8, gravityProgramID common.PublicKey, oracles []byte) interface{} {
+	return InitNebulaContractInstruction {
+		Instruction:              0,
+		Bft:                      bft,
+		NebulaDataType:           dataType,
+		GravityContractProgramID: gravityProgramID,
+		InitialOracles:           oracles,
+	}
+}
+
 type ExecutionVisitor interface {
 	InvokePureInstruction(interface{}) (*models.CommandResponse, error)
 }
