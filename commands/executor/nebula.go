@@ -62,6 +62,10 @@ type SendValueToSubsNebulaContractInstruction struct {
 	PulseID            uint64
 	SubscriptionID [16]byte
 }
+type SendHashValueNebulaContractInstruction struct {
+	Instruction        uint8
+	DataValue      [64]byte
+}
 
 
 type NebulaInstructionBuilder struct{}
@@ -85,6 +89,7 @@ func (port *NebulaInstructionBuilder) Subscribe(subscriber common.PublicKey, min
 		SubscriptionID:  subscriptionID,
 	}
 }
+
 func (port *NebulaInstructionBuilder) SendValueToSubs(data [64]byte, dataType uint8, pulseID uint64, subscriptionID [16]byte) interface{} {
 	return SendValueToSubsNebulaContractInstruction {
 		Instruction:     3,
@@ -92,6 +97,13 @@ func (port *NebulaInstructionBuilder) SendValueToSubs(data [64]byte, dataType ui
 		DataType:        dataType,
 		PulseID:         pulseID, 
 		SubscriptionID:  subscriptionID,
+	}
+}
+
+func (port *NebulaInstructionBuilder) SendHashValue(data [64]byte) interface{} {
+	return SendHashValueNebulaContractInstruction {
+		Instruction:     2,
+		DataValue:       data,
 	}
 }
 

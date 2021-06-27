@@ -256,17 +256,18 @@ import (
 
 	fmt.Printf("Nebula SendValueToSubs Call:  %v \n", nebulaAttachResponse.TxSignature)
 
-	// nebulaExecutor.SetAdditionalSigners(consulsList.ToBftSigners())
+	waitTransactionConfirmations()
 
-	// nebulaExecutor.SetDeployerPK(deployer.Account)
-	// nebulaAttachResponse, err := nebulaExecutor.BuildAndInvoke(
-	// 	nebulaBuilder.SendValueToSubs(dataHashForAttach, nebula.Bytes, 1, subID),
-	// )
-	// ValidateError(t, err)
+	nebulaExecutor.EraseAdditionalMeta()
+	nebulaExecutor.SetAdditionalSigners(consulsList.ToBftSigners())
+	nebulaExecutor.SetDeployerPK(deployer.Account)
 
-	// fmt.Printf("Nebula SendHashValue Call:  %v \n", nebulaAttachResponse.TxSignature)
+	nebulaSendHashValueResponse, err := nebulaExecutor.BuildAndInvoke(
+		nebulaBuilder.SendHashValue(dataHashForAttach),
+	)
+	ValidateError(t, err)
 
-
+	fmt.Printf("Nebula SendHashValue Call:  %v \n", nebulaSendHashValueResponse.TxSignature)
 
 	// deployerAddress, err := ReadAccountAddress(deployerPrivateKeysPath)
 	// ValidateError(t, err)
