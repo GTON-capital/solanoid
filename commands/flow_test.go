@@ -226,16 +226,16 @@ import (
 	swapId := make([]byte, 16)
     rand.Read(swapId)
 
-	t.Logf("Token Swap Id: %v \n", swapId)
+	t.Logf("Token Swap Id:  %v \n", swapId)
 
 	attachedAmount := float64(227)
 
 	t.Logf("227 - Float As  Bytes: %v \n", executor.Float64ToBytes(attachedAmount))
 
 	var dataHashForAttach [64]byte
-	copy(dataHashForAttach[:], executor.BuildCrossChainMintByteVector(swapId, deployer.PublicKey, attachedAmount))
+	copy(dataHashForAttach[:], executor.BuildCrossChainMintByteVector(swapId, common.PublicKeyFromString(deployerTokenAccount), attachedAmount))
 
-	// nebulaExecutor.SetAdditionalSigners(consulsList.ToBftSigners())
+	fmt.Printf("dataHashForAttach: %v \n", dataHashForAttach)
 
 	nebulaExecutor.SetDeployerPK(operatingConsul.Account)
 	nebulaExecutor.SetAdditionalMeta([]types.AccountMeta{
@@ -247,12 +247,26 @@ import (
 		{ PubKey: ibportProgram.PDA, IsWritable: false, IsSigner: false },
 	})
 
+	waitTransactionConfirmations()
+
 	nebulaAttachResponse, err := nebulaExecutor.BuildAndInvoke(
 		nebulaBuilder.SendValueToSubs(dataHashForAttach, nebula.Bytes, 1, subID),
 	)
 	ValidateError(t, err)
 
-	fmt.Printf("Nebula SendValueToSubs  Call: %v \n", nebulaAttachResponse.TxSignature)
+	fmt.Printf("Nebula SendValueToSubs Call:  %v \n", nebulaAttachResponse.TxSignature)
+
+	// nebulaExecutor.SetAdditionalSigners(consulsList.ToBftSigners())
+
+	// nebulaExecutor.SetDeployerPK(deployer.Account)
+	// nebulaAttachResponse, err := nebulaExecutor.BuildAndInvoke(
+	// 	nebulaBuilder.SendValueToSubs(dataHashForAttach, nebula.Bytes, 1, subID),
+	// )
+	// ValidateError(t, err)
+
+	// fmt.Printf("Nebula SendHashValue Call:  %v \n", nebulaAttachResponse.TxSignature)
+
+
 
 	// deployerAddress, err := ReadAccountAddress(deployerPrivateKeysPath)
 	// ValidateError(t, err)

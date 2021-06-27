@@ -425,11 +425,11 @@ func TestIBPortAttachValue(t *testing.T) {
 	swapId := make([]byte, 16)
     rand.Read(swapId)
 
-	t.Logf("Token Swap Id: %v \n", swapId)
+	t.Logf("Token Swap  Id: %v \n", swapId)
 
 	attachedAmount := float64(227)
 
-	t.Logf("15 - Float  As Bytes: %v \n", executor.Float64ToBytes(attachedAmount))
+	t.Logf("15 - Float As Bytes: %v \n", executor.Float64ToBytes(attachedAmount))
 
 	dataHashForAttach := executor.BuildCrossChainMintByteVector(swapId, common.PublicKeyFromString(deployerTokenAccount), attachedAmount)
 
