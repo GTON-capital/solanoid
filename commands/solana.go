@@ -34,6 +34,26 @@ func ValidateErrorExistence(t *testing.T, err error) {
 	t.Logf("Error: %v \n", err)
 }
 
+func SystemAirdropTo(t *testing.T, callerKeyPairPath string, recipient string, amount uint64) error {
+	// t.Logf("transfer %v SOL to %v address \n", amount)
+
+	// cmd := exec.Command("solana", "airdrop", fmt.Sprint(amount), recipient)
+	cmd := exec.Command("solana", "airdrop", fmt.Sprint(amount), recipient, "--keypair", callerKeyPairPath)
+
+	output, err := cmd.CombinedOutput()
+	t.Log(string(output))
+
+	if err != nil {
+		t.Log(err.Error())
+		// log.Fatal(err)
+		return err
+	}
+
+	// t.Log(output)
+	
+	return nil
+}
+
 func SystemAirdrop(t *testing.T, callerKeyPairPath string, amount uint64) error {
 	// t.Logf("transfer %v SOL to %v address \n", amount)
 
@@ -74,26 +94,55 @@ func SystemFaucet(t *testing.T, recipient string, amount uint64) error {
 	return nil
 }
 
-func InferSystemDefinedRPC() (string, error) {
+func inferSystemDefinedSolanaConfigParam(prefix string) (string, error) {
 	cmd := exec.Command("solana", "config", "get")
 	output, err := cmd.CombinedOutput()
 	
-	rgx, _ := regexp.Compile("RPC URL: .+")
+	rgx, _ := regexp.Compile(prefix + ": .+")
 	result := rgx.Find(output)
 	resultStr := strings.Trim(string(result), "\n\r ")
 	resultList := strings.Split(resultStr, " ")
-	rpcURL := resultList[len(resultList) - 1]
+	matchResult := resultList[len(resultList) - 1]
 	
 	fmt.Println(resultList)
-	rpcURL = strings.Trim(rpcURL, "\n\r")
+	matchResult = strings.Trim(matchResult, "\n\r")
 
 	if err != nil {
 		return "", err
 	}
 
 	// t.Log(output)
-	return rpcURL, nil
+	return matchResult, nil
 }
+
+func InferSystemDefinedWebSocketURL() (string, error) {
+	return inferSystemDefinedSolanaConfigParam("WebSocket URL")
+}
+
+func InferSystemDefinedRPC() (string, error) {
+	return inferSystemDefinedSolanaConfigParam("RPC URL")
+}
+
+// func InferSystemDefinedRPC() (string, error) {
+// 	cmd := exec.Command("solana", "config", "get")
+// 	output, err := cmd.CombinedOutput()
+	
+// 	rgx, _ := regexp.Compile("RPC URL: .+")
+// 	result := rgx.Find(output)
+// 	resultStr := strings.Trim(string(result), "\n\r ")
+// 	resultList := strings.Split(resultStr, " ")
+// 	rpcURL := resultList[len(resultList) - 1]
+	
+// 	fmt.Println(resultList)
+// 	rpcURL = strings.Trim(rpcURL, "\n\r")
+
+// 	if err != nil {
+// 		return "", err
+// 	}
+
+// 	// t.Log(output)
+// 	return rpcURL, nil
+// }
 
 type TokenCreateResult struct {
 	Token     common.PublicKey

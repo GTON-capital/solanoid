@@ -9,7 +9,7 @@ import (
 	"solanoid/models"
 
 	"github.com/mr-tron/base58"
-	"github.com/portto/solana-go-sdk/client"
+	solclient "github.com/portto/solana-go-sdk/client"
 	"github.com/portto/solana-go-sdk/common"
 	"github.com/portto/solana-go-sdk/types"
 	"go.uber.org/zap"
@@ -57,7 +57,7 @@ type SubscribeNebulaContractInstruction struct {
 
 type SendValueToSubsNebulaContractInstruction struct {
 	Instruction        uint8
-	DataValue        []byte
+	DataValue      [16]byte
 	DataType           uint8
 	PulseID            uint64
 	SubscriptionID [16]byte
@@ -85,7 +85,7 @@ func (port *NebulaInstructionBuilder) Subscribe(subscriber common.PublicKey, min
 		SubscriptionID:  subscriptionID,
 	}
 }
-func (port *NebulaInstructionBuilder) SendValueToSubs(data []byte, dataType uint8, pulseID uint64, subscriptionID [16]byte) interface{} {
+func (port *NebulaInstructionBuilder) SendValueToSubs(data [16]byte, dataType uint8, pulseID uint64, subscriptionID [16]byte) interface{} {
 	return SendValueToSubsNebulaContractInstruction {
 		Instruction:     3,
 		DataValue:       data,
@@ -133,15 +133,17 @@ func (signer *GravityBftSigner) Meta() types.AccountMeta {
 
 type GenericExecutor struct {
 	deployerPrivKey types.Account
-	nebulaProgramID string
+	nebulaProgramID     string
 
 	dataAccount         string
 	multisigDataAccount string
 
-	clientEndpoint string
+	clientEndpoint      string
 
-	signers        []GravityBftSigner
-	additionalMeta []types.AccountMeta
+	signers           []GravityBftSigner
+	additionalMeta    []types.AccountMeta
+
+	client             *solclient.Client
 }
 
 func (ge *GenericExecutor) Deployer() common.PublicKey {
@@ -155,6 +157,10 @@ func (ge *GenericExecutor) EraseAdditionalSigners() {
 	ge.signers = make([]GravityBftSigner, 0)
 }
 
+func (ge *GenericExecutor) SetDeployerPK(pk types.Account) {
+	ge.deployerPrivKey = pk
+}
+
 func (ge *GenericExecutor) SetAdditionalMeta(meta []types.AccountMeta) {
 	ge.additionalMeta = meta
 }
@@ -165,7 +171,11 @@ func (ge *GenericExecutor) EraseAdditionalMeta() {
 func (ge *GenericExecutor) InvokePureInstruction(instruction interface{}) (*models.CommandResponse, error) {
 	account := ge.deployerPrivKey
 
-	c := client.NewClient(ge.clientEndpoint)
+	if ge.client == nil {
+		ge.client = solclient.NewClient(ge.clientEndpoint)
+	}
+
+	c := ge.client
 
 	res, err := c.GetRecentBlockhash(context.Background())
 	if err != nil {

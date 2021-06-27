@@ -13,3 +13,15 @@ type UpdateConsulsGravityContractInstruction struct {
 	LastRound     uint64 
 	Consuls     []byte
 }
+
+
+type GravityInstructionBuilder struct{}
+
+func (port *GravityInstructionBuilder) Init(bft uint8, initRound uint64, consuls []byte) interface{} {
+	return InitGravityContractInstruction {
+		Instruction: 0,
+		Bft:         bft,
+		InitRound:   initRound,
+		Consuls:     consuls[:],
+	}
+}

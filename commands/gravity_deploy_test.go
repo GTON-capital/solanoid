@@ -166,18 +166,21 @@ func TestPDA(t *testing.T) {
 }
 
 func waitTransactionConfirmations() {
-	time.Sleep(time.Second * 30)
+	time.Sleep(time.Second * 3)
 }
 
-func WrappedFaucet(t *testing.T, receiverPath, receiverAddress string, amount uint64) {
-	// err := SystemFaucet(t, receiverAddress, amount)
-	// if err != nil {
-	// 	err = SystemAirdrop(t, receiverPath, amount)
-	// 	ValidateError(t, err)
-	// }
+func WrappedFaucet(t *testing.T, callerPath, receiverAddress string, amount uint64) {
+	var err error
 	t.Logf("Faucet %v SOL to %v \n", receiverAddress, fmt.Sprint(amount))
-	err := SystemAirdrop(t, receiverPath, amount)
+
+	if receiverAddress == "" {
+		err = SystemAirdrop(t, callerPath, amount)
+	} else {
+		err = SystemAirdropTo(t, callerPath, receiverAddress, amount)
+	}
+ 
 	ValidateError(t, err)
+
 }
 
 
@@ -486,6 +489,7 @@ type OperatingAddressBuilderOptions struct {
 
 type OperatingAddress struct {
 	// DataAccount common.PublicKey
+	Account     types.Account
 	PublicKey   common.PublicKey
 	PDA         common.PublicKey
 	PrivateKey  string
@@ -512,7 +516,7 @@ func NewOperatingAddress(t *testing.T, path string, options *OperatingAddressBui
 			PKPath:     path,
 			PDA:        pda,
 		}, nil
-	}
+	} 
 
 	err = CreatePersistedAccount(path, true)
 	if err != nil {
@@ -529,7 +533,13 @@ func NewOperatingAddress(t *testing.T, path string, options *OperatingAddressBui
 		return nil, err
 	}
 
+	decodedPrivKey, err := base58.Decode(privateKey)
+	if err != nil {
+		return nil, err
+	}
+
 	address := &OperatingAddress {
+		Account:   types.AccountFromPrivateKeyBytes(decodedPrivKey),
 		PublicKey: common.PublicKeyFromString(pubkey),
 		PrivateKey: privateKey,
 		PKPath:     path,
@@ -550,6 +560,20 @@ func (ch *ConsulsHandler) ConcatConsuls() []byte {
 	}
 
 	return oracles
+}
+
+func (ch *ConsulsHandler) ToBftSigners() []executor.GravityBftSigner {
+	var signers []executor.GravityBftSigner
+	// var additionalMeta []types.AccountMeta
+
+	for _, signer := range ch.List {
+		signers = append(signers, *executor.NewGravityBftSigner(signer.PrivateKey))
+		// additionalMeta = append(additionalMeta, types.AccountMeta{
+		// 	PubKey: common.PublicKeyFromString(solana.ClockProgram), IsSigner: false, IsWritable: false
+		// })
+	}
+
+	return signers
 }
 
 func GenerateConsuls(t *testing.T, consulPathPrefix string, count uint8) (*ConsulsHandler, error) {
@@ -592,6 +616,15 @@ func ParallelExecution(callbacks []func()) {
 	wg.Wait()
 }
 
+
+type solWSClient struct {
+	endpoint string
+}
+
+func (wsc *solWSClient) Configure(endpoint string) {
+	wsc.endpoint = endpoint
+}
+
 /*
  * Test logical steps
  *
@@ -610,19 +643,16 @@ func ParallelExecution(callbacks []func()) {
 func TestNebulaSendValueToIBPortSubscriber (t *testing.T) {
 	var err error
 
-	deployer, err := NewOperatingAddress(t, "../private-keys/_test_deployer-pk-deployer.json", nil)
+	deployer, err := NewOperatingAddress(t, "../private-keys/test_deployer-pk-deployer.json", nil)
 	ValidateError(t, err)
 
-	// tokenOwner, err := NewOperatingAddress(t, "../private-keys/_test_only-token-owner.json")
-	// ValidateError(t, err)
-
-	// gravityProgram, err := NewOperatingAddress(t, "../private-keys/_test_only-gravity-program.json")
-	// ValidateError(t, err)
-
-	nebulaProgram, err := NewOperatingAddress(t, "../private-keys/_test_only-nebula-program.json", nil)
+	gravityProgram, err := NewOperatingAddress(t, "../private-keys/test_only-gravity-program.json", nil)
 	ValidateError(t, err)
 
-	ibportProgram, err := NewOperatingAddress(t, "../private-keys/_test_only_ibport-program.json", &OperatingAddressBuilderOptions{
+	nebulaProgram, err := NewOperatingAddress(t, "../private-keys/test_only-nebula-program.json", nil)
+	ValidateError(t, err)
+
+	ibportProgram, err := NewOperatingAddress(t, "../private-keys/test_only_ibport-program.json", &OperatingAddressBuilderOptions{
 		WithPDASeeds: []byte("ibport"),
 	})
 	ValidateError(t, err)
@@ -631,10 +661,24 @@ func TestNebulaSendValueToIBPortSubscriber (t *testing.T) {
 
 	WrappedFaucet(t, deployer.PKPath, "", 10)
 
+	waitTransactionConfirmations()
+
+	// WrappedFaucet(t, , "", 10)
+
+	// TransfconsulsList.List[0].Account)
+
 	consulsList, err := GenerateConsuls(t, "../private-keys/_test_consul_prefix_", BFT)
 	ValidateError(t, err)
 
-	endpoint, _ := InferSystemDefinedRPC()
+	operatingConsul := consulsList.List[0]
+	WrappedFaucet(t, deployer.PKPath, operatingConsul.PublicKey.ToBase58(), 10)
+
+	RPCEndpoint, _ := InferSystemDefinedRPC()
+	WSEndpoint, _ := InferSystemDefinedWebSocketURL()
+
+	wsclient := new(solWSClient)
+
+	wsclient.Configure(WSEndpoint)	
 
 	tokenDeployResult, err := CreateToken(deployer.PKPath)
 	ValidateError(t, err)
@@ -650,24 +694,34 @@ func TestNebulaSendValueToIBPortSubscriber (t *testing.T) {
 	deployerTokenAccount, err := CreateTokenAccount(deployer.PKPath, tokenProgramAddress)
 	ValidateError(t, err)
 
-	nebulaDataAccount, err := GenerateNewAccount(deployer.PrivateKey, NebulaAllocation, nebulaProgram.PublicKey.ToBase58(), endpoint)
+	gravityDataAccount, err := GenerateNewAccount(deployer.PrivateKey, GravityContractAllocation, gravityProgram.PublicKey.ToBase58(), RPCEndpoint)
 	ValidateError(t, err)
 
-	nebulaMultisigAccount, err := GenerateNewAccount(deployer.PrivateKey, MultisigAllocation, nebulaProgram.PublicKey.ToBase58(), endpoint)
+	gravityMultisigAccount, err := GenerateNewAccount(deployer.PrivateKey, MultisigAllocation, gravityProgram.PublicKey.ToBase58(), RPCEndpoint)
 	ValidateError(t, err)
 
-	ibportDataAccount, err := GenerateNewAccount(deployer.PrivateKey, IBPortAllocation, ibportProgram.PublicKey.ToBase58(), endpoint)
+	nebulaDataAccount, err := GenerateNewAccount(deployer.PrivateKey, NebulaAllocation, nebulaProgram.PublicKey.ToBase58(), RPCEndpoint)
+	ValidateError(t, err)
+
+	nebulaMultisigAccount, err := GenerateNewAccount(deployer.PrivateKey, MultisigAllocation, nebulaProgram.PublicKey.ToBase58(), RPCEndpoint)
+	ValidateError(t, err)
+
+	ibportDataAccount, err := GenerateNewAccount(deployer.PrivateKey, IBPortAllocation, ibportProgram.PublicKey.ToBase58(), RPCEndpoint)
 	ValidateError(t, err)
 
 
 	ParallelExecution(
 		[]func() {
 			func() {
-				_, err = DeploySolanaProgram(t, "nebula", nebulaProgram.PKPath, deployer.PKPath, "../binaries/nebula.so")
+				_, err = DeploySolanaProgram(t, "ibport", ibportProgram.PKPath, deployer.PKPath, "../binaries/ibport.so")
 				ValidateError(t, err)
 			},
 			func() {
-				_, err = DeploySolanaProgram(t, "ibport", ibportProgram.PKPath, deployer.PKPath, "../binaries/ibport.so")
+				_, err = DeploySolanaProgram(t, "gravity", gravityProgram.PKPath, deployer.PKPath, "../binaries/gravity.so")
+				ValidateError(t, err)
+			},
+			func() {
+				_, err = DeploySolanaProgram(t, "nebula", nebulaProgram.PKPath, deployer.PKPath, "../binaries/nebula.so")
 				ValidateError(t, err)
 			},
 			func() {
@@ -679,6 +733,18 @@ func TestNebulaSendValueToIBPortSubscriber (t *testing.T) {
 			},
 		},
 	)
+
+	waitTransactionConfirmations()
+	
+	gravityBuilder := executor.GravityInstructionBuilder{}
+	gravityExecutor, err := InitGenericExecutor(
+		deployer.PrivateKey,
+		gravityProgram.PublicKey.ToBase58(),
+		gravityDataAccount.Account.PublicKey.ToBase58(),
+		gravityMultisigAccount.Account.PublicKey.ToBase58(),
+		RPCEndpoint,
+		common.PublicKeyFromString(""),
+	)
 	
 	nebulaBuilder := executor.NebulaInstructionBuilder{}
 	nebulaExecutor, err := InitGenericExecutor(
@@ -686,8 +752,8 @@ func TestNebulaSendValueToIBPortSubscriber (t *testing.T) {
 		nebulaProgram.PublicKey.ToBase58(),
 		nebulaDataAccount.Account.PublicKey.ToBase58(),
 		nebulaMultisigAccount.Account.PublicKey.ToBase58(),
-		endpoint,
-		common.PublicKeyFromString(""),
+		RPCEndpoint,
+		gravityDataAccount.Account.PublicKey,
 	)
 	ValidateError(t, err)
 
@@ -697,25 +763,31 @@ func TestNebulaSendValueToIBPortSubscriber (t *testing.T) {
 		ibportProgram.PublicKey.ToBase58(),
 		ibportDataAccount.Account.PublicKey.ToBase58(),
 		"",
-		endpoint,
+		RPCEndpoint,
 		common.PublicKeyFromString(""),
 	)
 	ValidateError(t, err)
 
-	waitTransactionConfirmations()
-
 	oracles := consulsList.ConcatConsuls()
 
+	waitTransactionConfirmations()
 
 	ParallelExecution(
 		[]func() {
 			func() {
+				gravityInitResponse, err := gravityExecutor.BuildAndInvoke(
+					gravityBuilder.Init(BFT, 1, oracles),
+				)
+				fmt.Printf("Gravity Init: %v \n", gravityInitResponse.TxSignature)
+				ValidateError(t, err)
+			},
+			func() {
 				// (2)
 				nebulaInitResponse, err := nebulaExecutor.BuildAndInvoke(
-					nebulaBuilder.Init(BFT, nebula.Bytes, common.PublicKeyFromString(""), oracles),
+					nebulaBuilder.Init(BFT, nebula.Bytes, gravityDataAccount.Account.PublicKey, oracles),
 				)
-				fmt.Printf("Nebula Init: %v \n", nebulaInitResponse.TxSignature)
 				ValidateError(t, err)
+				fmt.Printf("Nebula Init: %v \n", nebulaInitResponse.TxSignature)
 			},
 			func() {
 				ibportInitResult, err := ibportExecutor.BuildAndInvoke(
@@ -729,7 +801,6 @@ func TestNebulaSendValueToIBPortSubscriber (t *testing.T) {
 	)
 
 	waitTransactionConfirmations()
-	waitTransactionConfirmations()
 
 	fmt.Println("IB Port Program is being subscribed to Nebula")
 
@@ -740,24 +811,27 @@ func TestNebulaSendValueToIBPortSubscriber (t *testing.T) {
 
 	// (4)
 	nebulaSubscribePortResponse, err := nebulaExecutor.BuildAndInvoke(
-		nebulaBuilder.Subscribe(ibportProgram.PublicKey, 1, 1, subID),
+		nebulaBuilder.Subscribe(ibportProgram.PDA, 1, 1, subID),
 	)
 	ValidateError(t, err)
 
 	fmt.Printf("Nebula Subscribe: %v \n", nebulaSubscribePortResponse.TxSignature)
+	fmt.Println("Now checking for valid double spend prevent")
 
 	waitTransactionConfirmations()
-	waitTransactionConfirmations()
+	// waitTransactionConfirmations()
 
 	_, err = nebulaExecutor.BuildAndInvoke(
-		nebulaBuilder.Subscribe(ibportProgram.PublicKey, 1, 1, subID),
+		nebulaBuilder.Subscribe(ibportProgram.PDA, 1, 1, subID),
 	)
 	ValidateErrorExistence(t, err)
 
 	fmt.Printf("Nebula Subscribe with the same subID must have failed: %v \n", err.Error())
 
+	// WrappedFaucet(t, deployer.PKPath, ibportProgram.PublicKey.ToBase58(), 10)
+
 	waitTransactionConfirmations()
-	waitTransactionConfirmations()
+	// waitTransactionConfirmations()
 
 	fmt.Println("Testing SendValueToSubs call from one of the consuls")
 
@@ -768,23 +842,28 @@ func TestNebulaSendValueToIBPortSubscriber (t *testing.T) {
 
 	attachedAmount := float64(227)
 
-	t.Logf("227 - Float As Bytes: %v \n", executor.Float64ToBytes(attachedAmount))
+	t.Logf("227 - Float As  Bytes: %v \n", executor.Float64ToBytes(attachedAmount))
 
-	dataHashForAttach := executor.BuildCrossChainMintByteVector(swapId, deployer.PublicKey, attachedAmount)
+	var dataHashForAttach [16]byte
+	copy(dataHashForAttach[:], executor.BuildCrossChainMintByteVector(swapId, deployer.PublicKey, attachedAmount))
 
+	// nebulaExecutor.SetAdditionalSigners(consulsList.ToBftSigners())
+
+	nebulaExecutor.SetDeployerPK(operatingConsul.Account)
 	nebulaExecutor.SetAdditionalMeta([]types.AccountMeta{
 		{ PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false },
+		{ PubKey: ibportDataAccount.Account.PublicKey, IsWritable: true, IsSigner: false },
 		{ PubKey: common.PublicKeyFromString(tokenProgramAddress), IsWritable: true, IsSigner: false },
 		{ PubKey: common.PublicKeyFromString(deployerTokenAccount), IsWritable: true, IsSigner: false },
 		{ PubKey: ibportProgram.PDA, IsWritable: false, IsSigner: false },
 	})
 
 	nebulaAttachResponse, err := nebulaExecutor.BuildAndInvoke(
-		nebulaBuilder.SendValueToSubs(dataHashForAttach[:], nebula.Bytes, 1, subID),
+		nebulaBuilder.SendValueToSubs(dataHashForAttach, nebula.Bytes, 1, subID),
 	)
 	ValidateError(t, err)
 
-	fmt.Printf("Nebula Attach Call: %v \n", nebulaAttachResponse.TxSignature)
+	fmt.Printf("Nebula SendValueToSubs  Call: %v \n", nebulaAttachResponse.TxSignature)
 
 	// deployerAddress, err := ReadAccountAddress(deployerPrivateKeysPath)
 	// ValidateError(t, err)
