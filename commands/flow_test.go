@@ -267,7 +267,7 @@ import (
 	)
 	ValidateError(t, err)
 
-	fmt.Printf("Nebula SendHashValue Call:  %v \n", nebulaSendHashValueResponse.TxSignature)
+	fmt.Printf("Nebula SendHashValue Call: %v \n", nebulaSendHashValueResponse.TxSignature)
 
 	// deployerAddress, err := ReadAccountAddress(deployerPrivateKeysPath)
 	// ValidateError(t, err)
