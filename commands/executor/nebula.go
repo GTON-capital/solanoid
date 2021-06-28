@@ -232,13 +232,13 @@ func (ge *GenericExecutor) InvokePureInstruction(instruction interface{}) (*mode
 	rawTx, err := tx.Serialize()
 
 	logTx := func() {
-		fmt.Println("------ RAW TRANSACTION ------------------------")
-		fmt.Printf("%s\n", hex.EncodeToString(rawTx))
-		fmt.Println("------ END RAW TRANSACTION ------------------------")
+		// fmt.Println("------ RAW TRANSACTION ------------------------")
+		// fmt.Printf("%s\n", hex.EncodeToString(rawTx))
+		// fmt.Println("------ END RAW TRANSACTION ------------------------")
 
-		fmt.Println("------ RAW MESSAGE ------------------------")
-		fmt.Printf("%s\n", hex.EncodeToString(serializedMessage))
-		fmt.Println("------ END RAW MESSAGE ------------------------")
+		// fmt.Println("------ RAW MESSAGE ------------------------")
+		// fmt.Printf("%s\n", hex.EncodeToString(serializedMessage))
+		// fmt.Println("------ END RAW MESSAGE ------------------------")
 	}
 
 	if err != nil {
@@ -272,9 +272,9 @@ func (ge *GenericExecutor) BuildInstruction(instruction interface{}) (*types.Ins
 		panic(err)
 	}
 
-	fmt.Println("--------- RAW INSTRUCTION DATA -----------")
-	fmt.Printf("%s\n", hex.EncodeToString(data))
-	fmt.Println("------- END RAW INSTRUCTION DATA ---------")
+	// fmt.Println("--------- RAW INSTRUCTION DATA -----------")
+	// fmt.Printf("%s\n", hex.EncodeToString(data))
+	// fmt.Println("------- END RAW INSTRUCTION DATA ---------")
 
 	accountMeta := []types.AccountMeta {
 		{ PubKey: ge.deployerPrivKey.PublicKey, IsSigner: true, IsWritable: false },

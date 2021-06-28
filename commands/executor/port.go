@@ -25,6 +25,21 @@ func (port *IBPortInstructionBuilder) Init(nebula, token common.PublicKey) inter
 		TokenDataAccount:  token,
 	}
 }
+func (port *IBPortInstructionBuilder) InitWithOracles(nebula, token common.PublicKey, bft uint8, oracles []byte) interface{} {
+	return struct {
+		Instruction       uint8
+		NebulaDataAccount common.PublicKey
+		TokenDataAccount  common.PublicKey
+		Bft               uint8
+		Oracles          []byte
+	}{
+		Instruction:       0,
+		NebulaDataAccount: nebula,
+		TokenDataAccount:  token,
+		Bft:               bft,
+		Oracles:           oracles,
+	}
+}
 
 func Float64ToBytes(f float64) []byte {
 	return float64ToByte(f)

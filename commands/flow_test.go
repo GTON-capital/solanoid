@@ -179,7 +179,8 @@ import (
 			},
 			func() {
 				ibportInitResult, err := ibportExecutor.BuildAndInvoke(
-					ibportBuilder.Init(nebulaProgram.PublicKey, common.TokenProgramID),
+					// ibportBuilder.Init(nebulaProgram.PublicKey, common.TokenProgramID),
+					ibportBuilder.InitWithOracles(nebulaProgram.PublicKey, common.TokenProgramID, BFT, consulsList.ConcatConsuls()),
 				)
 
 				fmt.Printf("IB Port Init: %v \n", ibportInitResult.TxSignature)
@@ -237,6 +238,7 @@ import (
 
 	fmt.Printf("dataHashForAttach: %v \n", dataHashForAttach)
 
+
 	nebulaExecutor.SetDeployerPK(operatingConsul.Account)
 	nebulaExecutor.SetAdditionalMeta([]types.AccountMeta{
 		{ PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false },
@@ -255,6 +257,17 @@ import (
 	ValidateError(t, err)
 
 	fmt.Printf("Nebula SendValueToSubs Call:  %v \n", nebulaAttachResponse.TxSignature)
+
+
+	waitTransactionConfirmations()
+
+	nebulaExecutor.SetDeployerPK(deployer.Account)
+	_, err = nebulaExecutor.BuildAndInvoke(
+		nebulaBuilder.SendValueToSubs(dataHashForAttach, nebula.Bytes, 1, subID),
+	)
+	ValidateErrorExistence(t, err)
+
+	fmt.Printf("Nebula SendValueToSubs Call Should Have Failed - Access Denied(from port):  %v \n", err.Error())
 
 	waitTransactionConfirmations()
 
