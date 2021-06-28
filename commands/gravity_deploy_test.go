@@ -166,6 +166,7 @@ func TestPDA(t *testing.T) {
 
 func waitTransactionConfirmations() {
 	time.Sleep(time.Second * 3)
+	// time.Sleep(time.Second * 45)
 }
 
 func WrappedFaucet(t *testing.T, callerPath, receiverAddress string, amount uint64) {
@@ -484,6 +485,7 @@ func TestIBPortAttachValue(t *testing.T) {
 
 type OperatingAddressBuilderOptions struct {
 	WithPDASeeds []byte
+	Overwrite    bool
 }
 
 type OperatingAddress struct {
@@ -493,6 +495,32 @@ type OperatingAddress struct {
 	PDA         common.PublicKey
 	PrivateKey  string
 	PKPath      string
+}
+
+func ReadOperatingAddress(t *testing.T, path string) (*OperatingAddress, error) {
+	pubkey, err := ReadAccountAddress(path)
+	if err != nil {
+		return nil, err
+	}
+
+	privateKey, err := ReadPKFromPath(t, path)
+	if err != nil {
+		return nil, err
+	}
+
+	decodedPrivKey, err := base58.Decode(privateKey)
+	if err != nil {
+		return nil, err
+	}
+
+	address := &OperatingAddress {
+		Account:   types.AccountFromPrivateKeyBytes(decodedPrivKey),
+		PublicKey: common.PublicKeyFromString(pubkey),
+		PrivateKey: privateKey,
+		PKPath:     path,
+	}
+	
+	return address, nil
 }
 
 func NewOperatingAddress(t *testing.T, path string, options *OperatingAddressBuilderOptions) (*OperatingAddress, error) {
@@ -515,11 +543,18 @@ func NewOperatingAddress(t *testing.T, path string, options *OperatingAddressBui
 			PKPath:     path,
 			PDA:        pda,
 		}, nil
-	} 
+	}
 
-	err = CreatePersistedAccount(path, true)
-	if err != nil {
-		return nil, err
+	if options != nil && !options.Overwrite {
+		err = CreatePersistedAccount(path, false)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		err = CreatePersistedAccount(path, true)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	pubkey, err := ReadAccountAddress(path)
