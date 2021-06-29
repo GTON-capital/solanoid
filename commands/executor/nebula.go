@@ -6,7 +6,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
-	"solanoid/models"
+
+	"github.com/Gravity-Tech/solanoid/models"
 
 	"github.com/mr-tron/base58"
 	solclient "github.com/portto/solana-go-sdk/client"
@@ -48,30 +49,29 @@ type SendValueToSubsNebulaContractInstructionn struct {
 }
 
 type SubscribeNebulaContractInstruction struct {
-	Instruction          uint8
+	Instruction      uint8
 	Subscriber       [32]byte
-	MinConfirmations      uint8
-	Reward               uint64
+	MinConfirmations uint8
+	Reward           uint64
 	SubscriptionID   [16]byte
 }
 
 type SendValueToSubsNebulaContractInstruction struct {
-	Instruction        uint8
+	Instruction    uint8
 	DataValue      [64]byte
-	DataType           uint8
-	PulseID            uint64
+	DataType       uint8
+	PulseID        uint64
 	SubscriptionID [16]byte
 }
 type SendHashValueNebulaContractInstruction struct {
-	Instruction        uint8
-	DataValue      [64]byte
+	Instruction uint8
+	DataValue   [64]byte
 }
-
 
 type NebulaInstructionBuilder struct{}
 
 func (port *NebulaInstructionBuilder) Init(bft, dataType uint8, gravityProgramID common.PublicKey, oracles []byte) interface{} {
-	return InitNebulaContractInstruction {
+	return InitNebulaContractInstruction{
 		Instruction:              0,
 		Bft:                      bft,
 		NebulaDataType:           dataType,
@@ -81,32 +81,31 @@ func (port *NebulaInstructionBuilder) Init(bft, dataType uint8, gravityProgramID
 }
 
 func (port *NebulaInstructionBuilder) Subscribe(subscriber common.PublicKey, minConfirmations uint8, reward uint64, subscriptionID [16]byte) interface{} {
-	return SubscribeNebulaContractInstruction {
-		Instruction:     4,
-		Subscriber:      subscriber,    
-		MinConfirmations: minConfirmations, 
-		Reward:          reward,
-		SubscriptionID:  subscriptionID,
+	return SubscribeNebulaContractInstruction{
+		Instruction:      4,
+		Subscriber:       subscriber,
+		MinConfirmations: minConfirmations,
+		Reward:           reward,
+		SubscriptionID:   subscriptionID,
 	}
 }
 
 func (port *NebulaInstructionBuilder) SendValueToSubs(data [64]byte, dataType uint8, pulseID uint64, subscriptionID [16]byte) interface{} {
-	return SendValueToSubsNebulaContractInstruction {
-		Instruction:     3,
-		DataValue:       data,
-		DataType:        dataType,
-		PulseID:         pulseID, 
-		SubscriptionID:  subscriptionID,
+	return SendValueToSubsNebulaContractInstruction{
+		Instruction:    3,
+		DataValue:      data,
+		DataType:       dataType,
+		PulseID:        pulseID,
+		SubscriptionID: subscriptionID,
 	}
 }
 
 func (port *NebulaInstructionBuilder) SendHashValue(data [64]byte) interface{} {
-	return SendHashValueNebulaContractInstruction {
-		Instruction:     2,
-		DataValue:       data,
+	return SendHashValueNebulaContractInstruction{
+		Instruction: 2,
+		DataValue:   data,
 	}
 }
-
 
 type ExecutionVisitor interface {
 	InvokePureInstruction(interface{}) (*models.CommandResponse, error)
@@ -145,17 +144,17 @@ func (signer *GravityBftSigner) Meta() types.AccountMeta {
 
 type GenericExecutor struct {
 	deployerPrivKey types.Account
-	nebulaProgramID     string
+	nebulaProgramID string
 
 	dataAccount         string
 	multisigDataAccount string
 
-	clientEndpoint      string
+	clientEndpoint string
 
-	signers           []GravityBftSigner
-	additionalMeta    []types.AccountMeta
+	signers        []GravityBftSigner
+	additionalMeta []types.AccountMeta
 
-	client             *solclient.Client
+	client *solclient.Client
 }
 
 func (ge *GenericExecutor) Deployer() common.PublicKey {
@@ -276,9 +275,9 @@ func (ge *GenericExecutor) BuildInstruction(instruction interface{}) (*types.Ins
 	// fmt.Printf("%s\n", hex.EncodeToString(data))
 	// fmt.Println("------- END RAW INSTRUCTION DATA ---------")
 
-	accountMeta := []types.AccountMeta {
-		{ PubKey: ge.deployerPrivKey.PublicKey, IsSigner: true, IsWritable: false },
-		{ PubKey: common.PublicKeyFromString(ge.dataAccount), IsSigner: false, IsWritable: true },
+	accountMeta := []types.AccountMeta{
+		{PubKey: ge.deployerPrivKey.PublicKey, IsSigner: true, IsWritable: false},
+		{PubKey: common.PublicKeyFromString(ge.dataAccount), IsSigner: false, IsWritable: true},
 	}
 
 	if ge.multisigDataAccount != "" {

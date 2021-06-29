@@ -6,8 +6,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
-	"solanoid/commands/executor"
-	"solanoid/models"
+
+	"github.com/Gravity-Tech/solanoid/commands/executor"
+	"github.com/Gravity-Tech/solanoid/models"
 
 	"github.com/mr-tron/base58"
 	"github.com/portto/solana-go-sdk/client"

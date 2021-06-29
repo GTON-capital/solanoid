@@ -2,8 +2,8 @@ package commands
 
 import (
 
-	// "solanoid/commands/executor"
-	"solanoid/commands/executor"
+	// "github.com/Gravity-Tech/solanoid/commands/executor"
+	"github.com/Gravity-Tech/solanoid/commands/executor"
 
 	"github.com/portto/solana-go-sdk/common"
 	"github.com/spf13/cobra"
@@ -52,7 +52,6 @@ func init() {
 	SolanoidCmd.AddCommand(initNebulaContractCmd)
 }
 
-
 func InitGenericExecutor(privateKey, programID, dataAccount, multisigDataAccount, clientEndpoint string, gravityProgramID common.PublicKey) (*executor.GenericExecutor, error) {
 	nebulaExec, err := executor.NewNebulaExecutor(privateKey, programID, dataAccount, multisigDataAccount, clientEndpoint, gravityProgramID)
 	if err != nil {
@@ -61,7 +60,6 @@ func InitGenericExecutor(privateKey, programID, dataAccount, multisigDataAccount
 
 	return nebulaExec, nil
 }
-
 
 func initNebula(ccmd *cobra.Command, args []string) {
 	endpoint, _ := InferSystemDefinedRPC()

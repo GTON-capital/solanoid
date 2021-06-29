@@ -3,17 +3,15 @@ package commands
 import (
 	"crypto/rand"
 	"fmt"
-	"solanoid/commands/executor"
-	"solanoid/models/nebula"
 	"testing"
+
+	"github.com/Gravity-Tech/solanoid/commands/executor"
+	"github.com/Gravity-Tech/solanoid/models/nebula"
 
 	"github.com/portto/solana-go-sdk/common"
 )
 
-
-
-
-func TestRunSolanaGatewayDeployment (t *testing.T) {
+func TestRunSolanaGatewayDeployment(t *testing.T) {
 	var err error
 
 	deployer, err := ReadOperatingAddress(t, "../private-keys/mainnet/deployer.json")
@@ -37,14 +35,14 @@ func TestRunSolanaGatewayDeployment (t *testing.T) {
 
 	fmt.Printf("balanceBeforeDeploy: %v SOL; \n", balanceBeforeDeploy)
 
-	nebulaProgram, err := NewOperatingAddress(t, "../private-keys/mainnet/nebula.json",  &OperatingAddressBuilderOptions {
+	nebulaProgram, err := NewOperatingAddress(t, "../private-keys/mainnet/nebula.json", &OperatingAddressBuilderOptions{
 		Overwrite: true,
 	})
 	ValidateError(t, err)
 	fmt.Printf("Nebula Program ID: %v \n", nebulaProgram.Account.PublicKey.ToBase58())
 
 	ibportProgram, err := NewOperatingAddress(t, "../private-keys/mainnet/ibport.json", &OperatingAddressBuilderOptions{
-		Overwrite: true,
+		Overwrite:    true,
 		WithPDASeeds: []byte("ibport"),
 	})
 	ValidateError(t, err)
@@ -56,7 +54,7 @@ func TestRunSolanaGatewayDeployment (t *testing.T) {
 
 	gravityDataAccount := "ErLEJcqRKQdhLpLHLn9zUzx1mu7VfrZbgwsfAL4BG4uQ"
 
-	consuls := []string {
+	consuls := []string{
 		"EnwGpvfZdCpkjs8jMShjo8evce2LbNfrYvREzdwGh5oc",
 		"5Ng92o7CPPWk5tT2pqrnRMndoD49d51f4QcocgJttGHS",
 		"ESgKDVemBdqDty6WExZ74kV8Re9yepth5tbKcsWTNXC9",
@@ -70,7 +68,7 @@ func TestRunSolanaGatewayDeployment (t *testing.T) {
 	}
 
 	const BFT = 3
-	
+
 	RPCEndpoint, _ := InferSystemDefinedRPC()
 
 	tokenDeployResult, err := CreateToken(deployer.PKPath)
@@ -83,7 +81,6 @@ func TestRunSolanaGatewayDeployment (t *testing.T) {
 	nebulaDataAccount, err := GenerateNewAccount(deployer.PrivateKey, NebulaAllocation, nebulaProgram.PublicKey.ToBase58(), RPCEndpoint)
 	ValidateError(t, err)
 	fmt.Printf("Nebula Data Account: %v \n", nebulaDataAccount.Account.PublicKey.ToBase58())
-
 
 	nebulaMultisigAccount, err := GenerateNewAccount(deployer.PrivateKey, MultisigAllocation, nebulaProgram.PublicKey.ToBase58(), RPCEndpoint)
 	ValidateError(t, err)
@@ -108,7 +105,7 @@ func TestRunSolanaGatewayDeployment (t *testing.T) {
 	err = AuthorizeToken(t, deployer.PKPath, tokenProgramAddress, "mint", ibportProgram.PDA.ToBase58())
 	ValidateError(t, err)
 	t.Log("Authorizing IB Port to allow minting")
-	
+
 	nebulaBuilder := executor.NebulaInstructionBuilder{}
 	nebulaExecutor, err := InitGenericExecutor(
 		deployer.PrivateKey,
@@ -153,7 +150,7 @@ func TestRunSolanaGatewayDeployment (t *testing.T) {
 	fmt.Println("IB Port Program is being subscribed to Nebula")
 
 	var subID [16]byte
-    rand.Read(subID[:])
+	rand.Read(subID[:])
 
 	fmt.Printf("subID: %v \n", subID)
 
@@ -170,8 +167,8 @@ func TestRunSolanaGatewayDeployment (t *testing.T) {
 
 	balanceAfterDeploy, err := ReadAccountBalance(deployer.PublicKey.ToBase58())
 	ValidateError(t, err)
-	
+
 	fmt.Printf("balanceBeforeDeploy: %v SOL; \n", balanceBeforeDeploy)
 	fmt.Printf("balanceAfterDeploy: %v SOL; \n", balanceAfterDeploy)
-	fmt.Printf("balance diff: %v SOL; \n", balanceBeforeDeploy - balanceAfterDeploy)
+	fmt.Printf("balance diff: %v SOL; \n", balanceBeforeDeploy-balanceAfterDeploy)
 }

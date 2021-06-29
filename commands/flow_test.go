@@ -3,9 +3,10 @@ package commands
 import (
 	"crypto/rand"
 	"fmt"
-	"solanoid/commands/executor"
-	"solanoid/models/nebula"
 	"testing"
+
+	"github.com/Gravity-Tech/solanoid/commands/executor"
+	"github.com/Gravity-Tech/solanoid/models/nebula"
 
 	"github.com/portto/solana-go-sdk/common"
 	"github.com/portto/solana-go-sdk/types"
@@ -26,7 +27,7 @@ import (
  * 3. Validate double spend on attach
  * 4. Validate the atomic call: nebula.send_value_to_subs() -> nebula.attach()
  */
- func TestNebulaSendValueToIBPortSubscriber (t *testing.T) {
+func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 	var err error
 
 	deployer, err := NewOperatingAddress(t, "../private-keys/test_deployer-pk-deployer.json", nil)
@@ -79,7 +80,6 @@ import (
 
 	waitTransactionConfirmations()
 
-
 	deployerTokenAccount, err := CreateTokenAccount(deployer.PKPath, tokenProgramAddress)
 	ValidateError(t, err)
 
@@ -98,9 +98,8 @@ import (
 	ibportDataAccount, err := GenerateNewAccount(deployer.PrivateKey, IBPortAllocation, ibportProgram.PublicKey.ToBase58(), RPCEndpoint)
 	ValidateError(t, err)
 
-
 	ParallelExecution(
-		[]func() {
+		[]func(){
 			func() {
 				_, err = DeploySolanaProgram(t, "ibport", ibportProgram.PKPath, consulsList.List[0].PKPath, "../binaries/ibport.so")
 				ValidateError(t, err)
@@ -123,7 +122,7 @@ import (
 	t.Log("Authorizing ib port to allow minting")
 
 	waitTransactionConfirmations()
-	
+
 	gravityBuilder := executor.GravityInstructionBuilder{}
 	gravityExecutor, err := InitGenericExecutor(
 		deployer.PrivateKey,
@@ -133,7 +132,7 @@ import (
 		RPCEndpoint,
 		common.PublicKeyFromString(""),
 	)
-	
+
 	nebulaBuilder := executor.NebulaInstructionBuilder{}
 	nebulaExecutor, err := InitGenericExecutor(
 		deployer.PrivateKey,
@@ -161,7 +160,7 @@ import (
 	waitTransactionConfirmations()
 
 	ParallelExecution(
-		[]func() {
+		[]func(){
 			func() {
 				gravityInitResponse, err := gravityExecutor.BuildAndInvoke(
 					gravityBuilder.Init(BFT, 1, oracles),
@@ -194,8 +193,8 @@ import (
 	fmt.Println("IB Port Program is being subscribed to Nebula")
 
 	var subID [16]byte
-    rand.Read(subID[:])
-	
+	rand.Read(subID[:])
+
 	fmt.Printf("subID: %v \n", subID)
 
 	// (4)
@@ -225,7 +224,7 @@ import (
 	fmt.Println("Testing SendValueToSubs call  from one of the consuls")
 
 	swapId := make([]byte, 16)
-    rand.Read(swapId)
+	rand.Read(swapId)
 
 	t.Logf("Token Swap Id:  %v \n", swapId)
 
@@ -238,15 +237,14 @@ import (
 
 	fmt.Printf("dataHashForAttach: %v \n", dataHashForAttach)
 
-
 	nebulaExecutor.SetDeployerPK(operatingConsul.Account)
 	nebulaExecutor.SetAdditionalMeta([]types.AccountMeta{
-		{ PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false },
-		{ PubKey: ibportProgram.PublicKey, IsWritable: false, IsSigner: false },
-		{ PubKey: ibportDataAccount.Account.PublicKey, IsWritable: true, IsSigner: false },
-		{ PubKey: common.PublicKeyFromString(tokenProgramAddress), IsWritable: true, IsSigner: false },
-		{ PubKey: common.PublicKeyFromString(deployerTokenAccount), IsWritable: true, IsSigner: false },
-		{ PubKey: ibportProgram.PDA, IsWritable: false, IsSigner: false },
+		{PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false},
+		{PubKey: ibportProgram.PublicKey, IsWritable: false, IsSigner: false},
+		{PubKey: ibportDataAccount.Account.PublicKey, IsWritable: true, IsSigner: false},
+		{PubKey: common.PublicKeyFromString(tokenProgramAddress), IsWritable: true, IsSigner: false},
+		{PubKey: common.PublicKeyFromString(deployerTokenAccount), IsWritable: true, IsSigner: false},
+		{PubKey: ibportProgram.PDA, IsWritable: false, IsSigner: false},
 	})
 
 	waitTransactionConfirmations()
@@ -257,7 +255,6 @@ import (
 	ValidateError(t, err)
 
 	fmt.Printf("Nebula SendValueToSubs Call:  %v \n", nebulaAttachResponse.TxSignature)
-
 
 	waitTransactionConfirmations()
 
@@ -300,7 +297,7 @@ import (
 
 	// deployerTokenAccount, err := CreateTokenAccount(deployerPrivateKeysPath, tokenProgramAddress)
 	// ValidateError(t, err)
-	
+
 	// ibportAddressPubkey, ibPortPDA, err := CreatePersistentAccountWithPDA(ibportProgramPath, true, [][]byte{[]byte("ibport")})
 	// if err != nil {
 	// 	fmt.Printf("PDA error: %v", err)
@@ -319,5 +316,5 @@ import (
 
 	// deployerPrivateKey, err := ReadPKFromPath(t, deployerPrivateKeysPath)
 	// ValidateError(t, err)
-	
+
 }

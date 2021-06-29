@@ -31,7 +31,7 @@ func (port *IBPortInstructionBuilder) InitWithOracles(nebula, token common.Publi
 		NebulaDataAccount common.PublicKey
 		TokenDataAccount  common.PublicKey
 		Bft               uint8
-		Oracles          []byte
+		Oracles           []byte
 	}{
 		Instruction:       0,
 		NebulaDataAccount: nebula,
@@ -81,7 +81,7 @@ func BuildCrossChainMintByteVector(swapId []byte, receiver common.PublicKey, amo
 	res = append(res, Float64ToBytes(amount)...)
 	// receiver
 	res = append(res, receiver[:]...)
-	
+
 	fmt.Printf("byte array len: %v \n", len(res))
 	fmt.Printf("byte array cap: %v \n", len(res))
 
@@ -93,10 +93,10 @@ func (port *IBPortInstructionBuilder) AttachValue(byte_vector []byte) interface{
 
 	return struct {
 		Instruction uint8
-		ByteVector []byte
+		ByteVector  []byte
 	}{
 		Instruction: 2,
-		ByteVector: byte_vector,
+		ByteVector:  byte_vector,
 	}
 }
 
