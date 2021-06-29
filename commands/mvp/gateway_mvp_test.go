@@ -26,14 +26,16 @@ import (
  *
  */
 func TestRunPolygonToSolanaGatewayMVP(t *testing.T) {	
-	gtonToken := &crossChainToken{}
-	gtonToken.SetTokenCfg(&crossChainTokenCfg {
+	// gtonToken := &crossChainToken{}
+
+	gtonToken, err := NewCrossChainToken(&crossChainTokenCfg {
 		originDecimals: 18,
 		destinationDecimals: 8,
 		originAddress: "0xf480f38c366daac4305dc484b2ad7a496ff00cea",
 		destinationAddress: "FP5MgcQaD3ppWDqfjXouftsWQBSPW2suRzduLAFs712S",
-	})
-	
+	}, 0)
+	commands.ValidateError(t, err)
+
 	extractorCfg := &extractorCfg {
 		originDecimals: 18,
 		destinationDecimals: 8,
@@ -55,23 +57,33 @@ func TestRunPolygonToSolanaGatewayMVP(t *testing.T) {
 	transactor, err := ethbind.NewKeyedTransactorWithChainID(polygonGTONHolder.PrivKey, big.NewInt(extractorCfg.chainID))
 	polygonTransactor := NewEVMTransactor(polygonClient, transactor)
 
-	solanaGTONHolder, err := commands.ReadOperatingAddress(t, "../private-keys/_from-polygon-gton-mvp-recipient.json")
+	solanaGTONHolder, err := commands.ReadOperatingAddress(t, "../../private-keys/_from-polygon-gton-mvp-recipient.json")
 	commands.ValidateError(t, err)
+	_ = solanaGTONHolder
 
 	solanaGTONTokenAccount, err := commands.CreateTokenAccount(solanaGTONHolder.PKPath, gtonToken.cfg.destinationAddress)
 	commands.ValidateError(t, err)
 
+	fmt.Printf("solanaGTONTokenAccount: %v \n", solanaGTONTokenAccount)
+
 	luportClient, err := luport.NewLUPort(ethcommon.HexToAddress(extractorCfg.luportAddress), polygonClient)
 	commands.ValidateError(t, err)
 
-	fmt.Printf("Locking GTON")
-
 	// transferring 0.0001 GTON, 18 decimals (1 * 1e14)
-	gtonToken.SetAsFloat(0.0001, 18 - 4)
-	return
+	gtonToken.Set(0.000227)
+
+	fmt.Printf("Locking %v GTON \n", gtonToken.Float())
+
+	fmt.Printf("As Origin: %v GTON \n", gtonToken.AsOriginBigInt())
+	fmt.Printf("As Destination: %v GTON \n", gtonToken.AsDestinationBigInt())
 
 	// (1)
-	lockFundsTx, err := luportClient.CreateTransferUnwrapRequest(polygonTransactor.transactor, gtonToken.BigInt(), solcommon.PublicKeyFromString(solanaGTONTokenAccount))
+	lockFundsTx, err := luportClient.CreateTransferUnwrapRequest(
+		polygonTransactor.transactor,
+		gtonToken.AsOriginBigInt(), 
+		solcommon.PublicKeyFromString(solanaGTONTokenAccount),
+	)
+
 	commands.ValidateError(t, err)
 
 	_, err = ethbind.WaitMined(polygonCtx, polygonClient, lockFundsTx)

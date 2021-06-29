@@ -192,6 +192,7 @@ func ReadAccountAddress(privateKeysPath string) (string, error) {
 	output, err := cmd.CombinedOutput()
 
 	if err != nil {
+		fmt.Println(string(output))
 		return "", err
 	}
 	result := string(output)
@@ -335,6 +336,7 @@ func BurnToken(burnerPrivateKeysPath, tokenDataAccount string, amount float64) e
 	return nil
 }
 
+
 func CreateTokenAccount(currentOwnerPrivateKeyPath, tokenAddress string) (string, error) {
 	cmd := exec.Command("spl-token", "create-account", "--owner", currentOwnerPrivateKeyPath, tokenAddress)
 	output, err := cmd.CombinedOutput()
@@ -347,6 +349,7 @@ func CreateTokenAccount(currentOwnerPrivateKeyPath, tokenAddress string) (string
 	fmt.Println(tokenDataAccount)
 
 	if err != nil {
+		fmt.Println(string(output))
 		return "", err
 	}
 
@@ -394,6 +397,7 @@ func DeploySolanaProgram(t *testing.T, tag string, programPrivateKeysPath, deplo
 func ReadPKFromPath(t *testing.T, path string) (string, error) {
 	result, err := ioutil.ReadFile(path)
 	if err != nil {
+		t.Logf("res: %v \n", result)
 		return "", err
 	}
 	var input []byte
