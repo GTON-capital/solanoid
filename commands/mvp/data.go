@@ -40,7 +40,8 @@ type extractorCfg struct {
 	originNodeURL       string
 	destinationNodeURL  string
 	luportAddress       string
-	ibportAddress       string
+	ibportDataAccount   string
+	ibportProgramID     string
 }
 
 type crossChainTokenCfg struct {

@@ -336,6 +336,25 @@ func BurnToken(burnerPrivateKeysPath, tokenDataAccount string, amount float64) e
 	return nil
 }
 
+func CreateTokenAccountWithFeePayer(currentOwnerPrivateKeyPath, tokenAddress string) (string, error) {
+	cmd := exec.Command("spl-token", "create-account", tokenAddress, "--fee-payer", currentOwnerPrivateKeyPath)
+	output, err := cmd.CombinedOutput()
+	// t.Log(string(output))
+
+	// Creating account GMuGCTYcCV7FiKg3kQ7LArfZQdhagvUYWNXb1DNZQSGK
+	dataAccountCatchRegex, _ := regexp.Compile("Creating account .+")
+	tokenDataAccount := trimAndTakeLast(string(dataAccountCatchRegex.Find(output)), " ")
+
+	fmt.Println(tokenDataAccount)
+
+	if err != nil {
+		fmt.Println(string(output))
+		return "", err
+	}
+
+	return tokenDataAccount, nil
+}
+
 
 func CreateTokenAccount(currentOwnerPrivateKeyPath, tokenAddress string) (string, error) {
 	cmd := exec.Command("spl-token", "create-account", "--owner", currentOwnerPrivateKeyPath, tokenAddress)
