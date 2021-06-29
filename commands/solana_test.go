@@ -4,8 +4,6 @@ import (
 	"testing"
 )
 
-
-
 func TestEndpointInfer(t *testing.T) {
 	rpc, err := InferSystemDefinedRPC()
 
@@ -15,12 +13,12 @@ func TestEndpointInfer(t *testing.T) {
 	}
 
 	t.Log(rpc)
-	
+
 	if rpc == "" {
 		t.Error("rpc is empty")
 		t.FailNow()
 	}
-	
+
 }
 
 func TestTokenCreate(t *testing.T) {
@@ -34,7 +32,7 @@ func TestTokenCreate(t *testing.T) {
 	t.Log(tokenRes.Owner.ToBase58())
 	t.Log(tokenRes.Token.ToBase58())
 	t.Log(tokenRes.Signature)
-	
+
 	// if balance == 0 {
 	// 	t.Log("balance is empty")
 	// }
@@ -45,7 +43,6 @@ func TestPersistedAccount(t *testing.T) {
 
 	t.Log(err)
 }
-
 
 func TestFullTokenBehaviour(t *testing.T) {
 	// CreateTokenAccount
@@ -66,7 +63,7 @@ func TestFullTokenBehaviour(t *testing.T) {
 	t.Log(tokenRes.Owner.ToBase58())
 	t.Log(tokenRes.Token.ToBase58())
 	t.Log(tokenRes.Signature)
-	
+
 	associatedTokenDataAccount, err := CreateTokenAccount(testMockedPrivateKeyPath, tokenAddress)
 	if err != nil || associatedTokenDataAccount == "" {
 		t.Log(err)
@@ -77,11 +74,11 @@ func TestFullTokenBehaviour(t *testing.T) {
 		t.Log(err)
 		t.FailNow()
 	}
-	
+
 	// mint some
 
 	var currentBalance float64
-	mintableAmount :=  10.2352
+	mintableAmount := 10.2352
 
 	updateCurrentBalance := func() {
 		currentBalance, err = ReadSPLTokenBalance(burnerPrivateKeysPath, tokenAddress)
@@ -118,7 +115,6 @@ func TestFullTokenBehaviour(t *testing.T) {
 		t.Logf("desired balance: %v \n", 0)
 		t.FailNow()
 	}
-
 
 }
 
@@ -166,11 +162,11 @@ func TestTokenDelegation(t *testing.T) {
 		t.Log(err)
 		t.FailNow()
 	}
-	
+
 	// mint some
 
 	var ownerBalance, delegateBalance float64
-	mintableAmount :=  10.2352
+	mintableAmount := 10.2352
 
 	updateCurrentBalance := func() {
 		ownerBalance, err = ReadSPLTokenBalance(testMockedPrivateKeyPath, tokenAddress)
@@ -233,7 +229,6 @@ func TestTokenDelegation(t *testing.T) {
 
 	t.Log("Test passed successfully.")
 }
-
 
 func TestBalanceRead(t *testing.T) {
 	addr := "Es5jjKAHHyDaVVzuFEqyV56eg1R1xCQKTDHVPp3enzTN"

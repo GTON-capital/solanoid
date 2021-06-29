@@ -34,10 +34,11 @@ func ValidateErrorExistence(t *testing.T, err error) {
 	t.Logf("Error: %v \n", err)
 }
 
-func SystemAirdrop(t *testing.T, recipient string, amount uint64) error {
-	t.Logf("transfer %v SOL to %v address \n", amount, recipient)
+func SystemAirdropTo(t *testing.T, callerKeyPairPath string, recipient string, amount uint64) error {
+	// t.Logf("transfer %v SOL to %v address \n", amount)
 
-	cmd := exec.Command("solana", "airdrop", fmt.Sprint(amount), recipient)
+	// cmd := exec.Command("solana", "airdrop", fmt.Sprint(amount), recipient)
+	cmd := exec.Command("solana", "airdrop", fmt.Sprint(amount), recipient, "--keypair", callerKeyPairPath)
 
 	output, err := cmd.CombinedOutput()
 	t.Log(string(output))
@@ -49,7 +50,27 @@ func SystemAirdrop(t *testing.T, recipient string, amount uint64) error {
 	}
 
 	// t.Log(output)
-	
+
+	return nil
+}
+
+func SystemAirdrop(t *testing.T, callerKeyPairPath string, amount uint64) error {
+	// t.Logf("transfer %v SOL to %v address \n", amount)
+
+	// cmd := exec.Command("solana", "airdrop", fmt.Sprint(amount), recipient)
+	cmd := exec.Command("solana", "airdrop", fmt.Sprint(amount), "--keypair", callerKeyPairPath)
+
+	output, err := cmd.CombinedOutput()
+	t.Log(string(output))
+
+	if err != nil {
+		t.Log(err.Error())
+		// log.Fatal(err)
+		return err
+	}
+
+	// t.Log(output)
+
 	return nil
 }
 
@@ -62,36 +83,66 @@ func SystemFaucet(t *testing.T, recipient string, amount uint64) error {
 	t.Log(string(output))
 
 	if err != nil {
+		debug.PrintStack()
 		t.Log(err.Error())
 		// log.Fatal(err)
 		return err
 	}
 
 	// t.Log(output)
-	
+
 	return nil
 }
 
-func InferSystemDefinedRPC() (string, error) {
+func inferSystemDefinedSolanaConfigParam(prefix string) (string, error) {
 	cmd := exec.Command("solana", "config", "get")
 	output, err := cmd.CombinedOutput()
-	
-	rgx, _ := regexp.Compile("RPC URL: .+")
+
+	rgx, _ := regexp.Compile(prefix + ": .+")
 	result := rgx.Find(output)
 	resultStr := strings.Trim(string(result), "\n\r ")
 	resultList := strings.Split(resultStr, " ")
-	rpcURL := resultList[len(resultList) - 1]
-	
+	matchResult := resultList[len(resultList)-1]
+
 	fmt.Println(resultList)
-	rpcURL = strings.Trim(rpcURL, "\n\r")
+	matchResult = strings.Trim(matchResult, "\n\r")
 
 	if err != nil {
 		return "", err
 	}
 
 	// t.Log(output)
-	return rpcURL, nil
+	return matchResult, nil
 }
+
+func InferSystemDefinedWebSocketURL() (string, error) {
+	return inferSystemDefinedSolanaConfigParam("WebSocket URL")
+}
+
+func InferSystemDefinedRPC() (string, error) {
+	return inferSystemDefinedSolanaConfigParam("RPC URL")
+}
+
+// func InferSystemDefinedRPC() (string, error) {
+// 	cmd := exec.Command("solana", "config", "get")
+// 	output, err := cmd.CombinedOutput()
+
+// 	rgx, _ := regexp.Compile("RPC URL: .+")
+// 	result := rgx.Find(output)
+// 	resultStr := strings.Trim(string(result), "\n\r ")
+// 	resultList := strings.Split(resultStr, " ")
+// 	rpcURL := resultList[len(resultList) - 1]
+
+// 	fmt.Println(resultList)
+// 	rpcURL = strings.Trim(rpcURL, "\n\r")
+
+// 	if err != nil {
+// 		return "", err
+// 	}
+
+// 	// t.Log(output)
+// 	return rpcURL, nil
+// }
 
 type TokenCreateResult struct {
 	Token     common.PublicKey
@@ -99,17 +150,16 @@ type TokenCreateResult struct {
 	Signature string
 }
 
-
 func trimAndTakeLast(str, del string) string {
 	resultStr := strings.Trim(str, "\n\r ")
 	resultList := strings.Split(resultStr, del)
-	lastEl := resultList[len(resultList) - 1]
+	lastEl := resultList[len(resultList)-1]
 	return lastEl
 }
-	
+
 func CreateToken(ownerPrivateKeysPath string) (*TokenCreateResult, error) {
 	decimals := 8
-	cmd := exec.Command("spl-token", "create-token", "--owner", ownerPrivateKeysPath,  "--decimals", fmt.Sprintf("%v", decimals))
+	cmd := exec.Command("spl-token", "create-token", "--owner", ownerPrivateKeysPath, "--decimals", fmt.Sprintf("%v", decimals))
 	output, err := cmd.CombinedOutput()
 
 	if err != nil {
@@ -120,7 +170,7 @@ func CreateToken(ownerPrivateKeysPath string) (*TokenCreateResult, error) {
 	signatureCatchRegex, _ := regexp.Compile("Signature: .+")
 	tokenAddress := trimAndTakeLast(string(tokenCatchRegex.Find(output)), " ")
 	signature := trimAndTakeLast(string(signatureCatchRegex.Find(output)), " ")
-	
+
 	fmt.Println(tokenAddress)
 	fmt.Println(signature)
 
@@ -130,11 +180,11 @@ func CreateToken(ownerPrivateKeysPath string) (*TokenCreateResult, error) {
 	}
 
 	return &TokenCreateResult{
-		Token: common.PublicKeyFromString(tokenAddress),
-		Owner: common.PublicKeyFromString(owner),
+		Token:     common.PublicKeyFromString(tokenAddress),
+		Owner:     common.PublicKeyFromString(owner),
 		Signature: signature,
 	}, nil
-	// spl-token create-token --owner private-keys/main-deployer.json 
+	// spl-token create-token --owner private-keys/main-deployer.json
 }
 
 func ReadAccountAddress(privateKeysPath string) (string, error) {
@@ -146,7 +196,7 @@ func ReadAccountAddress(privateKeysPath string) (string, error) {
 	}
 	result := string(output)
 	account := strings.Trim(result, "\n\r ")
-	
+
 	fmt.Println(account)
 	return account, nil
 }
@@ -154,18 +204,19 @@ func ReadAccountAddress(privateKeysPath string) (string, error) {
 func ReadAccountBalance(address string) (float64, error) {
 	cmd := exec.Command("solana", "balance", address)
 	output, err := cmd.CombinedOutput()
-	
+
 	if err != nil {
+		fmt.Println(string(output))
 		return 0, err
 	}
 	result := string(output)
 	resultStr := strings.Trim(string(result), "\n\r ")
 	resultList := strings.Split(resultStr, " ")
 	balance := resultList[0]
-	
+
 	balance = strings.Trim(balance, "\n\r")
 	castedBalance, err := strconv.ParseFloat(balance, 64)
-	
+
 	if err != nil {
 		return 0, err
 	}
@@ -212,18 +263,17 @@ func CreatePersistedAccount(path string, forceRewrite bool) error {
 	return nil
 }
 
-
 func ReadSPLTokenBalance(ownerPrivateKeysPath, tokenProgramAddress string) (float64, error) {
 	cmd := exec.Command("spl-token", "balance", "--owner", ownerPrivateKeysPath, tokenProgramAddress)
 	output, err := cmd.CombinedOutput()
-	
+
 	if err != nil {
 		return 0, err
 	}
 	result := string(output)
 	balance := strings.Trim(result, "\n\r")
 	castedBalance, err := strconv.ParseFloat(balance, 64)
-	
+
 	if err != nil {
 		return 0, err
 	}
@@ -272,7 +322,7 @@ func MintToken(minterPrivateKeysPath, tokenProgramAddress string, amount float64
 }
 
 // On burn - only token data account address
-// spl-token burn GMuGCTYcCV7FiKg3kQ7LArfZQdhagvUYWNXb1DNZQSGK 1 --owner private-keys/token-owner.json 
+// spl-token burn GMuGCTYcCV7FiKg3kQ7LArfZQdhagvUYWNXb1DNZQSGK 1 --owner private-keys/token-owner.json
 func BurnToken(burnerPrivateKeysPath, tokenDataAccount string, amount float64) error {
 	cmd := exec.Command("spl-token", "burn", "--owner", burnerPrivateKeysPath, tokenDataAccount, fmt.Sprintf("%v", amount))
 	output, err := cmd.CombinedOutput()
@@ -284,7 +334,6 @@ func BurnToken(burnerPrivateKeysPath, tokenDataAccount string, amount float64) e
 
 	return nil
 }
-
 
 func CreateTokenAccount(currentOwnerPrivateKeyPath, tokenAddress string) (string, error) {
 	cmd := exec.Command("spl-token", "create-account", "--owner", currentOwnerPrivateKeyPath, tokenAddress)
@@ -322,11 +371,11 @@ func DeploySolanaProgram(t *testing.T, tag string, programPrivateKeysPath, deplo
 	cmd := exec.Command("solana", "program", "deploy", "--keypair", deployerPrivateKeysPath, "--program-id", programPrivateKeysPath, programBinaryPath)
 
 	output, err := cmd.CombinedOutput()
-	
-	t.Log(string(output))
+
+	// t.Log(string(output))
 
 	outputList := strings.Split(string(output), " ")
-	programID := outputList[len(outputList) - 1]
+	programID := outputList[len(outputList)-1]
 	programID = strings.Trim(programID, "\n\r")
 
 	t.Logf("Program: %v; Deployed Program ID is: %v\n", tag, programID)
@@ -338,7 +387,7 @@ func DeploySolanaProgram(t *testing.T, tag string, programPrivateKeysPath, deplo
 	}
 
 	// t.Log(output)
-	
+
 	return programID, nil
 }
 

@@ -3,18 +3,18 @@ package commands
 import (
 	"crypto/rand"
 	"fmt"
+	"sync"
 	"time"
 
-	"github.com/Gravity-Tech/solanoid/commands/executor"
-
-	// "os"
-
 	"testing"
+
+	"github.com/Gravity-Tech/solanoid/commands/executor"
 
 	"github.com/mr-tron/base58"
 	"github.com/portto/solana-go-sdk/common"
 	"github.com/portto/solana-go-sdk/types"
-	// "strings"
+
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
 
 func TestGravityContract(t *testing.T) {
@@ -165,6 +165,27 @@ func TestPDA(t *testing.T) {
 	t.FailNow()
 }
 
+func waitTransactionConfirmations() {
+	// time.Sleep(time.Second * 3)
+	// time.Sleep(time.Second * 30)
+	time.Sleep(time.Second * 15)
+	// time.Sleep(time.Second * 45)
+}
+
+func WrappedFaucet(t *testing.T, callerPath, receiverAddress string, amount uint64) {
+	var err error
+	t.Logf("Faucet %v SOL to %v \n", receiverAddress, fmt.Sprint(amount))
+
+	if receiverAddress == "" {
+		err = SystemAirdrop(t, callerPath, amount)
+	} else {
+		err = SystemAirdropTo(t, callerPath, receiverAddress, amount)
+	}
+
+	ValidateError(t, err)
+
+}
+
 func TestIBPortContract(t *testing.T) {
 	var err error
 	deployerPrivateKeysPath := "../private-keys/_test_deployer-pk-deployer.json"
@@ -184,12 +205,10 @@ func TestIBPortContract(t *testing.T) {
 	tokenOwnerAddress, err := ReadAccountAddress(tokenOwnerPath)
 	ValidateError(t, err)
 
-
-	waitTransactionConfirmations := func() {
-		time.Sleep(time.Second * 30)
-	}
-
-	err = SystemFaucet(t, tokenOwnerAddress, 10)
+	// err = SystemFaucet(t, tokenOwnerAddress, 10)
+	WrappedFaucet(t, tokenOwnerPath, tokenOwnerAddress, 10)
+	ValidateError(t, err)
+	WrappedFaucet(t, deployerPrivateKeysPath, deployerAddress, 10)
 	ValidateError(t, err)
 
 	tokenDeployResult, err := CreateToken(tokenOwnerPath)
@@ -199,7 +218,7 @@ func TestIBPortContract(t *testing.T) {
 
 	deployerTokenAccount, err := CreateTokenAccount(deployerPrivateKeysPath, tokenProgramAddress)
 	ValidateError(t, err)
-	
+
 	ibportAddressPubkey, ibPortPDA, err := CreatePersistentAccountWithPDA(ibportProgramPath, true, [][]byte{[]byte("ibport")})
 	if err != nil {
 		fmt.Printf("PDA error: %v", err)
@@ -219,8 +238,8 @@ func TestIBPortContract(t *testing.T) {
 	deployerPrivateKey, err := ReadPKFromPath(t, deployerPrivateKeysPath)
 	ValidateError(t, err)
 
-	SystemFaucet(t, deployerAddress, 10)
-	ValidateError(t, err)
+	// SystemFaucet(t, deployerAddress, 10)
+	// ValidateError(t, err)
 
 	// love this *ucking timeouts
 	waitTransactionConfirmations()
@@ -253,10 +272,10 @@ func TestIBPortContract(t *testing.T) {
 	t.Logf("IBPort Init: %v \n", ibportInitResult.TxSignature)
 
 	ibportExecutor.SetAdditionalMeta([]types.AccountMeta{
-		{ PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false },
-		{ PubKey: common.PublicKeyFromString(tokenProgramAddress), IsWritable: true, IsSigner: false },
-		{ PubKey: common.PublicKeyFromString(deployerTokenAccount), IsWritable: true, IsSigner: false },
-		{ PubKey: ibPortPDA, IsWritable: false, IsSigner: false },
+		{PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false},
+		{PubKey: common.PublicKeyFromString(tokenProgramAddress), IsWritable: true, IsSigner: false},
+		{PubKey: common.PublicKeyFromString(deployerTokenAccount), IsWritable: true, IsSigner: false},
+		{PubKey: ibPortPDA, IsWritable: false, IsSigner: false},
 	})
 
 	burnAmount := float64(10)
@@ -276,13 +295,35 @@ func TestIBPortContract(t *testing.T) {
 
 	waitTransactionConfirmations()
 
+	ethReceiverPK, err := ethcrypto.GenerateKey()
+	ValidateError(t, err)
+
+	var ethReceiverAddress [32]byte
+	copy(ethReceiverAddress[:], ethcrypto.PubkeyToAddress(ethReceiverPK.PublicKey).Bytes())
+
+	t.Logf("#1 EVM Receiver: %v \n", ethcrypto.PubkeyToAddress(ethReceiverPK.PublicKey).String())
+	t.Logf("#1 EVM Receiver (bytes): %v \n", ethReceiverAddress[:])
+
 	ibportCreateTransferUnwrapRequestResult, err := ibportExecutor.BuildAndInvoke(
-		instructionBuilder.CreateTransferUnwrapRequest(common.PublicKeyFromBytes(make([]byte, 32)), burnAmount),
+		instructionBuilder.CreateTransferUnwrapRequest(ethReceiverAddress, 2.22274234),
 	)
 	ValidateError(t, err)
-	t.Logf("CreateTransferUnwrapRequest - Tx: %v \n", ibportCreateTransferUnwrapRequestResult.TxSignature)
-}
+	t.Logf("#1 CreateTransferUnwrapRequest - Tx: %v \n", ibportCreateTransferUnwrapRequestResult.TxSignature)
 
+	ethReceiverPK, err = ethcrypto.GenerateKey()
+	ValidateError(t, err)
+
+	copy(ethReceiverAddress[:], ethcrypto.PubkeyToAddress(ethReceiverPK.PublicKey).Bytes())
+
+	t.Logf("#2 EVM Receiver: %v \n", ethcrypto.PubkeyToAddress(ethReceiverPK.PublicKey).String())
+	t.Logf("#2 EVM Receiver (bytes): %v \n", ethReceiverAddress[:])
+
+	ibportCreateTransferUnwrapRequestResult, err = ibportExecutor.BuildAndInvoke(
+		instructionBuilder.CreateTransferUnwrapRequest(ethReceiverAddress, 3.23441),
+	)
+	ValidateError(t, err)
+	t.Logf("#2 CreateTransferUnwrapRequest -  Tx: %v \n", ibportCreateTransferUnwrapRequestResult.TxSignature)
+}
 
 func TestIBPortAttachValue(t *testing.T) {
 	var err error
@@ -303,13 +344,11 @@ func TestIBPortAttachValue(t *testing.T) {
 	tokenOwnerAddress, err := ReadAccountAddress(tokenOwnerPath)
 	ValidateError(t, err)
 
-
-	waitTransactionConfirmations := func() {
-		time.Sleep(time.Second * 30)
-	}
-
-	err = SystemFaucet(t, tokenOwnerAddress, 10)
-	ValidateError(t, err)
+	WrappedFaucet(t, tokenOwnerPath, tokenOwnerAddress, 10)
+	WrappedFaucet(t, deployerPrivateKeysPath, deployerAddress, 10)
+	// err = SystemAirdrop(t, deployerPrivateKeysPath, 10)
+	// ValidateError(t, err)
+	waitTransactionConfirmations()
 
 	tokenDeployResult, err := CreateToken(tokenOwnerPath)
 	ValidateError(t, err)
@@ -318,7 +357,7 @@ func TestIBPortAttachValue(t *testing.T) {
 
 	deployerTokenAccount, err := CreateTokenAccount(deployerPrivateKeysPath, tokenProgramAddress)
 	ValidateError(t, err)
-	
+
 	ibportAddressPubkey, ibPortPDA, err := CreatePersistentAccountWithPDA(ibportProgramPath, true, [][]byte{[]byte("ibport")})
 	if err != nil {
 		fmt.Printf("PDA error: %v", err)
@@ -338,10 +377,6 @@ func TestIBPortAttachValue(t *testing.T) {
 	deployerPrivateKey, err := ReadPKFromPath(t, deployerPrivateKeysPath)
 	ValidateError(t, err)
 
-	SystemFaucet(t, deployerAddress, 10)
-	ValidateError(t, err)
-
-	// love this *ucking timeouts
 	waitTransactionConfirmations()
 
 	_, err = DeploySolanaProgram(t, "ibport", ibportProgramPath, deployerPrivateKeysPath, "../binaries/ibport.so")
@@ -364,20 +399,22 @@ func TestIBPortAttachValue(t *testing.T) {
 
 	instructionBuilder := executor.NewIBPortInstructionBuilder()
 
+	mockedNebulaAddress := common.PublicKeyFromString(deployerAddress)
+
 	waitTransactionConfirmations()
 	ibportInitResult, err := ibportExecutor.BuildAndInvoke(
-		instructionBuilder.Init(common.PublicKeyFromBytes(make([]byte, 32)), common.TokenProgramID),
+		instructionBuilder.Init(mockedNebulaAddress, common.TokenProgramID),
 	)
 	ValidateError(t, err)
 	t.Logf("IBPort Init: %v \n", ibportInitResult.TxSignature)
 
 	ibportExecutor.SetAdditionalMeta([]types.AccountMeta{
-		{ PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false },
-		{ PubKey: common.PublicKeyFromString(tokenProgramAddress), IsWritable: true, IsSigner: false },
-		{ PubKey: common.PublicKeyFromString(deployerTokenAccount), IsWritable: true, IsSigner: false },
-		{ PubKey: ibPortPDA, IsWritable: false, IsSigner: false },
+		{PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false},
+		{PubKey: common.PublicKeyFromString(tokenProgramAddress), IsWritable: true, IsSigner: false},
+		{PubKey: common.PublicKeyFromString(deployerTokenAccount), IsWritable: true, IsSigner: false},
+		{PubKey: ibPortPDA, IsWritable: false, IsSigner: false},
 	})
-	
+
 	// allow ibport to mint
 	err = AuthorizeToken(t, tokenOwnerPath, tokenProgramAddress, "mint", ibPortPDA.ToBase58())
 	ValidateError(t, err)
@@ -387,9 +424,9 @@ func TestIBPortAttachValue(t *testing.T) {
 	waitTransactionConfirmations()
 
 	swapId := make([]byte, 16)
-    rand.Read(swapId)
+	rand.Read(swapId)
 
-	t.Logf("Token Swap Id: %v \n", swapId)
+	t.Logf("Token Swap  Id: %v \n", swapId)
 
 	attachedAmount := float64(227)
 
@@ -402,6 +439,213 @@ func TestIBPortAttachValue(t *testing.T) {
 	)
 	ValidateError(t, err)
 
-	t.Logf("AttachValue - Tx:  %v \n", ibportCreateTransferUnwrapRequestResult.TxSignature)
-	
+	t.Logf("#1 AttachValue - Tx:  %v \n", ibportCreateTransferUnwrapRequestResult.TxSignature)
+
+	t.Logf("Checking for double spend problem \n")
+
+	swapIdSecond := make([]byte, 16)
+	rand.Read(swapIdSecond)
+
+	dataHashForAttachSecond := executor.BuildCrossChainMintByteVector(swapIdSecond, common.PublicKeyFromString(deployerTokenAccount), attachedAmount)
+
+	waitTransactionConfirmations()
+
+	ibportCreateTransferUnwrapRequestResult, err = ibportExecutor.BuildAndInvoke(
+		instructionBuilder.AttachValue(dataHashForAttachSecond),
+	)
+	ValidateError(t, err)
+
+	t.Logf("#2 AttachValue - Tx:  %v \n", ibportCreateTransferUnwrapRequestResult.TxSignature)
+
+	waitTransactionConfirmations()
+
+	swapIdThird := make([]byte, 16)
+	rand.Read(swapIdThird)
+
+	dataHashForAttachThird := executor.BuildCrossChainMintByteVector(swapIdThird, common.PublicKeyFromString(deployerTokenAccount), attachedAmount)
+
+	waitTransactionConfirmations()
+
+	ibportCreateTransferUnwrapRequestResult, err = ibportExecutor.BuildAndInvoke(
+		instructionBuilder.AttachValue(dataHashForAttachThird),
+	)
+	ValidateError(t, err)
+
+	t.Logf("#3 AttachValue - Tx:  %v \n", ibportCreateTransferUnwrapRequestResult.TxSignature)
+
+	ibportCreateTransferUnwrapRequestResult, err = ibportExecutor.BuildAndInvoke(
+		instructionBuilder.AttachValue(dataHashForAttachThird),
+	)
+
+	if err != nil {
+		t.Logf("Program must fail with error 0x1 \n")
+		t.Logf("If so - double spend has been prevented \n")
+	}
+}
+
+type OperatingAddressBuilderOptions struct {
+	WithPDASeeds []byte
+	Overwrite    bool
+}
+
+type OperatingAddress struct {
+	// DataAccount common.PublicKey
+	Account    types.Account
+	PublicKey  common.PublicKey
+	PDA        common.PublicKey
+	PrivateKey string
+	PKPath     string
+}
+
+func ReadOperatingAddress(t *testing.T, path string) (*OperatingAddress, error) {
+	pubkey, err := ReadAccountAddress(path)
+	if err != nil {
+		return nil, err
+	}
+
+	privateKey, err := ReadPKFromPath(t, path)
+	if err != nil {
+		return nil, err
+	}
+
+	decodedPrivKey, err := base58.Decode(privateKey)
+	if err != nil {
+		return nil, err
+	}
+
+	address := &OperatingAddress{
+		Account:    types.AccountFromPrivateKeyBytes(decodedPrivKey),
+		PublicKey:  common.PublicKeyFromString(pubkey),
+		PrivateKey: privateKey,
+		PKPath:     path,
+	}
+
+	return address, nil
+}
+
+func NewOperatingAddress(t *testing.T, path string, options *OperatingAddressBuilderOptions) (*OperatingAddress, error) {
+	var err error
+
+	if options != nil && len(options.WithPDASeeds) > 0 {
+		publicKey, pda, err := CreatePersistentAccountWithPDA(path, true, [][]byte{options.WithPDASeeds})
+		if err != nil {
+			return nil, err
+		}
+
+		privateKey, err := ReadPKFromPath(t, path)
+		if err != nil {
+			return nil, err
+		}
+
+		return &OperatingAddress{
+			PublicKey:  publicKey,
+			PrivateKey: privateKey,
+			PKPath:     path,
+			PDA:        pda,
+		}, nil
+	}
+
+	if options != nil && !options.Overwrite {
+		err = CreatePersistedAccount(path, false)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		err = CreatePersistedAccount(path, true)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	pubkey, err := ReadAccountAddress(path)
+	if err != nil {
+		return nil, err
+	}
+
+	privateKey, err := ReadPKFromPath(t, path)
+	if err != nil {
+		return nil, err
+	}
+
+	decodedPrivKey, err := base58.Decode(privateKey)
+	if err != nil {
+		return nil, err
+	}
+
+	address := &OperatingAddress{
+		Account:    types.AccountFromPrivateKeyBytes(decodedPrivKey),
+		PublicKey:  common.PublicKeyFromString(pubkey),
+		PrivateKey: privateKey,
+		PKPath:     path,
+	}
+
+	return address, nil
+}
+
+type ConsulsHandler struct {
+	BFT  uint8
+	List []OperatingAddress
+}
+
+func (ch *ConsulsHandler) ConcatConsuls() []byte {
+	var oracles []byte
+	for _, consul := range ch.List {
+		oracles = append(oracles, consul.PublicKey.Bytes()...)
+	}
+
+	return oracles
+}
+
+func (ch *ConsulsHandler) ToBftSigners() []executor.GravityBftSigner {
+	var signers []executor.GravityBftSigner
+	// var additionalMeta []types.AccountMeta
+
+	for _, signer := range ch.List {
+		signers = append(signers, *executor.NewGravityBftSigner(signer.PrivateKey))
+		// additionalMeta = append(additionalMeta, types.AccountMeta{
+		// 	PubKey: common.PublicKeyFromString(solana.ClockProgram), IsSigner: false, IsWritable: false
+		// })
+	}
+
+	return signers
+}
+
+func GenerateConsuls(t *testing.T, consulPathPrefix string, count uint8) (*ConsulsHandler, error) {
+	result := make([]OperatingAddress, count)
+
+	var i uint8
+
+	for i < count {
+		path := fmt.Sprintf("%v_%v.json", consulPathPrefix, i)
+
+		address, err := NewOperatingAddress(t, path, nil)
+
+		if err != nil {
+			return nil, err
+		}
+		result[i] = *address
+
+		i++
+	}
+
+	return &ConsulsHandler{
+		BFT:  count,
+		List: result,
+	}, nil
+}
+
+func ParallelExecution(callbacks []func()) {
+	var wg sync.WaitGroup
+
+	wg.Add(len(callbacks))
+	for _, fn := range callbacks {
+		// aliasing
+		fn := fn
+		go func() {
+			defer wg.Done()
+			fn()
+		}()
+	}
+
+	wg.Wait()
 }

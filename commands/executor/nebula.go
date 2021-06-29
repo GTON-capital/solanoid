@@ -10,7 +10,7 @@ import (
 	"github.com/Gravity-Tech/solanoid/models"
 
 	"github.com/mr-tron/base58"
-	"github.com/portto/solana-go-sdk/client"
+	solclient "github.com/portto/solana-go-sdk/client"
 	"github.com/portto/solana-go-sdk/common"
 	"github.com/portto/solana-go-sdk/types"
 	"go.uber.org/zap"
@@ -48,11 +48,63 @@ type SendValueToSubsNebulaContractInstructionn struct {
 	SubscriptionID SubscriptionID
 }
 
-type SubscribeNebulaContractInstructionn struct {
+type SubscribeNebulaContractInstruction struct {
 	Instruction      uint8
 	Subscriber       [32]byte
 	MinConfirmations uint8
 	Reward           uint64
+	SubscriptionID   [16]byte
+}
+
+type SendValueToSubsNebulaContractInstruction struct {
+	Instruction    uint8
+	DataValue      [64]byte
+	DataType       uint8
+	PulseID        uint64
+	SubscriptionID [16]byte
+}
+type SendHashValueNebulaContractInstruction struct {
+	Instruction uint8
+	DataValue   [64]byte
+}
+
+type NebulaInstructionBuilder struct{}
+
+func (port *NebulaInstructionBuilder) Init(bft, dataType uint8, gravityProgramID common.PublicKey, oracles []byte) interface{} {
+	return InitNebulaContractInstruction{
+		Instruction:              0,
+		Bft:                      bft,
+		NebulaDataType:           dataType,
+		GravityContractProgramID: gravityProgramID,
+		InitialOracles:           oracles,
+	}
+}
+
+func (port *NebulaInstructionBuilder) Subscribe(subscriber common.PublicKey, minConfirmations uint8, reward uint64, subscriptionID [16]byte) interface{} {
+	return SubscribeNebulaContractInstruction{
+		Instruction:      4,
+		Subscriber:       subscriber,
+		MinConfirmations: minConfirmations,
+		Reward:           reward,
+		SubscriptionID:   subscriptionID,
+	}
+}
+
+func (port *NebulaInstructionBuilder) SendValueToSubs(data [64]byte, dataType uint8, pulseID uint64, subscriptionID [16]byte) interface{} {
+	return SendValueToSubsNebulaContractInstruction{
+		Instruction:    3,
+		DataValue:      data,
+		DataType:       dataType,
+		PulseID:        pulseID,
+		SubscriptionID: subscriptionID,
+	}
+}
+
+func (port *NebulaInstructionBuilder) SendHashValue(data [64]byte) interface{} {
+	return SendHashValueNebulaContractInstruction{
+		Instruction: 2,
+		DataValue:   data,
+	}
 }
 
 type ExecutionVisitor interface {
@@ -101,6 +153,8 @@ type GenericExecutor struct {
 
 	signers        []GravityBftSigner
 	additionalMeta []types.AccountMeta
+
+	client *solclient.Client
 }
 
 func (ge *GenericExecutor) Deployer() common.PublicKey {
@@ -114,6 +168,10 @@ func (ge *GenericExecutor) EraseAdditionalSigners() {
 	ge.signers = make([]GravityBftSigner, 0)
 }
 
+func (ge *GenericExecutor) SetDeployerPK(pk types.Account) {
+	ge.deployerPrivKey = pk
+}
+
 func (ge *GenericExecutor) SetAdditionalMeta(meta []types.AccountMeta) {
 	ge.additionalMeta = meta
 }
@@ -124,7 +182,11 @@ func (ge *GenericExecutor) EraseAdditionalMeta() {
 func (ge *GenericExecutor) InvokePureInstruction(instruction interface{}) (*models.CommandResponse, error) {
 	account := ge.deployerPrivKey
 
-	c := client.NewClient(ge.clientEndpoint)
+	if ge.client == nil {
+		ge.client = solclient.NewClient(ge.clientEndpoint)
+	}
+
+	c := ge.client
 
 	res, err := c.GetRecentBlockhash(context.Background())
 	if err != nil {
@@ -167,21 +229,27 @@ func (ge *GenericExecutor) InvokePureInstruction(instruction interface{}) (*mode
 	}
 
 	rawTx, err := tx.Serialize()
+
+	logTx := func() {
+		// fmt.Println("------ RAW TRANSACTION ------------------------")
+		// fmt.Printf("%s\n", hex.EncodeToString(rawTx))
+		// fmt.Println("------ END RAW TRANSACTION ------------------------")
+
+		// fmt.Println("------ RAW MESSAGE ------------------------")
+		// fmt.Printf("%s\n", hex.EncodeToString(serializedMessage))
+		// fmt.Println("------ END RAW MESSAGE ------------------------")
+	}
+
 	if err != nil {
 		fmt.Printf("serialize tx error, err: %v\n", err)
+		logTx()
 		return nil, err
 	}
-	fmt.Println("------ RAW TRANSACTION ------------------------")
-	fmt.Printf("%s\n", hex.EncodeToString(rawTx))
-	fmt.Println("------ END RAW TRANSACTION ------------------------")
-
-	fmt.Println("------ RAW MESSAGE ------------------------")
-	fmt.Printf("%s\n", hex.EncodeToString(serializedMessage))
-	fmt.Println("------ END RAW MESSAGE ------------------------")
 
 	txSig, err := c.SendRawTransaction(context.Background(), rawTx)
 	if err != nil {
 		fmt.Printf("send tx error, err: %v\n", err)
+		logTx()
 		return nil, err
 	}
 
@@ -203,13 +271,13 @@ func (ge *GenericExecutor) BuildInstruction(instruction interface{}) (*types.Ins
 		panic(err)
 	}
 
-	fmt.Println("--------- RAW INSTRUCTION DATA -----------")
-	fmt.Printf("%s\n", hex.EncodeToString(data))
-	fmt.Println("------- END RAW INSTRUCTION DATA ---------")
+	// fmt.Println("--------- RAW INSTRUCTION DATA -----------")
+	// fmt.Printf("%s\n", hex.EncodeToString(data))
+	// fmt.Println("------- END RAW INSTRUCTION DATA ---------")
 
-	accountMeta := []types.AccountMeta {
-		{ PubKey: ge.deployerPrivKey.PublicKey, IsSigner: true, IsWritable: false },
-		{ PubKey: common.PublicKeyFromString(ge.dataAccount), IsSigner: false, IsWritable: true },
+	accountMeta := []types.AccountMeta{
+		{PubKey: ge.deployerPrivKey.PublicKey, IsSigner: true, IsWritable: false},
+		{PubKey: common.PublicKeyFromString(ge.dataAccount), IsSigner: false, IsWritable: true},
 	}
 
 	if ge.multisigDataAccount != "" {

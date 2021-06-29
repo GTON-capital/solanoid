@@ -23,6 +23,7 @@ const (
 	GravityContractAllocation = 299
 	MultisigAllocation        = 355
 	IBPortAllocation          = 1000
+	NebulaAllocation          = 1500
 )
 
 var (
@@ -117,9 +118,9 @@ func GenerateNewAccount(privateKey string, space uint64, programID, clientEndpoi
 		return nil, err
 	}
 
-	fmt.Println("------- begin message --------")
-	fmt.Println(hex.EncodeToString(serializedMessage))
-	fmt.Println("-------- end message ---------")
+	// fmt.Println("------- begin message --------")
+	// fmt.Println(hex.EncodeToString(serializedMessage))
+	// fmt.Println("-------- end message ---------")
 
 	tx, err := types.CreateTransaction(message, map[common.PublicKey]types.Signature{
 		account.PublicKey: ed25519.Sign(account.PrivateKey, serializedMessage),
@@ -142,12 +143,12 @@ func GenerateNewAccount(privateKey string, space uint64, programID, clientEndpoi
 		return nil, err
 	}
 
-	log.Print("Waiting")
-	// waitTx(txSig)
-	log.Print("End waiting")
+	// log.Print("Waiting")
+	// // waitTx(txSig)
+	// log.Print("End waiting")
 
 	log.Println("txHash:", txSig)
-	fmt.Printf("Data Acc privake key: %s\n", base58.Encode(newAcc.PrivateKey))
+	// fmt.Printf("Data Acc privake key: %s\n", base58.Encode(newAcc.PrivateKey))
 	fmt.Printf("Data account address: %s\n", newAcc.PublicKey.ToBase58())
 
 	return &models.CommandResponse{
