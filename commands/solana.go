@@ -207,6 +207,7 @@ func ReadAccountBalance(address string) (float64, error) {
 	output, err := cmd.CombinedOutput()
 	
 	if err != nil {
+		fmt.Println(string(output))
 		return 0, err
 	}
 	result := string(output)

@@ -24,7 +24,13 @@ func TestRunSolanaGatewayDeployment (t *testing.T) {
 	// })
 	// ValidateError(t, err)
 
-	WrappedFaucet(t, deployer.PKPath, deployer.PublicKey.ToBase58(), 10)
+	mathWalletUser := "ANRHaW53Z89VWV5ycLr1HFW6dCTiLRj3RSiYNBBF8er1"
+
+	_ = mathWalletUser
+	// WrappedFaucet(t, deployer.PKPath, mathWalletUser, 10)
+	// WrappedFaucet(t, deployer.PKPath, deployer.PublicKey.ToBase58(), 10)
+
+	// waitTransactionConfirmations()
 
 	balanceBeforeDeploy, err := ReadAccountBalance(deployer.PublicKey.ToBase58())
 	ValidateError(t, err)
@@ -35,12 +41,15 @@ func TestRunSolanaGatewayDeployment (t *testing.T) {
 		Overwrite: true,
 	})
 	ValidateError(t, err)
+	fmt.Printf("Nebula Program ID: %v \n", nebulaProgram.Account.PublicKey.ToBase58())
 
 	ibportProgram, err := NewOperatingAddress(t, "../private-keys/mainnet/ibport.json", &OperatingAddressBuilderOptions{
 		Overwrite: true,
 		WithPDASeeds: []byte("ibport"),
 	})
 	ValidateError(t, err)
+	fmt.Printf("IB Port Program ID: %v \n", ibportProgram.Account.PublicKey.ToBase58())
+	fmt.Printf("IB Port PDA: %v \n", ibportProgram.PDA.ToBase58())
 
 	gravityProgramID := "3rDUA7AGseQn8VGjtwQ6NxqbrJq6z7Pmy9L8kQ9zXuhc"
 	_ = gravityProgramID
@@ -73,12 +82,16 @@ func TestRunSolanaGatewayDeployment (t *testing.T) {
 
 	nebulaDataAccount, err := GenerateNewAccount(deployer.PrivateKey, NebulaAllocation, nebulaProgram.PublicKey.ToBase58(), RPCEndpoint)
 	ValidateError(t, err)
+	fmt.Printf("Nebula Data Account: %v \n", nebulaDataAccount.Account.PublicKey.ToBase58())
+
 
 	nebulaMultisigAccount, err := GenerateNewAccount(deployer.PrivateKey, MultisigAllocation, nebulaProgram.PublicKey.ToBase58(), RPCEndpoint)
 	ValidateError(t, err)
+	fmt.Printf("Nebula Multisig Account: %v \n", nebulaMultisigAccount.Account.PublicKey.ToBase58())
 
 	ibportDataAccount, err := GenerateNewAccount(deployer.PrivateKey, IBPortAllocation, ibportProgram.PublicKey.ToBase58(), RPCEndpoint)
 	ValidateError(t, err)
+	fmt.Printf("IB Port Data Account: %v \n", ibportDataAccount.Account.PublicKey.ToBase58())
 
 	waitTransactionConfirmations()
 
@@ -94,9 +107,7 @@ func TestRunSolanaGatewayDeployment (t *testing.T) {
 
 	err = AuthorizeToken(t, deployer.PKPath, tokenProgramAddress, "mint", ibportProgram.PDA.ToBase58())
 	ValidateError(t, err)
-	t.Log("Authorizing ib port to allow minting")
-
-	waitTransactionConfirmations()
+	t.Log("Authorizing IB Port to allow minting")
 	
 	nebulaBuilder := executor.NebulaInstructionBuilder{}
 	nebulaExecutor, err := InitGenericExecutor(
@@ -119,7 +130,6 @@ func TestRunSolanaGatewayDeployment (t *testing.T) {
 		common.PublicKeyFromString(""),
 	)
 	ValidateError(t, err)
-
 
 	waitTransactionConfirmations()
 
@@ -154,7 +164,7 @@ func TestRunSolanaGatewayDeployment (t *testing.T) {
 	ValidateError(t, err)
 
 	fmt.Printf("Nebula Subscribe: %v \n", nebulaSubscribePortResponse.TxSignature)
-	fmt.Println("Now checking for valid double spend prevent")
+	// fmt.Println("Now checking for valid double spend prevent")
 
 	waitTransactionConfirmations()
 
