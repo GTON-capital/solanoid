@@ -45,8 +45,9 @@ func TestRunPolygonToSolanaGatewayMVP(t *testing.T) {
 		originDecimals: 18,
 		destinationDecimals: 8,
 		chainID: 137,
-		// originNodeURL: "https://rpc-mainnet.maticvigil.com",
-		originNodeURL: "https://rpc-mainnet.matic.quiknode.pro",
+		originNodeURL: "https://rpc-mainnet.maticvigil.com",
+		// originNodeURL: "https://rpc-mainnet.matic.quiknode.pro",
+		// originNodeURL: "https://matic-mainnet.chainstacklabs.com",
 		destinationNodeURL: "https://api.mainnet-beta.solana.com",
 		luportAddress: "0x7725d618122F9A2Ce368dA1624Fbc79ce197c438",
 		ibportDataAccount: "14dHNRGpDgn4rc27xUyWxp23M72ky33kwPaoYhR6uR7y",
@@ -63,6 +64,10 @@ func TestRunPolygonToSolanaGatewayMVP(t *testing.T) {
 	commands.ValidateError(t, err)
 	
 	transactor, err := ethbind.NewKeyedTransactorWithChainID(polygonGTONHolder.PrivKey, big.NewInt(extractorCfg.chainID))
+	transactor.GasLimit = 10 * 150000
+	transactor.Context = polygonCtx
+	// transactor.GasFeeCap
+
 	commands.ValidateError(t, err)
 
 	polygonTransactor := NewEVMTransactor(polygonClient, transactor)
@@ -80,7 +85,7 @@ func TestRunPolygonToSolanaGatewayMVP(t *testing.T) {
 	commands.ValidateError(t, err)
 
 	// transferring 0.0001 GTON, 18 decimals (1 * 1e14)
-	gtonToken.Set(0.000227)
+	gtonToken.Set(0.0001)
 
 
 	fmt.Printf("As Origin: %v GTON \n", gtonToken.AsOriginBigInt())
@@ -94,8 +99,8 @@ func TestRunPolygonToSolanaGatewayMVP(t *testing.T) {
 	fmt.Printf("Approving %v GTON spend \n", gtonToken.Float())
 	_, err = gtonERC20.Approve(
 		polygonTransactor.transactor,
-		ethcommon.HexToAddress(gtonToken.cfg.originAddress),
-		gtonToken.AsDestinationBigInt(),
+		ethcommon.HexToAddress(extractorCfg.luportAddress),
+		gtonToken.AsOriginBigInt(),
 	)
 	commands.ValidateError(t, err)
 
@@ -112,8 +117,9 @@ func TestRunPolygonToSolanaGatewayMVP(t *testing.T) {
 	lockReceipt, err := ethbind.WaitMined(transactor.Context, polygonClient, lockFundsTx)
 	commands.ValidateError(t, err)
 
-	t.Logf("Lock %v GTON tx (Polygon): %v \n", gtonToken.Float(), lockReceipt.BlockHash)
+	t.Logf("Lock %v GTON tx (Polygon): %v \n", gtonToken.Float(), lockReceipt.TxHash)
 
+	return
 	// await 
 	// (2)
 	t.Logf("Awaiting issue on Solana... \n")
