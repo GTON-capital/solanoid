@@ -2,6 +2,7 @@ package executor
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/binary"
 	"fmt"
 
@@ -25,6 +26,7 @@ func (port *IBPortInstructionBuilder) Init(nebula, token common.PublicKey) inter
 		TokenDataAccount:  token,
 	}
 }
+
 func (port *IBPortInstructionBuilder) InitWithOracles(nebula, token common.PublicKey, bft uint8, oracles []byte) interface{} {
 	return struct {
 		Instruction       uint8
@@ -56,15 +58,20 @@ func float64ToByte(f float64) []byte {
 }
 
 func (port *IBPortInstructionBuilder) CreateTransferUnwrapRequest(receiver [32]byte, amount float64) interface{} {
-	fmt.Printf("CreateTransferUnwrapRequest - amount: %v", amount)
+	var requestID [16]byte
+    rand.Read(requestID[:])
+
+	fmt.Printf("CreateTransferUnwrapRequest - rq_id: %v amount: %v", requestID, amount)
 	amountBytes := float64ToByte(amount)
 
 	return struct {
 		Instruction uint8
+		RequestID   [16]byte
 		TokenAmount []byte
 		Receiver    []byte
 	}{
 		Instruction: 1,
+		RequestID:   requestID,
 		TokenAmount: amountBytes,
 		Receiver:    receiver[:],
 	}

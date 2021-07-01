@@ -1,8 +1,8 @@
 package commands
 
 import (
-	"crypto/rand"
 	"fmt"
+	"math/rand"
 	"solanoid/commands/executor"
 	"solanoid/models/nebula"
 	"testing"
@@ -222,44 +222,13 @@ import (
 	waitTransactionConfirmations()
 	// waitTransactionConfirmations()
 
-	fmt.Println("Testing SendValueToSubs call  from one of the consuls")
+	fmt.Println("Testing SendValueToSubs call from one of the consuls")
 
 	swapId := make([]byte, 16)
-    rand.Read(swapId)
-
-	t.Logf("Token Swap Id:  %v \n", swapId)
-
-	attachedAmount := float64(227)
-
-	t.Logf("227 - Float As  Bytes: %v \n", executor.Float64ToBytes(attachedAmount))
+	rand.Read(swapId)
 
 	var dataHashForAttach [64]byte
-	copy(dataHashForAttach[:], executor.BuildCrossChainMintByteVector(swapId, common.PublicKeyFromString(deployerTokenAccount), attachedAmount))
-
-	fmt.Printf("dataHashForAttach: %v \n", dataHashForAttach)
-
-
-	nebulaExecutor.SetDeployerPK(operatingConsul.Account)
-	nebulaExecutor.SetAdditionalMeta([]types.AccountMeta{
-		{ PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false },
-		{ PubKey: ibportProgram.PublicKey, IsWritable: false, IsSigner: false },
-		{ PubKey: ibportDataAccount.Account.PublicKey, IsWritable: true, IsSigner: false },
-		{ PubKey: common.PublicKeyFromString(tokenProgramAddress), IsWritable: true, IsSigner: false },
-		{ PubKey: common.PublicKeyFromString(deployerTokenAccount), IsWritable: true, IsSigner: false },
-		{ PubKey: ibportProgram.PDA, IsWritable: false, IsSigner: false },
-	})
-
-	waitTransactionConfirmations()
-
-	nebulaAttachResponse, err := nebulaExecutor.BuildAndInvoke(
-		nebulaBuilder.SendValueToSubs(dataHashForAttach, nebula.Bytes, 1, subID),
-	)
-	ValidateError(t, err)
-
-	fmt.Printf("Nebula SendValueToSubs Call:  %v \n", nebulaAttachResponse.TxSignature)
-
-
-	waitTransactionConfirmations()
+	copy(dataHashForAttach[:], executor.BuildCrossChainMintByteVector(swapId, common.PublicKeyFromString(deployerTokenAccount), 2.227))
 
 	nebulaExecutor.SetDeployerPK(deployer.Account)
 	_, err = nebulaExecutor.BuildAndInvoke(
@@ -271,53 +240,58 @@ import (
 
 	waitTransactionConfirmations()
 
-	nebulaExecutor.EraseAdditionalMeta()
-	nebulaExecutor.SetAdditionalSigners(consulsList.ToBftSigners())
-	nebulaExecutor.SetDeployerPK(deployer.Account)
 
-	nebulaSendHashValueResponse, err := nebulaExecutor.BuildAndInvoke(
-		nebulaBuilder.SendHashValue(dataHashForAttach),
-	)
-	ValidateError(t, err)
+	i, requestsCount := 0, 50
+	pulseID := 0
 
-	fmt.Printf("Nebula SendHashValue Call: %v \n", nebulaSendHashValueResponse.TxSignature)
+	fmt.Printf("send %v attach requests with random amount \n", requestsCount)
 
-	// deployerAddress, err := ReadAccountAddress(deployerPrivateKeysPath)
-	// ValidateError(t, err)
+	for i < requestsCount {
+		swapId := make([]byte, 16)
+		rand.Read(swapId)
 
-	// tokenOwnerAddress, err := ReadAccountAddress(tokenOwnerPath)
-	// ValidateError(t, err)
+		attachedAmount := rand.Float64() * 1000
 
-	// WrappedFaucet(t, tokenOwnerPath, tokenOwnerAddress, 10)
-	// WrappedFaucet(t, deployerPrivateKeysPath, deployerAddress, 10)
-
-	// waitTransactionConfirmations()
-
-	// tokenDeployResult, err := CreateToken(tokenOwnerPath)
-	// ValidateError(t, err)
-
-	// tokenProgramAddress := tokenDeployResult.Token.ToBase58()
-
-	// deployerTokenAccount, err := CreateTokenAccount(deployerPrivateKeysPath, tokenProgramAddress)
-	// ValidateError(t, err)
+		var dataHashForAttach [64]byte
+		copy(dataHashForAttach[:], executor.BuildCrossChainMintByteVector(swapId, common.PublicKeyFromString(deployerTokenAccount), attachedAmount))
 	
-	// ibportAddressPubkey, ibPortPDA, err := CreatePersistentAccountWithPDA(ibportProgramPath, true, [][]byte{[]byte("ibport")})
-	// if err != nil {
-	// 	fmt.Printf("PDA error: %v", err)
-	// 	t.FailNow()
-	// }
-	// ibportAddress := ibportAddressPubkey.ToBase58()
+		fmt.Printf("dataHashForAttach: %v \n", dataHashForAttach)
 
-	// fmt.Printf("token  program address: %s\n", tokenProgramAddress)
+		nebulaExecutor.EraseAdditionalMeta()
+		nebulaExecutor.SetAdditionalSigners(consulsList.ToBftSigners())
+		nebulaExecutor.SetDeployerPK(deployer.Account)
 
-	// t.Logf("tokenProgramAddress: %v", tokenProgramAddress)
-	// t.Logf("deployerAddress: %v", deployerAddress)
-	// t.Logf("tokenOwnerAddress: %v", tokenOwnerAddress)
-	// t.Logf("ibportAddress: %v", ibportAddress)
-	// t.Logf("ibPortPDA: %v", ibPortPDA.ToBase58())
-	// t.Logf("deployerTokenAccount: %v", deployerTokenAccount)
+		nebulaSendHashValueResponse, err := nebulaExecutor.BuildAndInvoke(
+			nebulaBuilder.SendHashValue(dataHashForAttach),
+		)
+		ValidateError(t, err)
 
-	// deployerPrivateKey, err := ReadPKFromPath(t, deployerPrivateKeysPath)
-	// ValidateError(t, err)
+		fmt.Printf("Nebula SendHashValue Call: %v \n", nebulaSendHashValueResponse.TxSignature)
+
+		waitTransactionConfirmations()
+
+		nebulaExecutor.EraseAdditionalSigners()
+		nebulaExecutor.SetDeployerPK(operatingConsul.Account)
+
+		nebulaExecutor.SetAdditionalMeta([]types.AccountMeta{
+			{ PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false },
+			{ PubKey: ibportProgram.PublicKey, IsWritable: false, IsSigner: false },
+			{ PubKey: ibportDataAccount.Account.PublicKey, IsWritable: true, IsSigner: false },
+			{ PubKey: common.PublicKeyFromString(tokenProgramAddress), IsWritable: true, IsSigner: false },
+			{ PubKey: common.PublicKeyFromString(deployerTokenAccount), IsWritable: true, IsSigner: false },
+			{ PubKey: ibportProgram.PDA, IsWritable: false, IsSigner: false },
+		})
+
+		nebulaAttachResponse, err := nebulaExecutor.BuildAndInvoke(
+			nebulaBuilder.SendValueToSubs(dataHashForAttach, nebula.Bytes, uint64(pulseID), subID),
+		)
+		ValidateError(t, err)
 	
+		fmt.Printf("Nebula SendValueToSubs Call:  %v \n", nebulaAttachResponse.TxSignature)
+	
+		waitTransactionConfirmations()
+
+		i++
+		pulseID++
+	}	
 }
