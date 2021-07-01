@@ -33,7 +33,6 @@ import (
 func TestRunPolygonToSolanaGatewayMVP(t *testing.T) {	
 	// gtonToken := &crossChainToken{}
 
-	polygonExplorerClient := NewPolygonExplorerClient()
 
 	gtonToken, err := NewCrossChainToken(&crossChainTokenCfg {
 		originDecimals: 18,
@@ -118,6 +117,8 @@ func TestRunPolygonToSolanaGatewayMVP(t *testing.T) {
 	
 	lockReceipt, err := ethbind.WaitMined(transactor.Context, polygonClient, lockFundsTx)
 	commands.ValidateError(t, err)
+
+	// lockBlockNumber := lockReceipt.BlockNumber
 
 	t.Logf("Lock %v GTON tx (Polygon): %v \n", gtonToken.Float(), lockReceipt.TxHash)
 

@@ -1,9 +1,16 @@
 package mvp
 
 import (
+	"context"
 	"crypto/ecdsa"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"math"
 	"math/big"
+	"net/http"
+	"runtime/debug"
+	"time"
 
 	ethbind "github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethhexutil "github.com/ethereum/go-ethereum/common/hexutil"
@@ -166,15 +173,88 @@ type EVMTokenTransfersResult struct {
 }
 
 type PolygonExplorerClient struct {
+	awaitCheckTimeout time.Duration
+	ctx    context.Context
+	client http.Client
 	apiKey string
+}
+
+func (pec *PolygonExplorerClient) DefaultNodeURL() string {
+	return "https://api.polygonscan.com"
+}
+
+func (pec *PolygonExplorerClient) requestLastDeposits(watchAddress string, startBlock uint64) (*EVMTokenTransfersResult, error) {
+	url := fmt.Sprintf(
+		"%v/api?module=account&action=tokentx&address=%v&startblock=%v&sort=desc&apikey=%v",
+		pec.DefaultNodeURL(),
+		watchAddress,
+		startBlock,
+		pec.apiKey,
+	)
+	resp, err := http.DefaultClient.Get(
+		url,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var result EVMTokenTransfersResult
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+func (pec *PolygonExplorerClient) awaitTokenDeposit(watchAddress, evmAssetId string, blockStart uint64, amount *big.Int, buf chan<- *EVMTokenTransferEvent) {
+	// startOfAwait := time.Now()
+
+	for {
+		lastDeposits, err := pec.requestLastDeposits(watchAddress, blockStart)
+		if err != nil {
+			fmt.Printf("e: %v \n", err.Error())
+			debug.PrintStack()
+		}
+		if len(lastDeposits.Result) > 0 {
+
+			for _, event := range lastDeposits.Result {
+				if event.ContractAddress != evmAssetId {
+					continue
+				}
+				// if event.To != watchAddress {
+				// 	continue
+				// }
+				if event.Value != amount.String() {
+					continue
+				}
+
+				buf <- &event
+				close(buf)
+			}
+		}
+
+		time.Sleep(pec.awaitCheckTimeout)
+	}
+}
+
+func (pec *PolygonExplorerClient) AwaitTokenDeposit(watchAddress, evmAssetId string, blockStart uint64, amount *big.Int, buf chan<- *EVMTokenTransferEvent) {
+	pec.awaitTokenDeposit(watchAddress, evmAssetId, blockStart, amount, buf)
 }
 
 func (pec *PolygonExplorerClient) FetchLastTokenEvents(fromBlock int, targetAddress string) (*EVMTokenTransfersResult, error) {
 	return nil, nil
 }
 
-func NewPolygonExplorerClient() *PolygonExplorerClient {
+func NewPolygonExplorerClient(awaitCheckTimeout time.Duration) *PolygonExplorerClient {
 	return &PolygonExplorerClient{
+		awaitCheckTimeout: awaitCheckTimeout,
 		apiKey: "TU1S16Q38IJJA5A6SKZ2G6R84YHVTXITQK",
 	}
 }
+
