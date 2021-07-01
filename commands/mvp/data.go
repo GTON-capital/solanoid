@@ -1,7 +1,6 @@
 package mvp
 
 import (
-	"context"
 	"crypto/ecdsa"
 	"encoding/json"
 	"fmt"
@@ -124,15 +123,6 @@ func (cct *crossChainToken) AsDestinationBigInt() *big.Int {
 	return cct.token.PatchDecimals(uint8(cct.cfg.destinationDecimals))
 }
 
-type CrossChainTokenDepositAwaiter interface {
-	SetNotifier(func ()) error
-}
-
-type EVMDepositAwaiter struct {}
-
-type SolanaDepositAwaiter struct {}
-
-
 type EVMTransactor struct {
 	ethClient  *ethclient.Client
 	transactor *ethbind.TransactOpts
@@ -172,10 +162,65 @@ type EVMTokenTransfersResult struct {
 	Result  []EVMTokenTransferEvent `json:"result"`
 }
 
+
+type CrossChainDepositAwaiterConfig struct {
+	NodeURL string
+	PerAwaitTimeout time.Duration
+}
+
+type CrossChainTokenDepositAwaiter interface {
+	// SetCfg(*CrossChainDepositAwaiterConfig) error
+	SetRetriever(func () (*interface{}, error)) *GenericDepositAwaiter
+	SetComparator(func (interface{}) bool) *GenericDepositAwaiter
+	AwaitTokenDeposit(chan <- interface{})
+}
+
+type GenericDepositAwaiter struct {
+	config  *CrossChainDepositAwaiterConfig
+	retriever func() (*interface{}, error)
+	comparator func(interface{}) bool
+}
+
+// func (gda *GenericDepositAwaiter) SetCfg(cfg *CrossChainDepositAwaiterConfig) error {
+// 	gda.config = cfg
+// 	return nil
+// }
+
+func (gda *GenericDepositAwaiter) SetComparator(comparator func (interface{}) bool) *GenericDepositAwaiter {
+	gda.comparator = comparator
+	return gda
+}
+
+
+func (gda *GenericDepositAwaiter) SetRetriever(retriever func() (*interface{}, error)) *GenericDepositAwaiter {
+	gda.retriever = retriever
+	return gda
+}
+
+func (gda *GenericDepositAwaiter) AwaitTokenDeposit(buf chan <- interface{}) {
+	for {
+		result, err := gda.retriever()
+		if err != nil {
+			fmt.Printf("e: %v \n", err.Error())
+			debug.PrintStack()
+		}
+
+		if result != nil && gda.comparator(result) {
+			buf <- *result
+			close(buf)
+		}
+
+		time.Sleep(gda.config.PerAwaitTimeout)
+	}
+}
+
+func NewGenericDepositAwaiter() *GenericDepositAwaiter {
+	return &GenericDepositAwaiter{}
+}
+
+
 type PolygonExplorerClient struct {
 	awaitCheckTimeout time.Duration
-	ctx    context.Context
-	client http.Client
 	apiKey string
 }
 
@@ -183,7 +228,27 @@ func (pec *PolygonExplorerClient) DefaultNodeURL() string {
 	return "https://api.polygonscan.com"
 }
 
-func (pec *PolygonExplorerClient) requestLastDeposits(watchAddress string, startBlock uint64) (*EVMTokenTransfersResult, error) {
+func (pec *PolygonExplorerClient) IsAwaitedDeposit(input interface{}, watchAddress, evmAssetId string, amount *big.Int) bool {
+	deposits := input.(*EVMTokenTransfersResult)
+
+	for _, event := range deposits.Result {
+		if event.ContractAddress != evmAssetId {
+			continue
+		}
+		if event.To != watchAddress {
+			continue
+		}
+		if event.Value != amount.String() {
+			continue
+		}
+
+		return true
+	}
+
+	return false
+}
+
+func (pec *PolygonExplorerClient) RequestLastDeposits(watchAddress string, startBlock uint64) (*EVMTokenTransfersResult, error) {
 	url := fmt.Sprintf(
 		"%v/api?module=account&action=tokentx&address=%v&startblock=%v&sort=desc&apikey=%v",
 		pec.DefaultNodeURL(),
@@ -212,44 +277,42 @@ func (pec *PolygonExplorerClient) requestLastDeposits(watchAddress string, start
 	return &result, nil
 }
 
-func (pec *PolygonExplorerClient) awaitTokenDeposit(watchAddress, evmAssetId string, blockStart uint64, amount *big.Int, buf chan<- *EVMTokenTransferEvent) {
-	// startOfAwait := time.Now()
 
-	for {
-		lastDeposits, err := pec.requestLastDeposits(watchAddress, blockStart)
-		if err != nil {
-			fmt.Printf("e: %v \n", err.Error())
-			debug.PrintStack()
-		}
-		if len(lastDeposits.Result) > 0 {
 
-			for _, event := range lastDeposits.Result {
-				if event.ContractAddress != evmAssetId {
-					continue
-				}
-				// if event.To != watchAddress {
-				// 	continue
-				// }
-				if event.Value != amount.String() {
-					continue
-				}
+// func (pec *PolygonExplorerClient) awaitTokenDeposit(watchAddress, evmAssetId string, blockStart uint64, amount *big.Int, buf chan<- *EVMTokenTransferEvent) {
+// 	// startOfAwait := time.Now()
 
-				buf <- &event
-				close(buf)
-			}
-		}
+// 	for {
+// 		lastDeposits, err := pec.requestLastDeposits(watchAddress, blockStart)
+// 		if err != nil {
+// 			fmt.Printf("e: %v \n", err.Error())
+// 			debug.PrintStack()
+// 		}
+// 		if len(lastDeposits.Result) > 0 {
 
-		time.Sleep(pec.awaitCheckTimeout)
-	}
-}
+// 			for _, event := range lastDeposits.Result {
+// 				if event.ContractAddress != evmAssetId {
+// 					continue
+// 				}
+// 				// if event.To != watchAddress {
+// 				// 	continue
+// 				// }
+// 				if event.Value != amount.String() {
+// 					continue
+// 				}
 
-func (pec *PolygonExplorerClient) AwaitTokenDeposit(watchAddress, evmAssetId string, blockStart uint64, amount *big.Int, buf chan<- *EVMTokenTransferEvent) {
-	pec.awaitTokenDeposit(watchAddress, evmAssetId, blockStart, amount, buf)
-}
+// 				buf <- &event
+// 				close(buf)
+// 			}
+// 		}
 
-func (pec *PolygonExplorerClient) FetchLastTokenEvents(fromBlock int, targetAddress string) (*EVMTokenTransfersResult, error) {
-	return nil, nil
-}
+// 		time.Sleep(pec.awaitCheckTimeout)
+// 	}
+// }
+
+// func (pec *PolygonExplorerClient) AwaitTokenDeposit(watchAddress, evmAssetId string, blockStart uint64, amount *big.Int, buf chan<- *EVMTokenTransferEvent) {
+// 	pec.awaitTokenDeposit(watchAddress, evmAssetId, blockStart, amount, buf)
+// }
 
 func NewPolygonExplorerClient(awaitCheckTimeout time.Duration) *PolygonExplorerClient {
 	return &PolygonExplorerClient{
@@ -258,3 +321,21 @@ func NewPolygonExplorerClient(awaitCheckTimeout time.Duration) *PolygonExplorerC
 	}
 }
 
+
+type SolanaTokenAccountBalance struct {
+	Context struct {
+		Slot int `json:"slot"`
+	} `json:"context"`
+	Value struct {
+		Amount         string `json:"amount"`
+		Decimals       int    `json:"decimals"`
+		UIAmount       int    `json:"uiAmount"`
+		UIAmountString string `json:"uiAmountString"`
+	} `json:"value"`
+}
+
+type SolanaRPCTokenAccountBalanceResult struct {
+	Jsonrpc string `json:"jsonrpc"`
+	Result  SolanaTokenAccountBalance `json:"result"`
+	ID int `json:"id"`
+}
