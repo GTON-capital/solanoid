@@ -9,6 +9,8 @@ import (
 
 	"github.com/portto/solana-go-sdk/common"
 	"github.com/portto/solana-go-sdk/types"
+
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
 
 /*
@@ -240,8 +242,8 @@ import (
 
 	waitTransactionConfirmations()
 
-
-	i, requestsCount := 0, 50
+	// TODO: set to 30, 50 or 100
+	i, requestsCount := 0, 1
 	pulseID := 0
 
 	fmt.Printf("send %v attach requests with random amount \n", requestsCount)
@@ -255,7 +257,9 @@ import (
 		var dataHashForAttach [64]byte
 		copy(dataHashForAttach[:], executor.BuildCrossChainMintByteVector(swapId, common.PublicKeyFromString(deployerTokenAccount), attachedAmount))
 	
-		fmt.Printf("dataHashForAttach: %v \n", dataHashForAttach)
+		fmt.Printf("Iteration #%v \n", i)
+		fmt.Printf("Amount: %v \n", attachedAmount)
+		fmt.Printf("DataHashForAttach: %v \n", dataHashForAttach)
 
 		nebulaExecutor.EraseAdditionalMeta()
 		nebulaExecutor.SetAdditionalSigners(consulsList.ToBftSigners())
@@ -266,7 +270,7 @@ import (
 		)
 		ValidateError(t, err)
 
-		fmt.Printf("Nebula SendHashValue Call: %v \n", nebulaSendHashValueResponse.TxSignature)
+		fmt.Printf("#%v Nebula SendHashValue Call: %v \n", i, nebulaSendHashValueResponse.TxSignature)
 
 		waitTransactionConfirmations()
 
@@ -287,11 +291,82 @@ import (
 		)
 		ValidateError(t, err)
 	
-		fmt.Printf("Nebula SendValueToSubs Call:  %v \n", nebulaAttachResponse.TxSignature)
+		fmt.Printf("#%v Nebula SendValueToSubs Call:  %v \n", i, nebulaAttachResponse.TxSignature)
 	
 		waitTransactionConfirmations()
 
 		i++
 		pulseID++
-	}	
+	}
+
+	waitTransactionConfirmations()
+
+	maxIBPortRequestsLimit := 15
+
+	fmt.Printf("Reaching limit of unprocessed requests on IB Port \n")
+
+	ibportInstructionBuilder := executor.NewIBPortInstructionBuilder()
+
+	i = 0
+	for {
+		ethReceiverPK, err := ethcrypto.GenerateKey()
+		ValidateError(t, err)
+
+		var ethReceiverAddress [32]byte
+		copy(ethReceiverAddress[:], ethcrypto.PubkeyToAddress(ethReceiverPK.PublicKey).Bytes())
+
+		fmt.Printf("Iteration #%v \n", i)
+		t.Logf("#%v EVM Receiver: %v \n", i, ethcrypto.PubkeyToAddress(ethReceiverPK.PublicKey).String())
+		t.Logf("#%v EVM Receiver (bytes): %v \n", i, ethReceiverAddress[:])
+
+		amountForUnwrap := rand.Float64() * 1000
+
+		nebulaExecutor.EraseAdditionalMeta()
+		nebulaExecutor.EraseAdditionalSigners()
+		nebulaExecutor.SetDeployerPK(deployer.Account)
+
+		ibportExecutor.SetAdditionalMeta([]types.AccountMeta{
+			{ PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false },
+			{ PubKey: common.PublicKeyFromString(tokenProgramAddress), IsWritable: true, IsSigner: false },
+			{ PubKey: common.PublicKeyFromString(deployerTokenAccount), IsWritable: true, IsSigner: false },
+			{ PubKey: ibportProgram.PDA, IsWritable: false, IsSigner: false },
+		})
+
+		waitTransactionConfirmations()
+
+		// mint some tokens for deployer
+		err = MintToken(deployer.PKPath, tokenProgramAddress, amountForUnwrap, deployerTokenAccount)
+		ValidateError(t, err)
+		t.Log("Minted some tokens")
+
+		waitTransactionConfirmations()
+
+		// delegate amount to port BINARY for burning and request creation
+		err = DelegateSPLTokenAmount(deployer.PKPath, deployerTokenAccount, ibportProgram.PublicKey.ToBase58(), amountForUnwrap)
+		ValidateError(t, err)
+		t.Log("Delegated some tokens to ibport from  deployer")
+		t.Log("Creating cross chain transfer tx")
+
+		waitTransactionConfirmations()
+		waitTransactionConfirmations()
+
+		ibportCreateTransferUnwrapRequestResult, err := ibportExecutor.BuildAndInvoke(
+			ibportInstructionBuilder.CreateTransferUnwrapRequest(ethReceiverAddress, amountForUnwrap - 1),
+		)
+
+		if i == maxIBPortRequestsLimit {
+			t.Logf("It's considered that IB Port unprocessed limit is reached \n")
+			ValidateErrorExistence(t, err)
+
+			return
+		}
+		
+		ValidateError(t, err)
+		t.Logf("#%v CreateTransferUnwrapRequest - Tx: %v \n", i, ibportCreateTransferUnwrapRequestResult.TxSignature)
+
+		ethReceiverPK, err = ethcrypto.GenerateKey()
+		ValidateError(t, err)
+
+		i++
+	}
 }

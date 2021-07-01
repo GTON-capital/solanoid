@@ -61,7 +61,7 @@ func (port *IBPortInstructionBuilder) CreateTransferUnwrapRequest(receiver [32]b
 	var requestID [16]byte
     rand.Read(requestID[:])
 
-	fmt.Printf("CreateTransferUnwrapRequest - rq_id: %v amount: %v", requestID, amount)
+	fmt.Printf("CreateTransferUnwrapRequest - rq_id: %v amount: %v \n", requestID, amount)
 	amountBytes := float64ToByte(amount)
 
 	return struct {
@@ -74,6 +74,15 @@ func (port *IBPortInstructionBuilder) CreateTransferUnwrapRequest(receiver [32]b
 		RequestID:   requestID,
 		TokenAmount: amountBytes,
 		Receiver:    receiver[:],
+	}
+}
+func (port *IBPortInstructionBuilder) ConfirmProcessedRequest(requestID [16]byte) interface{} {
+	return struct {
+		Instruction     uint8
+		RequestID   [16]byte
+	}{
+		Instruction: 3,
+		RequestID:   requestID,
 	}
 }
 
