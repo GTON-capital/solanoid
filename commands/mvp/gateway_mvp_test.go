@@ -33,6 +33,8 @@ import (
 func TestRunPolygonToSolanaGatewayMVP(t *testing.T) {	
 	// gtonToken := &crossChainToken{}
 
+	polygonExplorerClient := NewPolygonExplorerClient()
+
 	gtonToken, err := NewCrossChainToken(&crossChainTokenCfg {
 		originDecimals: 18,
 		destinationDecimals: 8,
@@ -85,8 +87,8 @@ func TestRunPolygonToSolanaGatewayMVP(t *testing.T) {
 	commands.ValidateError(t, err)
 
 	// transferring 0.0001 GTON, 18 decimals (1 * 1e14)
-	gtonToken.Set(0.0001)
-
+	// gtonToken.Set(0.0001)
+	gtonToken.Set(0.0000227)
 
 	fmt.Printf("As Origin: %v GTON \n", gtonToken.AsOriginBigInt())
 	fmt.Printf("As Destination: %v GTON \n", gtonToken.AsDestinationBigInt())
