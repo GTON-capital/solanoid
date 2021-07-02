@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"solanoid/commands/executor"
 	"solanoid/models/nebula"
@@ -31,16 +32,16 @@ import (
  func TestNebulaSendValueToIBPortSubscriber (t *testing.T) {
 	var err error
 
-	deployer, err := NewOperatingAddress(t, "../private-keys/test_deployer-pk-deployer.json", nil)
+	deployer, err := NewOperatingAddress(t, "../private-keys/_test_deployer-pk-deployer.json", nil)
 	ValidateError(t, err)
 
-	gravityProgram, err := NewOperatingAddress(t, "../private-keys/test_only-gravity-program.json", nil)
+	gravityProgram, err := NewOperatingAddress(t, "../private-keys/_test_only-gravity-program.json", nil)
 	ValidateError(t, err)
 
-	nebulaProgram, err := NewOperatingAddress(t, "../private-keys/test_only-nebula-program.json", nil)
+	nebulaProgram, err := NewOperatingAddress(t, "../private-keys/_test_only-nebula-program.json", nil)
 	ValidateError(t, err)
 
-	ibportProgram, err := NewOperatingAddress(t, "../private-keys/test_only_ibport-program.json", &OperatingAddressBuilderOptions{
+	ibportProgram, err := NewOperatingAddress(t, "../private-keys/_test_only_ibport-program.json", &OperatingAddressBuilderOptions{
 		WithPDASeeds: []byte("ibport"),
 	})
 	ValidateError(t, err)
@@ -76,14 +77,20 @@ import (
 
 	tokenProgramAddress := tokenDeployResult.Token.ToBase58()
 
+	fmt.Printf("Token deployed: %v \n", tokenDeployResult.Signature)
 	// deployerTokenAccount, err := CreateTokenAccount(deployer.PKPath, tokenProgramAddress)
 	// ValidateError(t, err)
-
-	waitTransactionConfirmations()
 
 
 	deployerTokenAccount, err := CreateTokenAccount(deployer.PKPath, tokenProgramAddress)
 	ValidateError(t, err)
+
+	waitTransactionConfirmations()
+
+	// mint some tokens for deployer
+	err = MintToken(deployer.PKPath, tokenProgramAddress, 100000000, deployerTokenAccount)
+	ValidateError(t, err)
+	t.Log("Minted some tokens")
 
 	gravityDataAccount, err := GenerateNewAccount(deployer.PrivateKey, GravityContractAllocation, gravityProgram.PublicKey.ToBase58(), RPCEndpoint)
 	ValidateError(t, err)
@@ -273,7 +280,8 @@ import (
 		fmt.Printf("#%v Nebula SendHashValue Call: %v \n", i, nebulaSendHashValueResponse.TxSignature)
 
 		waitTransactionConfirmations()
-
+		waitTransactionConfirmations()
+		
 		nebulaExecutor.EraseAdditionalSigners()
 		nebulaExecutor.SetDeployerPK(operatingConsul.Account)
 
@@ -319,7 +327,8 @@ import (
 		t.Logf("#%v EVM Receiver: %v \n", i, ethcrypto.PubkeyToAddress(ethReceiverPK.PublicKey).String())
 		t.Logf("#%v EVM Receiver (bytes): %v \n", i, ethReceiverAddress[:])
 
-		amountForUnwrap := rand.Float64() * 1000
+		amountForUnwrap := math.Round(rand.Float64() * 1000)
+		fmt.Printf("amountForUnwrap: %v \n", amountForUnwrap)
 
 		nebulaExecutor.EraseAdditionalMeta()
 		nebulaExecutor.EraseAdditionalSigners()
@@ -334,20 +343,12 @@ import (
 
 		waitTransactionConfirmations()
 
-		// mint some tokens for deployer
-		err = MintToken(deployer.PKPath, tokenProgramAddress, amountForUnwrap, deployerTokenAccount)
-		ValidateError(t, err)
-		t.Log("Minted some tokens")
-
-		waitTransactionConfirmations()
-
 		// delegate amount to port BINARY for burning and request creation
-		err = DelegateSPLTokenAmount(deployer.PKPath, deployerTokenAccount, ibportProgram.PublicKey.ToBase58(), amountForUnwrap)
+		err = DelegateSPLTokenAmount(deployer.PKPath, deployerTokenAccount, ibportProgram.PDA.ToBase58(), amountForUnwrap)
 		ValidateError(t, err)
 		t.Log("Delegated some tokens to ibport from  deployer")
 		t.Log("Creating cross chain transfer tx")
 
-		waitTransactionConfirmations()
 		waitTransactionConfirmations()
 
 		ibportCreateTransferUnwrapRequestResult, err := ibportExecutor.BuildAndInvoke(

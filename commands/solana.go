@@ -317,6 +317,8 @@ func MintToken(minterPrivateKeysPath, tokenProgramAddress string, amount float64
 	fmt.Printf(string(output))
 
 	if err != nil {
+		fmt.Printf(string(output))
+
 		return err
 	}
 
