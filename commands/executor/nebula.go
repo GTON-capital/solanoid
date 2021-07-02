@@ -3,6 +3,7 @@ package executor
 import (
 	"context"
 	"crypto/ed25519"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"log"
@@ -232,25 +233,29 @@ func (ge *GenericExecutor) InvokePureInstruction(instruction interface{}) (*mode
 	rawTx, err := tx.Serialize()
 
 	logTx := func() {
-		// fmt.Println("------ RAW TRANSACTION ------------------------")
+		fmt.Println("------ RAW TRANSACTION ------------------------")
 		// fmt.Printf("%s\n", hex.EncodeToString(rawTx))
-		// fmt.Println("------ END RAW TRANSACTION ------------------------")
+		fmt.Printf("%s\n", base64.StdEncoding.EncodeToString(rawTx))
+		fmt.Println("------ END RAW TRANSACTION ------------------------")
 
-		// fmt.Println("------ RAW MESSAGE ------------------------")
+		fmt.Println("------ RAW MESSAGE ------------------------")
 		// fmt.Printf("%s\n", hex.EncodeToString(serializedMessage))
-		// fmt.Println("------ END RAW MESSAGE ------------------------")
-	}
+		fmt.Printf("%s\n", base64.StdEncoding.EncodeToString(serializedMessage))
 
+		fmt.Println("------ END RAW MESSAGE ------------------------")
+	}
+	logTx()
+	
 	if err != nil {
 		fmt.Printf("serialize tx error, err: %v\n", err)
-		logTx()
+		// logTx()
 		return nil, err
 	}
 
 	txSig, err := c.SendRawTransaction(context.Background(), rawTx)
 	if err != nil {
 		fmt.Printf("send tx error, err: %v\n", err)
-		logTx()
+		// logTx()
 		return nil, err
 	}
 

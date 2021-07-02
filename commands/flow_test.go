@@ -91,7 +91,7 @@ import (
 	waitTransactionConfirmations()
 
 	// mint some tokens for deployer
-	err = MintToken(deployer.PKPath, tokenProgramAddress, 10000000000000, deployerTokenAccount)
+	err = MintToken(deployer.PKPath, tokenProgramAddress, 1_000_000, deployerTokenAccount)
 	ValidateError(t, err)
 	t.Log("Minted some tokens")
 
@@ -262,7 +262,9 @@ import (
 		swapId := make([]byte, 16)
 		rand.Read(swapId)
 
-		attachedAmount := rand.Float64() * 1000
+		// attachedAmount := float64(uint64(rand.Float64() * 100))
+		attachedAmount := float64(1)
+		// attachedAmount := 1
 
 		var dataHashForAttach [64]byte
 		copy(dataHashForAttach[:], executor.BuildCrossChainMintByteVector(swapId, common.PublicKeyFromString(deployerTokenAccount), attachedAmount))
@@ -327,7 +329,7 @@ import (
 		t.Logf("#%v EVM Receiver: %v \n", i, ethcrypto.PubkeyToAddress(ethReceiverPK.PublicKey).String())
 		t.Logf("#%v EVM Receiver (bytes): %v \n", i, ethReceiverAddress[:])
 
-		amountForUnwrap := math.Round(rand.Float64() * 100)
+		amountForUnwrap := math.Round(rand.Float64() * 10)
 		fmt.Printf("amountForUnwrap: %v \n", amountForUnwrap)
 
 		nebulaExecutor.EraseAdditionalMeta()
