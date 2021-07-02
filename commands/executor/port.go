@@ -76,10 +76,10 @@ func (port *IBPortInstructionBuilder) CreateTransferUnwrapRequest(receiver [32]b
 		Receiver:    receiver[:],
 	}
 }
-func (port *IBPortInstructionBuilder) ConfirmProcessedRequest(requestID [16]byte) interface{} {
+func (port *IBPortInstructionBuilder) ConfirmProcessedRequest(requestID []byte) interface{} {
 	return struct {
 		Instruction     uint8
-		RequestID   [16]byte
+		RequestID     []byte
 	}{
 		Instruction: 3,
 		RequestID:   requestID,

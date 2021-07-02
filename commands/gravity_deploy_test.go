@@ -165,7 +165,7 @@ func TestPDA(t *testing.T) {
 }
 
 func waitTransactionConfirmations() {
-	// time.Sleep(time.Second * 1)
+	// time.Sleep(time.Millisecond * 500)
 	// time.Sleep(time.Second * 5)
 	time.Sleep(time.Second * 3) // the most safe timeout
 	// time.Sleep(time.Second * 30)
@@ -443,7 +443,7 @@ func TestIBPortAttachValue(t *testing.T) {
 	)
 	ValidateError(t, err)
 
-	t.Logf("#1 AttachValue - Tx:  %v \n", ibportCreateTransferUnwrapRequestResult.TxSignature)
+	t.Logf("#1 AttachValue - Tx: %v \n", ibportCreateTransferUnwrapRequestResult.TxSignature)
 
 	t.Logf("Checking for double spend problem \n")
 
@@ -540,6 +540,10 @@ func NewOperatingAddress(t *testing.T, path string, options *OperatingAddressBui
 		if err != nil {
 			return nil, err
 		}
+
+		fmt.Printf("path: %v \n", path)
+		fmt.Printf("pda: %v \n", pda)
+		fmt.Printf("publicKey: %v \n", publicKey)
 
 		return &OperatingAddress {
 			PublicKey:  publicKey,

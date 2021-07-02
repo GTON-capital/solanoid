@@ -65,9 +65,12 @@ import (
 	for i, consul := range append(consulsList.List, *deployer) {
 		if i == BFT {
 			WrappedFaucet(t, deployer.PKPath, "", 10)
+			waitTransactionConfirmations()
 		}
 
 		WrappedFaucet(t, deployer.PKPath, consul.PublicKey.ToBase58(), 10)
+
+		waitTransactionConfirmations()
 	}
 
 	RPCEndpoint, _ := InferSystemDefinedRPC()
@@ -88,7 +91,7 @@ import (
 	waitTransactionConfirmations()
 
 	// mint some tokens for deployer
-	err = MintToken(deployer.PKPath, tokenProgramAddress, 100000000, deployerTokenAccount)
+	err = MintToken(deployer.PKPath, tokenProgramAddress, 10000000000000, deployerTokenAccount)
 	ValidateError(t, err)
 	t.Log("Minted some tokens")
 
@@ -278,9 +281,6 @@ import (
 		ValidateError(t, err)
 
 		fmt.Printf("#%v Nebula SendHashValue Call: %v \n", i, nebulaSendHashValueResponse.TxSignature)
-
-		waitTransactionConfirmations()
-		waitTransactionConfirmations()
 		
 		nebulaExecutor.EraseAdditionalSigners()
 		nebulaExecutor.SetDeployerPK(operatingConsul.Account)
@@ -327,7 +327,7 @@ import (
 		t.Logf("#%v EVM Receiver: %v \n", i, ethcrypto.PubkeyToAddress(ethReceiverPK.PublicKey).String())
 		t.Logf("#%v EVM Receiver (bytes): %v \n", i, ethReceiverAddress[:])
 
-		amountForUnwrap := math.Round(rand.Float64() * 1000)
+		amountForUnwrap := math.Round(rand.Float64() * 100)
 		fmt.Printf("amountForUnwrap: %v \n", amountForUnwrap)
 
 		nebulaExecutor.EraseAdditionalMeta()

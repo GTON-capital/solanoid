@@ -240,6 +240,10 @@ func CreatePersistentAccountWithPDA(path string, forceRewrite bool, seeds [][]by
 
 	var targetAddressPDA common.PublicKey
 	targetAddressPDA, err = common.CreateProgramAddress(seeds, common.PublicKeyFromString(accountAddress))
+	fmt.Printf("path: %v \n", path)
+	fmt.Printf("targetAddressPDA: %v \n", targetAddressPDA.ToBase58())
+	fmt.Printf("accountAddress: %v \n", accountAddress)
+
 	if err != nil {
 		return CreatePersistentAccountWithPDA(path, forceRewrite, seeds)
 	}
