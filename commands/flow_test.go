@@ -296,6 +296,8 @@ import (
 			{ PubKey: ibportProgram.PDA, IsWritable: false, IsSigner: false },
 		})
 
+		waitTransactionConfirmations()
+
 		nebulaAttachResponse, err := nebulaExecutor.BuildAndInvoke(
 			nebulaBuilder.SendValueToSubs(dataHashForAttach, nebula.Bytes, uint64(pulseID), subID),
 		)
@@ -329,7 +331,7 @@ import (
 		t.Logf("#%v EVM Receiver: %v \n", i, ethcrypto.PubkeyToAddress(ethReceiverPK.PublicKey).String())
 		t.Logf("#%v EVM Receiver (bytes): %v \n", i, ethReceiverAddress[:])
 
-		amountForUnwrap := math.Round(rand.Float64() * 10)
+		amountForUnwrap := math.Round(rand.Float64() * 100)
 		fmt.Printf("amountForUnwrap: %v \n", amountForUnwrap)
 
 		nebulaExecutor.EraseAdditionalMeta()

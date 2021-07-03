@@ -66,14 +66,14 @@ func (port *IBPortInstructionBuilder) CreateTransferUnwrapRequest(receiver [32]b
 
 	return struct {
 		Instruction uint8
-		RequestID   [16]byte
 		TokenAmount []byte
 		Receiver    []byte
+		RequestID   [16]byte
 	}{
 		Instruction: 1,
-		RequestID:   requestID,
 		TokenAmount: amountBytes,
 		Receiver:    receiver[:],
+		RequestID:   requestID,
 	}
 }
 func (port *IBPortInstructionBuilder) ConfirmProcessedRequest(requestID []byte) interface{} {
