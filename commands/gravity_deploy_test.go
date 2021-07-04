@@ -222,7 +222,7 @@ func TestIBPortContract(t *testing.T) {
 	deployerTokenAccount, err := CreateTokenAccount(deployerPrivateKeysPath, tokenProgramAddress)
 	ValidateError(t, err)
 	
-	ibportAddressPubkey, ibPortPDA, err := CreatePersistentAccountWithPDA(ibportProgramPath, true, [][]byte{[]byte("ibport")})
+	ibportAddressPubkey, ibPortPDA, err := CreatePersistentAccountWithPDA(ibportProgramPath, true, [][]byte{[]byte(executor.IBPortPDABumpSeeds)})
 	if err != nil {
 		fmt.Printf("PDA error: %v", err)
 		t.FailNow()
@@ -362,7 +362,7 @@ func TestIBPortAttachValue(t *testing.T) {
 	deployerTokenAccount, err := CreateTokenAccount(deployerPrivateKeysPath, tokenProgramAddress)
 	ValidateError(t, err)
 	
-	ibportAddressPubkey, ibPortPDA, err := CreatePersistentAccountWithPDA(ibportProgramPath, true, [][]byte{[]byte("ibport")})
+	ibportAddressPubkey, ibPortPDA, err := CreatePersistentAccountWithPDA(ibportProgramPath, true, [][]byte{[]byte(executor.IBPortPDABumpSeeds)})
 	if err != nil {
 		fmt.Printf("PDA error: %v", err)
 		t.FailNow()

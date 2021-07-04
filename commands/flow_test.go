@@ -2,9 +2,9 @@ package commands
 
 import (
 	"fmt"
-	"math"
 	"math/rand"
 	"solanoid/commands/executor"
+	"solanoid/models"
 	"solanoid/models/nebula"
 	"testing"
 
@@ -42,36 +42,26 @@ import (
 	ValidateError(t, err)
 
 	ibportProgram, err := NewOperatingAddress(t, "../private-keys/_test_only_ibport-program.json", &OperatingAddressBuilderOptions{
-		WithPDASeeds: []byte("ibport"),
+		WithPDASeeds: []byte(executor.IBPortPDABumpSeeds),
 	})
 	ValidateError(t, err)
 
 	const BFT = 3
 
-	// WrappedFaucet(t, deployer.PKPath, "", 10)
-
-	// waitTransactionConfirmations()
-
-	// WrappedFaucet(t, , "", 10)
-
-	// TransfconsulsList.List[0].Account)
-
 	consulsList, err := GenerateConsuls(t, "../private-keys/_test_consul_prefix_", BFT)
 	ValidateError(t, err)
 
 	operatingConsul := consulsList.List[0]
-	// WrappedFaucet(t, deployer.PKPath, operatingConsul.PublicKey.ToBase58(), 10)
 
 	for i, consul := range append(consulsList.List, *deployer) {
 		if i == BFT {
-			WrappedFaucet(t, deployer.PKPath, "", 10)
-			waitTransactionConfirmations()
+			WrappedFaucet(t, deployer.PKPath, "", 100)
 		}
 
-		WrappedFaucet(t, deployer.PKPath, consul.PublicKey.ToBase58(), 10)
-
-		waitTransactionConfirmations()
+		WrappedFaucet(t, deployer.PKPath, consul.PublicKey.ToBase58(), 100)
 	}
+
+	waitTransactionConfirmations()
 
 	RPCEndpoint, _ := InferSystemDefinedRPC()
 
@@ -157,7 +147,6 @@ import (
 	)
 	ValidateError(t, err)
 
-	ibportBuilder := executor.IBPortInstructionBuilder{}
 	ibportExecutor, err := InitGenericExecutor(
 		deployer.PrivateKey,
 		ibportProgram.PublicKey.ToBase58(),
@@ -191,8 +180,7 @@ import (
 			},
 			func() {
 				ibportInitResult, err := ibportExecutor.BuildAndInvoke(
-					// ibportBuilder.Init(nebulaProgram.PublicKey, common.TokenProgramID),
-					ibportBuilder.InitWithOracles(nebulaProgram.PublicKey, common.TokenProgramID, BFT, consulsList.ConcatConsuls()),
+					executor.IBPortIXBuilder.InitWithOracles(nebulaProgram.PublicKey, common.TokenProgramID, BFT, consulsList.ConcatConsuls()),
 				)
 
 				fmt.Printf("IB Port Init: %v \n", ibportInitResult.TxSignature)
@@ -335,65 +323,87 @@ import (
 
 	waitTransactionConfirmations()
 
-	maxIBPortRequestsLimit := 15
+	const MaxIBPortRequestsLimit = 15
+	amountForUnwrap := 2.227
 
 	fmt.Printf("Reaching limit of unprocessed requests on IB Port \n")
 
 	ibportInstructionBuilder := executor.NewIBPortInstructionBuilder()
 
-	i = 0
-	for {
-		ethReceiverPK, err := ethcrypto.GenerateKey()
-		ValidateError(t, err)
+	nebulaExecutor.EraseAdditionalMeta()
+	nebulaExecutor.EraseAdditionalSigners()
+	nebulaExecutor.SetDeployerPK(deployer.Account)
 
-		var ethReceiverAddress [32]byte
-		copy(ethReceiverAddress[:], ethcrypto.PubkeyToAddress(ethReceiverPK.PublicKey).Bytes())
+	ibportExecutor.SetAdditionalMeta([]types.AccountMeta{
+		{ PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false },
+		{ PubKey: common.PublicKeyFromString(tokenProgramAddress), IsWritable: true, IsSigner: false },
+		{ PubKey: common.PublicKeyFromString(deployerTokenAccount), IsWritable: true, IsSigner: false },
+		{ PubKey: ibportProgram.PDA, IsWritable: false, IsSigner: false },
+	})
 
-		fmt.Printf("Iteration #%v \n", i)
-		t.Logf("#%v EVM Receiver: %v \n", i, ethcrypto.PubkeyToAddress(ethReceiverPK.PublicKey).String())
-		t.Logf("#%v EVM Receiver (bytes): %v \n", i, ethReceiverAddress[:])
+	// delegate amount to port BINARY for burning and request creation
 
-		amountForUnwrap := math.Round(rand.Float64() * 100)
-		fmt.Printf("amountForUnwrap: %v \n", amountForUnwrap)
+	sendNumerousBurnRequests := func(n int) (*models.CommandResponse, error) {
+		var instructionBatches []interface{}
 
-		nebulaExecutor.EraseAdditionalMeta()
-		nebulaExecutor.EraseAdditionalSigners()
-		nebulaExecutor.SetDeployerPK(deployer.Account)
+		err = DelegateSPLTokenAmount(deployer.PKPath, deployerTokenAccount, ibportProgram.PDA.ToBase58(), amountForUnwrap * float64(MaxIBPortRequestsLimit))
+		if err != nil {
+			return nil, err
+		}
 
-		ibportExecutor.SetAdditionalMeta([]types.AccountMeta{
-			{ PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false },
-			{ PubKey: common.PublicKeyFromString(tokenProgramAddress), IsWritable: true, IsSigner: false },
-			{ PubKey: common.PublicKeyFromString(deployerTokenAccount), IsWritable: true, IsSigner: false },
-			{ PubKey: ibportProgram.PDA, IsWritable: false, IsSigner: false },
-		})
-
-		waitTransactionConfirmations()
-
-		// delegate amount to port BINARY for burning and request creation
-		err = DelegateSPLTokenAmount(deployer.PKPath, deployerTokenAccount, ibportProgram.PDA.ToBase58(), amountForUnwrap)
-		ValidateError(t, err)
 		t.Log("Delegated some tokens to ibport from  deployer")
 		t.Log("Creating cross chain transfer tx")
 
 		waitTransactionConfirmations()
 
-		ibportCreateTransferUnwrapRequestResult, err := ibportExecutor.BuildAndInvoke(
-			ibportInstructionBuilder.CreateTransferUnwrapRequest(ethReceiverAddress, amountForUnwrap),
-		)
-
-		if i == maxIBPortRequestsLimit {
-			t.Logf("It's considered that IB Port unprocessed limit is reached \n")
-			ValidateErrorExistence(t, err)
-
-			return
+		i = 0
+		for i < n {
+			ethReceiverPK, err := ethcrypto.GenerateKey()
+			ValidateError(t, err)
+	
+			var ethReceiverAddress [32]byte
+			copy(ethReceiverAddress[:], ethcrypto.PubkeyToAddress(ethReceiverPK.PublicKey).Bytes())
+	
+			fmt.Printf("Iteration #%v \n", i)
+			t.Logf("#%v EVM Receiver:  %v \n", i, ethcrypto.PubkeyToAddress(ethReceiverPK.PublicKey).String())
+			t.Logf("#%v EVM Receiver (bytes): %v \n", i, ethReceiverAddress[:])
+	
+			fmt.Printf("amountForUnwrap: %v \n", amountForUnwrap)
+	
+			ix := ibportInstructionBuilder.CreateTransferUnwrapRequest(ethReceiverAddress, amountForUnwrap)
+			instructionBatches = append(instructionBatches, ix)
+			i++
 		}
-		
-		ValidateError(t, err)
-		t.Logf("#%v CreateTransferUnwrapRequest - Tx: %v \n", i, ibportCreateTransferUnwrapRequestResult.TxSignature)
+	
+		multipleBurnsResult, err := ibportExecutor.InvokeInstructionBatches(
+			instructionBatches,
+		)
+		if err != nil {
+			return nil, err
+		}
 
-		ethReceiverPK, err = ethcrypto.GenerateKey()
-		ValidateError(t, err)
-
-		i++
+		return multipleBurnsResult, nil
 	}
+
+	waitTransactionConfirmations()
+
+	// check for the limit
+
+	approvedLimitBurnsResult, err := sendNumerousBurnRequests(5)
+	ValidateError(t, err)
+	t.Logf("Sent %v times: CreateTransferUnwrapRequest - Tx: %v \n", i, approvedLimitBurnsResult.TxSignature)
+
+	waitTransactionConfirmations()
+
+	approvedLimitBurnsResult, err = sendNumerousBurnRequests(5)
+	ValidateError(t, err)
+	t.Logf("Sent %v times: CreateTransferUnwrapRequest - Tx: %v \n", i, approvedLimitBurnsResult.TxSignature)
+
+	waitTransactionConfirmations()
+
+	approvedLimitBurnsResult, err = sendNumerousBurnRequests(1)
+	ValidateErrorExistence(t, err)
+
+	t.Logf("+1 On limit unwrap must have failed: %v \n", err)
+
 }

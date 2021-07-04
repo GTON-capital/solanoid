@@ -45,7 +45,7 @@ func TestRunSolanaGatewayDeployment (t *testing.T) {
 
 	ibportProgram, err := NewOperatingAddress(t, "../private-keys/mainnet/ibport.json", &OperatingAddressBuilderOptions{
 		Overwrite: true,
-		WithPDASeeds: []byte("ibport"),
+		WithPDASeeds: []byte(executor.IBPortPDABumpSeeds),
 	})
 	ValidateError(t, err)
 	fmt.Printf("IB Port Program ID: %v \n", ibportProgram.Account.PublicKey.ToBase58())

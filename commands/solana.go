@@ -239,11 +239,14 @@ func CreatePersistentAccountWithPDA(path string, forceRewrite bool, seeds [][]by
 	}
 
 	var targetAddressPDA common.PublicKey
-	targetAddressPDA, err = common.CreateProgramAddress(seeds, common.PublicKeyFromString(accountAddress))
+
+	targetAddressPDA, err = common.CreateProgramAddress(seeds[:], common.PublicKeyFromString(accountAddress))
+	// targetAddressPDA, _, err = common.FindProgramAddress(seeds[:], common.PublicKeyFromString(accountAddress))
 
 	if err != nil {
 		return CreatePersistentAccountWithPDA(path, forceRewrite, seeds)
 	}
+
 	return common.PublicKeyFromString(accountAddress), targetAddressPDA, nil
 }
 

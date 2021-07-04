@@ -9,9 +9,15 @@ import (
 	"github.com/portto/solana-go-sdk/common"
 )
 
+const (
+	IBPortPDABumpSeeds = "ibport"
+)
+
 func NewIBPortInstructionBuilder() *IBPortInstructionBuilder {
 	return &IBPortInstructionBuilder{}
 }
+
+var IBPortIXBuilder = &IBPortInstructionBuilder{}
 
 type IBPortInstructionBuilder struct{}
 
