@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"regexp"
 	"runtime/debug"
+	"solanoid/commands/executor"
 	"strconv"
 	"strings"
 	"testing"
@@ -159,7 +160,7 @@ func trimAndTakeLast(str, del string) string {
 }
 	
 func CreateToken(ownerPrivateKeysPath string) (*TokenCreateResult, error) {
-	decimals := 8
+	decimals := executor.DefaultDecimals
 	cmd := exec.Command("spl-token", "create-token", "--owner", ownerPrivateKeysPath,  "--decimals", fmt.Sprintf("%v", decimals))
 	output, err := cmd.CombinedOutput()
 

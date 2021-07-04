@@ -331,7 +331,7 @@ import (
 		{ PubKey: ibportProgram.PDA, IsWritable: false, IsSigner: false },
 	})
 
-	// delegate amount to port BINARY for burning and request creation
+	var allTotallySentByteOperations []executor.PortOperation
 
 	sendNumerousBurnRequests := func(n int) (*models.CommandResponse, error) {
 		var instructionBatches []interface{}
@@ -361,7 +361,22 @@ import (
 			fmt.Printf("amountForUnwrap: %v \n", amountForUnwrap)
 	
 			ix := ibportInstructionBuilder.CreateTransferUnwrapRequest(ethReceiverAddress, amountForUnwrap)
+
 			instructionBatches = append(instructionBatches, ix)
+
+			castedIx := ix.(executor.CreateTransferUnwrapRequestInstruction)
+			portOperation, err := executor.UnpackByteArray(castedIx.Pack()[:])
+
+			fmt.Printf("castedIx %+v \n", castedIx)
+			fmt.Printf("portOperation %+v \n", portOperation)
+
+
+			if err != nil {
+				return nil, err
+			}
+
+			allTotallySentByteOperations = append(allTotallySentByteOperations, *portOperation)
+
 			i++
 		}
 	
@@ -396,4 +411,26 @@ import (
 
 	t.Logf("+1 On limit unwrap must have failed: %v \n", err)
 
+	waitTransactionConfirmations()
+
+	t.Logf("Now - process unconfirmed requests on ib port \n")
+
+	t.Logf("Setting one of the oracles as the invoker")
+	ibportExecutor.SetDeployerPK(operatingConsul.Account)
+
+	for j, portOperation := range allTotallySentByteOperations[0:len(allTotallySentByteOperations) - 1] {
+		byteArr := portOperation.Pack()
+		fmt.Printf("byteArr: %v \n", byteArr)
+		fmt.Printf("byteArr(len): %v \n", len(byteArr))
+		ix := ibportInstructionBuilder.ConfirmProcessedRequest(portOperation.Pack())
+
+		confirmRes, err := ibportExecutor.BuildAndInvoke(
+			ix,
+		)
+		ValidateError(t, err)
+
+		t.Logf("Confirm Swap #%v: Tx: %v \n", j, confirmRes.TxSignature)
+
+		waitTransactionConfirmations()
+	}
 }
