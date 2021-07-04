@@ -11,9 +11,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Gravity-Tech/solanoid/commands/executor"
 	"github.com/mr-tron/base58"
 	"github.com/portto/solana-go-sdk/common"
 )
+
 
 func ValidateError(t *testing.T, err error) {
 	if err != nil {
@@ -158,8 +160,8 @@ func trimAndTakeLast(str, del string) string {
 }
 
 func CreateToken(ownerPrivateKeysPath string) (*TokenCreateResult, error) {
-	decimals := 8
-	cmd := exec.Command("spl-token", "create-token", "--owner", ownerPrivateKeysPath, "--decimals", fmt.Sprintf("%v", decimals))
+	decimals := executor.DefaultDecimals
+	cmd := exec.Command("spl-token", "create-token", "--owner", ownerPrivateKeysPath,  "--decimals", fmt.Sprintf("%v", decimals))
 	output, err := cmd.CombinedOutput()
 
 	if err != nil {
@@ -239,10 +241,14 @@ func CreatePersistentAccountWithPDA(path string, forceRewrite bool, seeds [][]by
 	}
 
 	var targetAddressPDA common.PublicKey
-	targetAddressPDA, err = common.CreateProgramAddress(seeds, common.PublicKeyFromString(accountAddress))
+
+	targetAddressPDA, err = common.CreateProgramAddress(seeds[:], common.PublicKeyFromString(accountAddress))
+	// targetAddressPDA, _, err = common.FindProgramAddress(seeds[:], common.PublicKeyFromString(accountAddress))
+
 	if err != nil {
 		return CreatePersistentAccountWithPDA(path, forceRewrite, seeds)
 	}
+
 	return common.PublicKeyFromString(accountAddress), targetAddressPDA, nil
 }
 
@@ -316,6 +322,8 @@ func MintToken(minterPrivateKeysPath, tokenProgramAddress string, amount float64
 	fmt.Printf(string(output))
 
 	if err != nil {
+		fmt.Printf(string(output))
+
 		return err
 	}
 

@@ -165,9 +165,11 @@ func TestPDA(t *testing.T) {
 }
 
 func waitTransactionConfirmations() {
-	// time.Sleep(time.Second * 3)
+	// time.Sleep(time.Millisecond * 500)
+	// time.Sleep(time.Second * 5)
+	time.Sleep(time.Second * 3) // the most safe timeout
 	// time.Sleep(time.Second * 30)
-	time.Sleep(time.Second * 15)
+	// time.Sleep(time.Second * 15)
 	// time.Sleep(time.Second * 45)
 }
 
@@ -217,8 +219,8 @@ func TestIBPortContract(t *testing.T) {
 
 	deployerTokenAccount, err := CreateTokenAccount(deployerPrivateKeysPath, tokenProgramAddress)
 	ValidateError(t, err)
-
-	ibportAddressPubkey, ibPortPDA, err := CreatePersistentAccountWithPDA(ibportProgramPath, true, [][]byte{[]byte("ibport")})
+	
+	ibportAddressPubkey, ibPortPDA, err := CreatePersistentAccountWithPDA(ibportProgramPath, true, [][]byte{[]byte(executor.IBPortPDABumpSeeds)})
 	if err != nil {
 		fmt.Printf("PDA error: %v", err)
 		t.FailNow()
@@ -356,8 +358,8 @@ func TestIBPortAttachValue(t *testing.T) {
 
 	deployerTokenAccount, err := CreateTokenAccount(deployerPrivateKeysPath, tokenProgramAddress)
 	ValidateError(t, err)
-
-	ibportAddressPubkey, ibPortPDA, err := CreatePersistentAccountWithPDA(ibportProgramPath, true, [][]byte{[]byte("ibport")})
+	
+	ibportAddressPubkey, ibPortPDA, err := CreatePersistentAccountWithPDA(ibportProgramPath, true, [][]byte{[]byte(executor.IBPortPDABumpSeeds)})
 	if err != nil {
 		fmt.Printf("PDA error: %v", err)
 		t.FailNow()
@@ -438,7 +440,7 @@ func TestIBPortAttachValue(t *testing.T) {
 	)
 	ValidateError(t, err)
 
-	t.Logf("#1 AttachValue - Tx:  %v \n", ibportCreateTransferUnwrapRequestResult.TxSignature)
+	t.Logf("#1 AttachValue - Tx: %v \n", ibportCreateTransferUnwrapRequestResult.TxSignature)
 
 	t.Logf("Checking for double spend problem \n")
 

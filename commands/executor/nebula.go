@@ -3,6 +3,7 @@ package executor
 import (
 	"context"
 	"crypto/ed25519"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"log"
@@ -179,7 +180,8 @@ func (ge *GenericExecutor) EraseAdditionalMeta() {
 	ge.additionalMeta = make([]types.AccountMeta, 0)
 }
 
-func (ge *GenericExecutor) InvokePureInstruction(instruction interface{}) (*models.CommandResponse, error) {
+
+func (ge *GenericExecutor) invokeInstruction(instructionsList []types.Instruction) (*models.CommandResponse, error) {
 	account := ge.deployerPrivKey
 
 	if ge.client == nil {
@@ -194,17 +196,9 @@ func (ge *GenericExecutor) InvokePureInstruction(instruction interface{}) (*mode
 		return nil, err
 	}
 
-	builtInstruction, err := ge.BuildInstruction(instruction)
-	if err != nil {
-		return nil, err
-	}
-	for i, v := range builtInstruction.Accounts {
-		fmt.Printf("INSTRUCTION ACCOUNT #%d - %s\n", i, v.PubKey.ToBase58())
-	}
-
 	message := types.NewMessage(
 		account.PublicKey,
-		[]types.Instruction{*builtInstruction},
+		instructionsList,
 		res.Blockhash,
 	)
 
@@ -231,25 +225,29 @@ func (ge *GenericExecutor) InvokePureInstruction(instruction interface{}) (*mode
 	rawTx, err := tx.Serialize()
 
 	logTx := func() {
-		// fmt.Println("------ RAW TRANSACTION ------------------------")
+		fmt.Println("------ RAW TRANSACTION ------------------------")
 		// fmt.Printf("%s\n", hex.EncodeToString(rawTx))
-		// fmt.Println("------ END RAW TRANSACTION ------------------------")
+		fmt.Printf("%s\n", base64.StdEncoding.EncodeToString(rawTx))
+		fmt.Println("------ END RAW TRANSACTION ------------------------")
 
-		// fmt.Println("------ RAW MESSAGE ------------------------")
+		fmt.Println("------ RAW MESSAGE ------------------------")
 		// fmt.Printf("%s\n", hex.EncodeToString(serializedMessage))
-		// fmt.Println("------ END RAW MESSAGE ------------------------")
+		fmt.Printf("%s\n", base64.StdEncoding.EncodeToString(serializedMessage))
+
+		fmt.Println("------ END RAW MESSAGE ------------------------")
 	}
+	logTx()
 
 	if err != nil {
 		fmt.Printf("serialize tx error, err: %v\n", err)
-		logTx()
+		// logTx()
 		return nil, err
 	}
 
 	txSig, err := c.SendRawTransaction(context.Background(), rawTx)
 	if err != nil {
 		fmt.Printf("send tx error, err: %v\n", err)
-		logTx()
+		// logTx()
 		return nil, err
 	}
 
@@ -258,6 +256,44 @@ func (ge *GenericExecutor) InvokePureInstruction(instruction interface{}) (*mode
 		SerializedMessage: hex.EncodeToString(serializedMessage),
 		TxSignature:       txSig,
 	}, nil
+}
+
+
+func (ge *GenericExecutor) InvokeInstructionBatches(instructionsList []interface{}) (*models.CommandResponse, error) {
+	i, n := 0, len(instructionsList)
+	ixList := make([]types.Instruction, n, n)
+
+	for i < n {
+		builtIx, err := ge.buildIx(instructionsList[i])
+		if err != nil {
+			return nil, err
+		}
+		ixList[i] = *builtIx
+
+		i++
+	}
+
+	return ge.invokeInstruction(ixList)
+}
+
+func (ge *GenericExecutor) buildIx(instruction interface{}) (*types.Instruction, error) {
+	builtInstruction, err := ge.BuildInstruction(instruction)
+	if err != nil {
+		return nil, err
+	}
+	for i, v := range builtInstruction.Accounts {
+		fmt.Printf("INSTRUCTION ACCOUNT #%d - %s\n", i, v.PubKey.ToBase58())
+	}
+	return builtInstruction, nil
+}
+
+func (ge *GenericExecutor) InvokePureInstruction(instruction interface{}) (*models.CommandResponse, error) {
+	builtIx, err := ge.buildIx(instruction)
+	if err != nil {
+		return nil, err
+	}
+
+	return ge.invokeInstruction([]types.Instruction{ *builtIx })
 }
 
 func (ge *GenericExecutor) BuildAndInvoke(instruction interface{}) (*models.CommandResponse, error) {

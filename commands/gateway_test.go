@@ -42,8 +42,8 @@ func TestRunSolanaGatewayDeployment(t *testing.T) {
 	fmt.Printf("Nebula Program ID: %v \n", nebulaProgram.Account.PublicKey.ToBase58())
 
 	ibportProgram, err := NewOperatingAddress(t, "../private-keys/mainnet/ibport.json", &OperatingAddressBuilderOptions{
-		Overwrite:    true,
-		WithPDASeeds: []byte("ibport"),
+		Overwrite: true,
+		WithPDASeeds: []byte(executor.IBPortPDABumpSeeds),
 	})
 	ValidateError(t, err)
 	fmt.Printf("IB Port Program ID: %v \n", ibportProgram.Account.PublicKey.ToBase58())
