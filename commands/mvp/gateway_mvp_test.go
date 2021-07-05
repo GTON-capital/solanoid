@@ -31,26 +31,26 @@ import (
  * 5. Print TX of burn and unlock.
  *
  */
-func TestRunPolygonToSolanaGatewayMVP(t *testing.T) {	
-	gtonToken, err := NewCrossChainToken(&crossChainTokenCfg {
-		originDecimals: 18,
+func TestRunPolygonToSolanaGatewayMVP(t *testing.T) {
+	gtonToken, err := NewCrossChainToken(&crossChainTokenCfg{
+		originDecimals:      18,
 		destinationDecimals: 8,
-		originAddress: "0xf480f38c366daac4305dc484b2ad7a496ff00cea",
-		destinationAddress: "nVZnRKdr3pmcgnJvYDE8iafgiMiBqxiffQMcyv5ETdA",
+		originAddress:       "0xf480f38c366daac4305dc484b2ad7a496ff00cea",
+		destinationAddress:  "nVZnRKdr3pmcgnJvYDE8iafgiMiBqxiffQMcyv5ETdA",
 	}, 0)
 	commands.ValidateError(t, err)
 
-	extractorCfg := &extractorCfg {
-		originDecimals: 18,
+	extractorCfg := &extractorCfg{
+		originDecimals:      18,
 		destinationDecimals: 8,
-		chainID: 137,
-		originNodeURL: "https://rpc-mainnet.maticvigil.com",
+		chainID:             137,
+		originNodeURL:       "https://rpc-mainnet.maticvigil.com",
 		// originNodeURL: "https://rpc-mainnet.matic.quiknode.pro",
 		// originNodeURL: "https://matic-mainnet.chainstacklabs.com",
 		destinationNodeURL: "https://api.mainnet-beta.solana.com",
-		luportAddress: "0x7725d618122F9A2Ce368dA1624Fbc79ce197c438",
-		ibportDataAccount: "9kwBfNbrQAEmEqkZbvMCKkefuJBj7nuqWrq6dzUhW5fJ",
-		ibportProgramID: "AH3QKaj942UUxDjaRaGh7hvdadsD8yfU9LRTa9KXfJkZ",
+		luportAddress:      "0x7725d618122F9A2Ce368dA1624Fbc79ce197c438",
+		ibportDataAccount:  "9kwBfNbrQAEmEqkZbvMCKkefuJBj7nuqWrq6dzUhW5fJ",
+		ibportProgramID:    "AH3QKaj942UUxDjaRaGh7hvdadsD8yfU9LRTa9KXfJkZ",
 	}
 
 	polygonCtx, cancelCtx := context.WithCancel(context.Background())
@@ -61,7 +61,7 @@ func TestRunPolygonToSolanaGatewayMVP(t *testing.T) {
 
 	polygonGTONHolder, err := newEVMKey("76b77e0673cdf31a4bbfa0f0cdd9ed1fe02f036697d91dbf6293767f630e3b47")
 	commands.ValidateError(t, err)
-	
+
 	transactor, err := ethbind.NewKeyedTransactorWithChainID(polygonGTONHolder.PrivKey, big.NewInt(extractorCfg.chainID))
 	transactor.GasLimit = 10 * 150000
 	transactor.Context = polygonCtx
@@ -75,9 +75,9 @@ func TestRunPolygonToSolanaGatewayMVP(t *testing.T) {
 	_ = solanaGTONHolder
 
 	/*
-	> spl-token create-account --fee-payer private-keys/_from-polygon-gton-mvp-recipient.json nVZnRKdr3pmcgnJvYDE8iafgiMiBqxiffQMcyv5ETdA
-	  Creating account FMtjwGs2V6j3eWvZhLA18tkHuzvBHfpjFcCuuvsweuwC
-	  Signature: 3ojYtfDofzBSNWrRPRSdm3Nz9iBZqbbsV3rJBbpjrW56CPpzFYkj8K8XvnZT284Va6VGq9uqEUiv5yHhpY9HERBM
+		> spl-token create-account --fee-payer private-keys/_from-polygon-gton-mvp-recipient.json nVZnRKdr3pmcgnJvYDE8iafgiMiBqxiffQMcyv5ETdA
+		  Creating account FMtjwGs2V6j3eWvZhLA18tkHuzvBHfpjFcCuuvsweuwC
+		  Signature: 3ojYtfDofzBSNWrRPRSdm3Nz9iBZqbbsV3rJBbpjrW56CPpzFYkj8K8XvnZT284Va6VGq9uqEUiv5yHhpY9HERBM
 	*/
 	// solanaGTONTokenAccount := "FMtjwGs2V6j3eWvZhLA18tkHuzvBHfpjFcCuuvsweuwC"
 	solanaGTONTokenAccountCreateResult := commands.CreateTokenAccountWithFeePayer(solanaGTONHolder.PKPath, gtonToken.cfg.destinationAddress)
@@ -89,14 +89,14 @@ func TestRunPolygonToSolanaGatewayMVP(t *testing.T) {
 	luportClient, err := luport.NewLUPort(ethcommon.HexToAddress(extractorCfg.luportAddress), polygonClient)
 	commands.ValidateError(t, err)
 
-	transferAmount := float64(int64(rand.Float64() * 1000)) / 1e6
+	transferAmount := float64(int64(rand.Float64()*1000)) / 1e6
 
 	// gtonToken.Set(0.0000227)
 	gtonToken.Set(transferAmount)
 
 	fmt.Printf("As Origin: %v GTON \n", gtonToken.AsOriginBigInt())
 	fmt.Printf("As Destination: %v GTON \n", gtonToken.AsDestinationBigInt())
-	
+
 	// approve token spend
 	gtonERC20, err := erc20.NewToken(ethcommon.HexToAddress(gtonToken.cfg.originAddress), polygonClient)
 	commands.ValidateError(t, err)
@@ -116,7 +116,7 @@ func TestRunPolygonToSolanaGatewayMVP(t *testing.T) {
 	// (1)
 	lockFundsTx, err := luportClient.CreateTransferUnwrapRequest(
 		polygonTransactor.transactor,
-		gtonToken.AsOriginBigInt(), 
+		gtonToken.AsOriginBigInt(),
 		solcommon.PublicKeyFromString(solanaGTONTokenAccount),
 	)
 	commands.ValidateError(t, err)
@@ -124,14 +124,12 @@ func TestRunPolygonToSolanaGatewayMVP(t *testing.T) {
 	t.Logf("Lock %v GTON tx (Polygon): %v \n", gtonToken.Float(), lockFundsTx.Hash().Hex())
 
 	return
-	// await 
+	// await
 	// (2)
 	t.Logf("Awaiting issue on Solana... \n")
 
-
 	// print
 	// (3)
-
 
 	// burn
 	// (4)
@@ -165,7 +163,7 @@ func TestRunPolygonToSolanaGatewayMVP(t *testing.T) {
 	// print
 	// (5)
 	t.Logf("Burn %v GTON tx (Solana): %v \n", gtonToken.Float(), burnFundsResponse.TxSignature)
-	
+
 	// awaiting unlock
 
 	t.Logf("Awaiting unlock on Polygon... \n")

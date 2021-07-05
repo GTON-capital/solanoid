@@ -21,8 +21,6 @@ import (
 	soltoken "github.com/portto/solana-go-sdk/tokenprog"
 )
 
-
-
 type evmKey struct {
 	Address string
 	PubKey  string
@@ -35,8 +33,8 @@ func newEVMKey(pk string) (*evmKey, error) {
 	if err != nil {
 		return nil, err
 	}
-	
-	return &evmKey {
+
+	return &evmKey{
 		Address: ethcrypto.PubkeyToAddress(decodedPK.PublicKey).String(),
 		PubKey:  ethhexutil.Encode(ethcrypto.CompressPubkey(&decodedPK.PublicKey)),
 		PrivKey: decodedPK,
@@ -62,22 +60,22 @@ type crossChainTokenCfg struct {
 }
 
 func FloatToBigInt(val float64, decimals uint8) *big.Int {
-    bigval := new(big.Float)
-    bigval.SetFloat64(val)
-    // Set precision if required.
-    // bigval.SetPrec(64)
+	bigval := new(big.Float)
+	bigval.SetFloat64(val)
+	// Set precision if required.
+	// bigval.SetPrec(64)
 
 	multiplier := int64(math.Pow(10, float64(decimals)))
 
-    coin := new(big.Float)
-    coin.SetInt(big.NewInt(multiplier))
+	coin := new(big.Float)
+	coin.SetInt(big.NewInt(multiplier))
 
-    bigval.Mul(bigval, coin)
+	bigval.Mul(bigval, coin)
 
-    result := new(big.Int)
-    bigval.Int(result) // store converted number in result
+	result := new(big.Int)
+	bigval.Int(result) // store converted number in result
 
-    return result
+	return result
 }
 
 type tokenAmount struct {
@@ -94,13 +92,13 @@ func (ta *tokenAmount) PatchDecimals(decimals uint8) *big.Int {
 
 type crossChainToken struct {
 	token *tokenAmount
-	cfg    *crossChainTokenCfg
+	cfg   *crossChainTokenCfg
 }
 
 func NewCrossChainToken(cfg *crossChainTokenCfg, amount float64) (*crossChainToken, error) {
-	ccToken := &crossChainToken {
-		token: &tokenAmount{ amount: amount },
-		cfg: cfg,
+	ccToken := &crossChainToken{
+		token: &tokenAmount{amount: amount},
+		cfg:   cfg,
 	}
 
 	return ccToken, nil
@@ -161,8 +159,8 @@ type EVMTokenTransferEvent struct {
 	Confirmations     string `json:"confirmations"`
 }
 type EVMTokenTransfersResult struct {
-	Status  string `json:"status"`
-	Message string `json:"message"`
+	Status  string                  `json:"status"`
+	Message string                  `json:"message"`
 	Result  []EVMTokenTransferEvent `json:"result"`
 }
 
@@ -179,16 +177,16 @@ type CrossChainMVPConfig struct {
 }
 
 type CrossChainTokenDepositAwaiter interface {
-	AwaitTokenDeposit(chan <- interface{}) error
+	AwaitTokenDeposit(chan<- interface{}) error
 	SetCfg(*CrossChainDepositAwaiterConfig)
 }
 
 type EVMExplorerClient struct {
-	apiKey string
+	apiKey        string
 	crossChainCfg *CrossChainDepositAwaiterConfig
 }
 
-func (eec *EVMExplorerClient) AwaitTokenDeposit(pipe chan <- interface{}) error {
+func (eec *EVMExplorerClient) AwaitTokenDeposit(pipe chan<- interface{}) error {
 	if eec.crossChainCfg == nil {
 		return fmt.Errorf("cross chain cfg is not set")
 	}
@@ -277,25 +275,24 @@ func NewEVMExplorerClient() *EVMExplorerClient {
 	}
 }
 
-
 type SolanaDepositAwaiter struct {
-	nodeURL        string
+	nodeURL       string
 	crossChainCfg *CrossChainDepositAwaiterConfig
 	client        *solclient.Client
-	ctx            context.Context
+	ctx           context.Context
 }
 
 func NewSolanaDepositAwaiter(nodeURL string) *SolanaDepositAwaiter {
 	client := solclient.NewClient(nodeURL)
 
-	return &SolanaDepositAwaiter{ nodeURL: nodeURL, client: client, ctx: context.Background() }
+	return &SolanaDepositAwaiter{nodeURL: nodeURL, client: client, ctx: context.Background()}
 }
 
 func (sda *SolanaDepositAwaiter) SetCfg(cfg *CrossChainDepositAwaiterConfig) {
 	sda.crossChainCfg = cfg
 }
 
-func (sda *SolanaDepositAwaiter) AwaitTokenDeposit(pipe chan <- interface{}) error {
+func (sda *SolanaDepositAwaiter) AwaitTokenDeposit(pipe chan<- interface{}) error {
 	if sda.crossChainCfg == nil {
 		return fmt.Errorf("cross chain cfg is not set")
 	}
@@ -336,7 +333,7 @@ func (sda *SolanaDepositAwaiter) RequestTokenDataAccount() (*soltoken.TokenAccou
 	stateResult, err := sda.client.GetAccountInfo(sda.ctx, sda.crossChainCfg.WatchAddress, solclient.GetAccountInfoConfig{
 		Encoding: "base64",
 	})
-	
+
 	if err != nil {
 		return nil, err
 	}

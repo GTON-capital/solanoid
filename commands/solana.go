@@ -16,7 +16,6 @@ import (
 	"github.com/portto/solana-go-sdk/common"
 )
 
-
 func ValidateError(t *testing.T, err error) {
 	if err != nil {
 		t.Logf("Error: %v \n", err)
@@ -168,7 +167,7 @@ func trimAndTakeAtIndex(str, del string, i int) string {
 
 func CreateToken(ownerPrivateKeysPath string) (*TokenCreateResult, error) {
 	decimals := executor.DefaultDecimals
-	cmd := exec.Command("spl-token", "create-token", "--owner", ownerPrivateKeysPath,  "--decimals", fmt.Sprintf("%v", decimals))
+	cmd := exec.Command("spl-token", "create-token", "--owner", ownerPrivateKeysPath, "--decimals", fmt.Sprintf("%v", decimals))
 	output, err := cmd.CombinedOutput()
 
 	if err != nil {
@@ -371,18 +370,17 @@ func CreateTokenAccountWithFeePayer(currentOwnerPrivateKeyPath, tokenAddress str
 	fmt.Printf("TDA: %v \n", tokenDataAccount)
 
 	if err != nil {
-		return CreateTokenAccountResponse {
+		return CreateTokenAccountResponse{
 			TokenAccount: tokenDataAccount,
-			Error: err,
+			Error:        err,
 		}
 	}
 
-	return CreateTokenAccountResponse {
+	return CreateTokenAccountResponse{
 		TokenAccount: tokenDataAccount,
-		Error: nil,
+		Error:        nil,
 	}
 }
-
 
 func CreateTokenAccount(currentOwnerPrivateKeyPath, tokenAddress string) (string, error) {
 	cmd := exec.Command("spl-token", "create-account", "--owner", currentOwnerPrivateKeyPath, tokenAddress)

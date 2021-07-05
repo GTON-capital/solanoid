@@ -17,13 +17,13 @@ func RunMVP() {
 	}
 
 	app := &cli.App{
-		Name: "Polygon -> Solana MVP",
+		Name:  "Polygon -> Solana MVP",
 		Usage: "This App shows how fast cross-chain swaps occur (SuSy Wrapped $GTON)",
-		Flags: []cli.Flag {
+		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name: "sol-recipient",
-				Value: "98tnzivwLxfb7ThDegaZciHF6Dzk99q8Fr9F5ZksVcgN",
-				Usage: "Solana $GTON Recipient",
+				Name:        "sol-recipient",
+				Value:       "98tnzivwLxfb7ThDegaZciHF6Dzk99q8Fr9F5ZksVcgN",
+				Usage:       "Solana $GTON Recipient",
 				Destination: &mvpCfg.SolanaRecipient,
 			},
 		},

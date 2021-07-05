@@ -11,7 +11,6 @@ import (
 	"github.com/portto/solana-go-sdk/types"
 )
 
-
 type OperatingAddressBuilderOptions struct {
 	WithPDASeeds []byte
 	Overwrite    bool

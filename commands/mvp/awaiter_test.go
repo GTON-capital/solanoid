@@ -10,7 +10,6 @@ import (
 	soltoken "github.com/portto/solana-go-sdk/tokenprog"
 )
 
-
 func TestDepositAwaiter(t *testing.T) {
 	polygonClient := NewEVMExplorerClient()
 
@@ -18,8 +17,7 @@ func TestDepositAwaiter(t *testing.T) {
 	var polygonDepositAwaiter, solanaDepositAwaiter CrossChainTokenDepositAwaiter
 
 	// poly client implements awaiter interface
-	polygonDepositAwaiter = polygonClient 
-
+	polygonDepositAwaiter = polygonClient
 
 	solanaEndpoint, _ := commands.InferSystemDefinedRPC()
 
@@ -30,10 +28,10 @@ func TestDepositAwaiter(t *testing.T) {
 
 	polygonDepositAwaiter.SetCfg(
 		&CrossChainDepositAwaiterConfig{
-			WatchAddress: "0xbbc3d3f8c70c1a558bd0b5c25662aa3226b863e9",
-			WatchAssetID: "0xf480f38c366daac4305dc484b2ad7a496ff00cea",
-			WatchAmount: polygonWatchAmount,
-			BlockStart: 16298558,
+			WatchAddress:    "0xbbc3d3f8c70c1a558bd0b5c25662aa3226b863e9",
+			WatchAssetID:    "0xf480f38c366daac4305dc484b2ad7a496ff00cea",
+			WatchAmount:     polygonWatchAmount,
+			BlockStart:      16298558,
 			PerAwaitTimeout: time.Second,
 		},
 	)
@@ -53,9 +51,9 @@ func TestDepositAwaiter(t *testing.T) {
 
 	solanaDepositAwaiter.SetCfg(
 		&CrossChainDepositAwaiterConfig{
-			WatchAddress: "FMtjwGs2V6j3eWvZhLA18tkHuzvBHfpjFcCuuvsweuwC",
-			WatchAssetID: "nVZnRKdr3pmcgnJvYDE8iafgiMiBqxiffQMcyv5ETdA",
-			WatchAmount: big.NewInt(1),
+			WatchAddress:    "FMtjwGs2V6j3eWvZhLA18tkHuzvBHfpjFcCuuvsweuwC",
+			WatchAssetID:    "nVZnRKdr3pmcgnJvYDE8iafgiMiBqxiffQMcyv5ETdA",
+			WatchAmount:     big.NewInt(1),
 			PerAwaitTimeout: time.Second,
 		},
 	)

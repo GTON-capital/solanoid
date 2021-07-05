@@ -219,7 +219,7 @@ func TestIBPortContract(t *testing.T) {
 
 	deployerTokenAccount, err := CreateTokenAccount(deployerPrivateKeysPath, tokenProgramAddress)
 	ValidateError(t, err)
-	
+
 	ibportAddressPubkey, ibPortPDA, err := CreatePersistentAccountWithPDA(ibportProgramPath, true, [][]byte{[]byte(executor.IBPortPDABumpSeeds)})
 	if err != nil {
 		fmt.Printf("PDA error: %v", err)
@@ -358,7 +358,7 @@ func TestIBPortAttachValue(t *testing.T) {
 
 	deployerTokenAccount, err := CreateTokenAccount(deployerPrivateKeysPath, tokenProgramAddress)
 	ValidateError(t, err)
-	
+
 	ibportAddressPubkey, ibPortPDA, err := CreatePersistentAccountWithPDA(ibportProgramPath, true, [][]byte{[]byte(executor.IBPortPDABumpSeeds)})
 	if err != nil {
 		fmt.Printf("PDA error: %v", err)
@@ -484,7 +484,6 @@ func TestIBPortAttachValue(t *testing.T) {
 	}
 }
 
-
 func TestIBPortTransferOwnership(t *testing.T) {
 	var err error
 
@@ -497,7 +496,7 @@ func TestIBPortTransferOwnership(t *testing.T) {
 	ValidateError(t, err)
 
 	const BFT = 3
-	
+
 	consulsList, err := GenerateConsuls(t, "../private-keys/_test_consul_prefix_", BFT)
 	ValidateError(t, err)
 
@@ -518,11 +517,11 @@ func TestIBPortTransferOwnership(t *testing.T) {
 	deployToken := func(tag string) (string, string) {
 		tokenDeployResult, err := CreateToken(deployer.PKPath)
 		ValidateError(t, err)
-	
+
 		tokenProgramAddress := tokenDeployResult.Token.ToBase58()
-	
+
 		fmt.Printf("Token '%v' deployed: %v \n", tag, tokenDeployResult.Signature)
-	
+
 		deployerTokenAccount, err := CreateTokenAccount(deployer.PKPath, tokenProgramAddress)
 		ValidateError(t, err)
 
@@ -578,9 +577,9 @@ func TestIBPortTransferOwnership(t *testing.T) {
 
 	ibportExecutor.SetDeployerPK(operatingConsul.Account)
 	ibportExecutor.SetAdditionalMeta([]types.AccountMeta{
-		{ PubKey: common.PublicKeyFromString(tokenA), IsWritable: true, IsSigner: false },
-		{ PubKey: ibportProgram.PDA, IsWritable: false, IsSigner: false },
-		{ PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false },
+		{PubKey: common.PublicKeyFromString(tokenA), IsWritable: true, IsSigner: false},
+		{PubKey: ibportProgram.PDA, IsWritable: false, IsSigner: false},
+		{PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false},
 	})
 
 	response, err := ibportExecutor.BuildAndInvoke(
@@ -598,6 +597,5 @@ func TestIBPortTransferOwnership(t *testing.T) {
 	// mint some tokens for deployer
 	err = MintToken(deployer.PKPath, tokenA, 10, tokenDeployerAccount_A)
 	ValidateError(t, err)
-
 
 }

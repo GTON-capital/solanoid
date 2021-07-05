@@ -36,14 +36,14 @@ func TestRunSolanaGatewayDeployment(t *testing.T) {
 	fmt.Printf("balanceBeforeDeploy: %v SOL;  \n", balanceBeforeDeploy)
 
 	nebulaProgram, err := NewOperatingAddress(t, "../private-keys/mainnet/nebula.json", &OperatingAddressBuilderOptions{
-		Overwrite: true,
+		Overwrite:    true,
 		WithPDASeeds: []byte(executor.IBPortPDABumpSeeds),
 	})
 	ValidateError(t, err)
 	fmt.Printf("Nebula Program ID: %v \n", nebulaProgram.PublicKey.ToBase58())
 
 	ibportProgram, err := NewOperatingAddress(t, "../private-keys/mainnet/ibport.json", &OperatingAddressBuilderOptions{
-		Overwrite: true,
+		Overwrite:    true,
 		WithPDASeeds: []byte(executor.IBPortPDABumpSeeds),
 	})
 
