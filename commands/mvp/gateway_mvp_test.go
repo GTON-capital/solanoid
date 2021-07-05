@@ -76,6 +76,8 @@ func TestRunPolygonToSolanaGatewayMVP(t *testing.T) {
 	commands.ValidateError(t, err)
 	_ = solanaGTONHolder
 
+
+
 	// solanaGTONTokenAccount := "828Gd2UmaTF8sNpsLY2ZMERG2Wnym4kcjVJKni6ni5LH"
 
 	/*
@@ -83,8 +85,12 @@ func TestRunPolygonToSolanaGatewayMVP(t *testing.T) {
 	  Creating account FMtjwGs2V6j3eWvZhLA18tkHuzvBHfpjFcCuuvsweuwC
 	  Signature: 3ojYtfDofzBSNWrRPRSdm3Nz9iBZqbbsV3rJBbpjrW56CPpzFYkj8K8XvnZT284Va6VGq9uqEUiv5yHhpY9HERBM
 	*/
-	solanaGTONTokenAccount := "FMtjwGs2V6j3eWvZhLA18tkHuzvBHfpjFcCuuvsweuwC"
-	fmt.Printf("solanaGTONTokenAccount: %v \n", solanaGTONTokenAccount)
+	// solanaGTONTokenAccount := "FMtjwGs2V6j3eWvZhLA18tkHuzvBHfpjFcCuuvsweuwC"
+	solanaGTONTokenAccountCreateResult := commands.CreateTokenAccountWithFeePayer(solanaGTONHolder.PKPath, gtonToken.cfg.destinationAddress)
+	solanaGTONTokenAccount := solanaGTONTokenAccountCreateResult.TokenAccount
+
+	fmt.Printf("solanaGTONTokenAccount: %v \n", solanaGTONTokenAccountCreateResult.TokenAccount)
+	fmt.Printf("solanaGTONTokenAccount(err): %v \n", solanaGTONTokenAccountCreateResult.Error)
 
 	luportClient, err := luport.NewLUPort(ethcommon.HexToAddress(extractorCfg.luportAddress), polygonClient)
 	commands.ValidateError(t, err)
