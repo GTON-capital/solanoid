@@ -3,7 +3,6 @@ package commands
 import (
 	"crypto/rand"
 	"fmt"
-	"sync"
 	"time"
 
 	"testing"
@@ -166,9 +165,11 @@ func TestPDA(t *testing.T) {
 }
 
 func waitTransactionConfirmations() {
-	// time.Sleep(time.Second * 3)
+	// time.Sleep(time.Millisecond * 500)
+	// time.Sleep(time.Second * 5)
+	time.Sleep(time.Second * 3) // the most safe timeout
 	// time.Sleep(time.Second * 30)
-	time.Sleep(time.Second * 15)
+	// time.Sleep(time.Second * 15)
 	// time.Sleep(time.Second * 45)
 }
 
@@ -218,8 +219,8 @@ func TestIBPortContract(t *testing.T) {
 
 	deployerTokenAccount, err := CreateTokenAccount(deployerPrivateKeysPath, tokenProgramAddress)
 	ValidateError(t, err)
-
-	ibportAddressPubkey, ibPortPDA, err := CreatePersistentAccountWithPDA(ibportProgramPath, true, [][]byte{[]byte("ibport")})
+	
+	ibportAddressPubkey, ibPortPDA, err := CreatePersistentAccountWithPDA(ibportProgramPath, true, [][]byte{[]byte(executor.IBPortPDABumpSeeds)})
 	if err != nil {
 		fmt.Printf("PDA error: %v", err)
 		t.FailNow()
@@ -357,8 +358,8 @@ func TestIBPortAttachValue(t *testing.T) {
 
 	deployerTokenAccount, err := CreateTokenAccount(deployerPrivateKeysPath, tokenProgramAddress)
 	ValidateError(t, err)
-
-	ibportAddressPubkey, ibPortPDA, err := CreatePersistentAccountWithPDA(ibportProgramPath, true, [][]byte{[]byte("ibport")})
+	
+	ibportAddressPubkey, ibPortPDA, err := CreatePersistentAccountWithPDA(ibportProgramPath, true, [][]byte{[]byte(executor.IBPortPDABumpSeeds)})
 	if err != nil {
 		fmt.Printf("PDA error: %v", err)
 		t.FailNow()
@@ -439,7 +440,7 @@ func TestIBPortAttachValue(t *testing.T) {
 	)
 	ValidateError(t, err)
 
-	t.Logf("#1 AttachValue - Tx:  %v \n", ibportCreateTransferUnwrapRequestResult.TxSignature)
+	t.Logf("#1 AttachValue - Tx: %v \n", ibportCreateTransferUnwrapRequestResult.TxSignature)
 
 	t.Logf("Checking for double spend problem \n")
 
@@ -483,169 +484,120 @@ func TestIBPortAttachValue(t *testing.T) {
 	}
 }
 
-type OperatingAddressBuilderOptions struct {
-	WithPDASeeds []byte
-	Overwrite    bool
-}
 
-type OperatingAddress struct {
-	// DataAccount common.PublicKey
-	Account    types.Account
-	PublicKey  common.PublicKey
-	PDA        common.PublicKey
-	PrivateKey string
-	PKPath     string
-}
-
-func ReadOperatingAddress(t *testing.T, path string) (*OperatingAddress, error) {
-	pubkey, err := ReadAccountAddress(path)
-	if err != nil {
-		return nil, err
-	}
-
-	privateKey, err := ReadPKFromPath(t, path)
-	if err != nil {
-		return nil, err
-	}
-
-	decodedPrivKey, err := base58.Decode(privateKey)
-	if err != nil {
-		return nil, err
-	}
-
-	address := &OperatingAddress{
-		Account:    types.AccountFromPrivateKeyBytes(decodedPrivKey),
-		PublicKey:  common.PublicKeyFromString(pubkey),
-		PrivateKey: privateKey,
-		PKPath:     path,
-	}
-
-	return address, nil
-}
-
-func NewOperatingAddress(t *testing.T, path string, options *OperatingAddressBuilderOptions) (*OperatingAddress, error) {
+func TestIBPortTransferOwnership(t *testing.T) {
 	var err error
 
-	if options != nil && len(options.WithPDASeeds) > 0 {
-		publicKey, pda, err := CreatePersistentAccountWithPDA(path, true, [][]byte{options.WithPDASeeds})
-		if err != nil {
-			return nil, err
+	deployer, err := NewOperatingAddress(t, "../private-keys/_111test_deployer-pk-deployer.json", nil)
+	ValidateError(t, err)
+
+	ibportProgram, err := NewOperatingAddress(t, "../private-keys/_111test_only_ibport-program.json", &OperatingAddressBuilderOptions{
+		WithPDASeeds: []byte(executor.IBPortPDABumpSeeds),
+	})
+	ValidateError(t, err)
+
+	const BFT = 3
+	
+	consulsList, err := GenerateConsuls(t, "../private-keys/_test_consul_prefix_", BFT)
+	ValidateError(t, err)
+
+	operatingConsul := consulsList.List[0]
+
+	for i, consul := range append(consulsList.List, *deployer) {
+		if i == BFT {
+			WrappedFaucet(t, deployer.PKPath, "", 10)
 		}
 
-		privateKey, err := ReadPKFromPath(t, path)
-		if err != nil {
-			return nil, err
-		}
-
-		return &OperatingAddress{
-			PublicKey:  publicKey,
-			PrivateKey: privateKey,
-			PKPath:     path,
-			PDA:        pda,
-		}, nil
+		WrappedFaucet(t, deployer.PKPath, consul.PublicKey.ToBase58(), 10)
 	}
 
-	if options != nil && !options.Overwrite {
-		err = CreatePersistedAccount(path, false)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		err = CreatePersistedAccount(path, true)
-		if err != nil {
-			return nil, err
-		}
+	waitTransactionConfirmations()
+
+	RPCEndpoint, _ := InferSystemDefinedRPC()
+
+	deployToken := func(tag string) (string, string) {
+		tokenDeployResult, err := CreateToken(deployer.PKPath)
+		ValidateError(t, err)
+	
+		tokenProgramAddress := tokenDeployResult.Token.ToBase58()
+	
+		fmt.Printf("Token '%v' deployed: %v \n", tag, tokenDeployResult.Signature)
+	
+		deployerTokenAccount, err := CreateTokenAccount(deployer.PKPath, tokenProgramAddress)
+		ValidateError(t, err)
+
+		return tokenProgramAddress, deployerTokenAccount
 	}
 
-	pubkey, err := ReadAccountAddress(path)
-	if err != nil {
-		return nil, err
-	}
+	tokenA, tokenDeployerAccount_A := deployToken("A")
+	// tokenB, tokenDeployerAccount_B := deployToken("B")
 
-	privateKey, err := ReadPKFromPath(t, path)
-	if err != nil {
-		return nil, err
-	}
+	waitTransactionConfirmations()
 
-	decodedPrivKey, err := base58.Decode(privateKey)
-	if err != nil {
-		return nil, err
-	}
+	ibportDataAccount, err := GenerateNewAccount(deployer.PrivateKey, IBPortAllocation, ibportProgram.PublicKey.ToBase58(), RPCEndpoint)
+	ValidateError(t, err)
 
-	address := &OperatingAddress{
-		Account:    types.AccountFromPrivateKeyBytes(decodedPrivKey),
-		PublicKey:  common.PublicKeyFromString(pubkey),
-		PrivateKey: privateKey,
-		PKPath:     path,
-	}
+	_, err = DeploySolanaProgram(t, "ibport", ibportProgram.PKPath, consulsList.List[0].PKPath, "../binaries/ibport.so")
+	ValidateError(t, err)
 
-	return address, nil
-}
+	ibportExecutor, err := InitGenericExecutor(
+		deployer.PrivateKey,
+		ibportProgram.PublicKey.ToBase58(),
+		ibportDataAccount.Account.PublicKey.ToBase58(),
+		"",
+		RPCEndpoint,
+		common.PublicKeyFromString(""),
+	)
+	ValidateError(t, err)
 
-type ConsulsHandler struct {
-	BFT  uint8
-	List []OperatingAddress
-}
+	waitTransactionConfirmations()
 
-func (ch *ConsulsHandler) ConcatConsuls() []byte {
-	var oracles []byte
-	for _, consul := range ch.List {
-		oracles = append(oracles, consul.PublicKey.Bytes()...)
-	}
+	ibportInitResult, err := ibportExecutor.BuildAndInvoke(
+		executor.IBPortIXBuilder.InitWithOracles(*new(common.PublicKey), common.TokenProgramID, BFT, consulsList.ConcatConsuls()),
+	)
+	fmt.Printf("IB Port - Init: %v \n", ibportInitResult.TxSignature)
 
-	return oracles
-}
+	waitTransactionConfirmations()
 
-func (ch *ConsulsHandler) ToBftSigners() []executor.GravityBftSigner {
-	var signers []executor.GravityBftSigner
-	// var additionalMeta []types.AccountMeta
+	// mint some tokens for deployer
+	err = MintToken(deployer.PKPath, tokenA, 10, tokenDeployerAccount_A)
+	ValidateError(t, err)
+	// t.Log("Minted some tokens")
 
-	for _, signer := range ch.List {
-		signers = append(signers, *executor.NewGravityBftSigner(signer.PrivateKey))
-		// additionalMeta = append(additionalMeta, types.AccountMeta{
-		// 	PubKey: common.PublicKeyFromString(solana.ClockProgram), IsSigner: false, IsWritable: false
-		// })
-	}
+	waitTransactionConfirmations()
 
-	return signers
-}
+	err = AuthorizeToken(t, deployer.PKPath, tokenA, "mint", ibportProgram.PDA.ToBase58())
+	ValidateError(t, err)
+	t.Log("Authorizing IB Port to allow minting")
 
-func GenerateConsuls(t *testing.T, consulPathPrefix string, count uint8) (*ConsulsHandler, error) {
-	result := make([]OperatingAddress, count)
+	waitTransactionConfirmations()
 
-	var i uint8
+	// mint some tokens for deployer
+	err = MintToken(deployer.PKPath, tokenA, 10, tokenDeployerAccount_A)
+	ValidateErrorExistence(t, err)
 
-	for i < count {
-		path := fmt.Sprintf("%v_%v.json", consulPathPrefix, i)
+	ibportExecutor.SetDeployerPK(operatingConsul.Account)
+	ibportExecutor.SetAdditionalMeta([]types.AccountMeta{
+		{ PubKey: common.PublicKeyFromString(tokenA), IsWritable: true, IsSigner: false },
+		{ PubKey: ibportProgram.PDA, IsWritable: false, IsSigner: false },
+		{ PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false },
+	})
 
-		address, err := NewOperatingAddress(t, path, nil)
+	response, err := ibportExecutor.BuildAndInvoke(
+		executor.IBPortIXBuilder.TransferTokenOwnership(
+			deployer.PublicKey,
+			*new(common.PublicKey),
+		),
+	)
+	ValidateError(t, err)
 
-		if err != nil {
-			return nil, err
-		}
-		result[i] = *address
+	fmt.Printf("TransferTokenOwnership: %v \n", response.TxSignature)
 
-		i++
-	}
+	waitTransactionConfirmations()
 
-	return &ConsulsHandler{
-		BFT:  count,
-		List: result,
-	}, nil
-}
+	// mint some tokens for deployer
+	err = MintToken(deployer.PKPath, tokenA, 10, tokenDeployerAccount_A)
+	ValidateError(t, err)
 
-func ParallelExecution(callbacks []func()) {
-	var wg sync.WaitGroup
 
-	wg.Add(len(callbacks))
-	for _, fn := range callbacks {
-		// aliasing
-		fn := fn
-		go func() {
-			defer wg.Done()
-			fn()
-		}()
-	}
-
-	wg.Wait()
 }

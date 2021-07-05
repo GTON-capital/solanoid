@@ -1,15 +1,18 @@
 package commands
 
 import (
-	"crypto/rand"
 	"fmt"
+	"math/rand"
 	"testing"
 
 	"github.com/Gravity-Tech/solanoid/commands/executor"
+	"github.com/Gravity-Tech/solanoid/models"
 	"github.com/Gravity-Tech/solanoid/models/nebula"
 
 	"github.com/portto/solana-go-sdk/common"
 	"github.com/portto/solana-go-sdk/types"
+
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
 
 /*
@@ -30,43 +33,40 @@ import (
 func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 	var err error
 
-	deployer, err := NewOperatingAddress(t, "../private-keys/test_deployer-pk-deployer.json", nil)
+	deployer, err := NewOperatingAddress(t, "../private-keys/_test_deployer-pk-deployer.json", nil)
 	ValidateError(t, err)
 
-	gravityProgram, err := NewOperatingAddress(t, "../private-keys/test_only-gravity-program.json", nil)
+	gravityProgram, err := NewOperatingAddress(t, "../private-keys/_test_only-gravity-program.json", nil)
 	ValidateError(t, err)
 
-	nebulaProgram, err := NewOperatingAddress(t, "../private-keys/test_only-nebula-program.json", nil)
+	nebulaProgram, err := NewOperatingAddress(t, "../private-keys/_test_only-nebula-program.json", &OperatingAddressBuilderOptions{
+		WithPDASeeds: []byte(executor.IBPortPDABumpSeeds),
+	})
 	ValidateError(t, err)
 
-	ibportProgram, err := NewOperatingAddress(t, "../private-keys/test_only_ibport-program.json", &OperatingAddressBuilderOptions{
-		WithPDASeeds: []byte("ibport"),
+	ibportProgram, err := NewOperatingAddress(t, "../private-keys/_test_only_ibport-program.json", &OperatingAddressBuilderOptions{
+		WithPDASeeds: []byte(executor.IBPortPDABumpSeeds),
 	})
 	ValidateError(t, err)
 
 	const BFT = 3
 
-	// WrappedFaucet(t, deployer.PKPath, "", 10)
-
-	// waitTransactionConfirmations()
-
-	// WrappedFaucet(t, , "", 10)
-
-	// TransfconsulsList.List[0].Account)
+	const OmitSendValueFlow = false
 
 	consulsList, err := GenerateConsuls(t, "../private-keys/_test_consul_prefix_", BFT)
 	ValidateError(t, err)
 
 	operatingConsul := consulsList.List[0]
-	// WrappedFaucet(t, deployer.PKPath, operatingConsul.PublicKey.ToBase58(), 10)
 
 	for i, consul := range append(consulsList.List, *deployer) {
 		if i == BFT {
-			WrappedFaucet(t, deployer.PKPath, "", 10)
+			WrappedFaucet(t, deployer.PKPath, "", 100)
 		}
 
-		WrappedFaucet(t, deployer.PKPath, consul.PublicKey.ToBase58(), 10)
+		WrappedFaucet(t, deployer.PKPath, consul.PublicKey.ToBase58(), 100)
 	}
+
+	waitTransactionConfirmations()
 
 	RPCEndpoint, _ := InferSystemDefinedRPC()
 
@@ -75,13 +75,17 @@ func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 
 	tokenProgramAddress := tokenDeployResult.Token.ToBase58()
 
-	// deployerTokenAccount, err := CreateTokenAccount(deployer.PKPath, tokenProgramAddress)
-	// ValidateError(t, err)
-
-	waitTransactionConfirmations()
+	fmt.Printf("Token deployed: %v \n", tokenDeployResult.Signature)
 
 	deployerTokenAccount, err := CreateTokenAccount(deployer.PKPath, tokenProgramAddress)
 	ValidateError(t, err)
+
+	waitTransactionConfirmations()
+
+	// mint some tokens for deployer
+	err = MintToken(deployer.PKPath, tokenProgramAddress, 1_000_000, deployerTokenAccount)
+	ValidateError(t, err)
+	t.Log("Minted some tokens")
 
 	gravityDataAccount, err := GenerateNewAccount(deployer.PrivateKey, GravityContractAllocation, gravityProgram.PublicKey.ToBase58(), RPCEndpoint)
 	ValidateError(t, err)
@@ -144,7 +148,6 @@ func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 	)
 	ValidateError(t, err)
 
-	ibportBuilder := executor.IBPortInstructionBuilder{}
 	ibportExecutor, err := InitGenericExecutor(
 		deployer.PrivateKey,
 		ibportProgram.PublicKey.ToBase58(),
@@ -178,8 +181,7 @@ func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 			},
 			func() {
 				ibportInitResult, err := ibportExecutor.BuildAndInvoke(
-					// ibportBuilder.Init(nebulaProgram.PublicKey, common.TokenProgramID),
-					ibportBuilder.InitWithOracles(nebulaProgram.PublicKey, common.TokenProgramID, BFT, consulsList.ConcatConsuls()),
+					executor.IBPortIXBuilder.InitWithOracles(nebulaProgram.PublicKey, common.TokenProgramID, BFT, consulsList.ConcatConsuls()),
 				)
 
 				fmt.Printf("IB Port Init: %v \n", ibportInitResult.TxSignature)
@@ -210,7 +212,7 @@ func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 	// waitTransactionConfirmations()
 
 	_, err = nebulaExecutor.BuildAndInvoke(
-		nebulaBuilder.Subscribe(ibportProgram.PublicKey, 1, 1, subID),
+		nebulaBuilder.Subscribe(ibportProgram.PDA, 1, 1, subID),
 	)
 	ValidateErrorExistence(t, err)
 
@@ -221,42 +223,13 @@ func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 	waitTransactionConfirmations()
 	// waitTransactionConfirmations()
 
-	fmt.Println("Testing SendValueToSubs call  from one of the consuls")
+	fmt.Println("Testing SendValueToSubs call from one of the consuls")
 
 	swapId := make([]byte, 16)
 	rand.Read(swapId)
 
-	t.Logf("Token Swap Id:  %v \n", swapId)
-
-	attachedAmount := float64(227)
-
-	t.Logf("227 - Float As  Bytes: %v \n", executor.Float64ToBytes(attachedAmount))
-
 	var dataHashForAttach [64]byte
-	copy(dataHashForAttach[:], executor.BuildCrossChainMintByteVector(swapId, common.PublicKeyFromString(deployerTokenAccount), attachedAmount))
-
-	fmt.Printf("dataHashForAttach: %v \n", dataHashForAttach)
-
-	nebulaExecutor.SetDeployerPK(operatingConsul.Account)
-	nebulaExecutor.SetAdditionalMeta([]types.AccountMeta{
-		{PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false},
-		{PubKey: ibportProgram.PublicKey, IsWritable: false, IsSigner: false},
-		{PubKey: ibportDataAccount.Account.PublicKey, IsWritable: true, IsSigner: false},
-		{PubKey: common.PublicKeyFromString(tokenProgramAddress), IsWritable: true, IsSigner: false},
-		{PubKey: common.PublicKeyFromString(deployerTokenAccount), IsWritable: true, IsSigner: false},
-		{PubKey: ibportProgram.PDA, IsWritable: false, IsSigner: false},
-	})
-
-	waitTransactionConfirmations()
-
-	nebulaAttachResponse, err := nebulaExecutor.BuildAndInvoke(
-		nebulaBuilder.SendValueToSubs(dataHashForAttach, nebula.Bytes, 1, subID),
-	)
-	ValidateError(t, err)
-
-	fmt.Printf("Nebula SendValueToSubs Call:  %v \n", nebulaAttachResponse.TxSignature)
-
-	waitTransactionConfirmations()
+	copy(dataHashForAttach[:], executor.BuildCrossChainMintByteVector(swapId, common.PublicKeyFromString(deployerTokenAccount), 2.227))
 
 	nebulaExecutor.SetDeployerPK(deployer.Account)
 	_, err = nebulaExecutor.BuildAndInvoke(
@@ -268,53 +241,201 @@ func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 
 	waitTransactionConfirmations()
 
+	// TODO: set to 30, 50 or 100
+	i, requestsCount := 0, 1
+	pulseID := 0
+
+	if !OmitSendValueFlow {
+
+		fmt.Printf("send %v attach requests with random amount \n", requestsCount)
+
+		for i < requestsCount {
+			swapId := make([]byte, 16)
+			rand.Read(swapId)
+
+			attachedAmount := float64(uint64(rand.Float64() * 10))
+
+			var dataHashForAttach [64]byte
+			copy(dataHashForAttach[:], executor.BuildCrossChainMintByteVector(swapId, common.PublicKeyFromString(deployerTokenAccount), attachedAmount))
+		
+			fmt.Printf("Iteration #%v \n", i)
+			fmt.Printf("Amount: %v \n", attachedAmount)
+			fmt.Printf("DataHashForAttach: %v \n", dataHashForAttach)
+
+			nebulaExecutor.EraseAdditionalMeta()
+			nebulaExecutor.SetAdditionalSigners(consulsList.ToBftSigners())
+			nebulaExecutor.SetDeployerPK(operatingConsul.Account)
+
+			nebulaSendHashValueResponse, err := nebulaExecutor.BuildAndInvoke(
+				nebulaBuilder.SendHashValue(dataHashForAttach),
+			)
+			ValidateError(t, err)
+
+			fmt.Printf("#%v Nebula SendHashValue Call: %v \n", i, nebulaSendHashValueResponse.TxSignature)
+			
+			nebulaExecutor.EraseAdditionalSigners()
+			nebulaExecutor.SetDeployerPK(operatingConsul.Account)
+
+			nebulaExecutor.SetAdditionalMeta([]types.AccountMeta{
+				{ PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false },
+				{ PubKey: ibportProgram.PublicKey, IsWritable: false, IsSigner: false },
+				{ PubKey: ibportDataAccount.Account.PublicKey, IsWritable: true, IsSigner: false },
+				{ PubKey: common.PublicKeyFromString(tokenProgramAddress), IsWritable: true, IsSigner: false },
+				{ PubKey: common.PublicKeyFromString(deployerTokenAccount), IsWritable: true, IsSigner: false },
+				{ PubKey: ibportProgram.PDA, IsWritable: false, IsSigner: false },
+			})
+
+			waitTransactionConfirmations()
+
+			for {
+				nebulaAttachResponse, err := nebulaExecutor.BuildAndInvoke(
+					nebulaBuilder.SendValueToSubs(dataHashForAttach, nebula.Bytes, uint64(pulseID), subID),
+				)
+				if err != nil {
+					continue
+				}
+				ValidateError(t, err)
+			
+				fmt.Printf("#%v Nebula SendValueToSubs Call:  %v \n", i, nebulaAttachResponse.TxSignature)
+
+				waitTransactionConfirmations()
+
+				break
+			}
+		
+			i++
+			pulseID++
+		}
+
+		waitTransactionConfirmations()
+	}
+
+	const MaxIBPortRequestsLimit = 15
+	amountForUnwrap := 2.227
+
+	fmt.Printf("Reaching limit of unprocessed requests on IB Port \n")
+
+	ibportInstructionBuilder := executor.NewIBPortInstructionBuilder()
+
 	nebulaExecutor.EraseAdditionalMeta()
-	nebulaExecutor.SetAdditionalSigners(consulsList.ToBftSigners())
+	nebulaExecutor.EraseAdditionalSigners()
 	nebulaExecutor.SetDeployerPK(deployer.Account)
 
-	nebulaSendHashValueResponse, err := nebulaExecutor.BuildAndInvoke(
-		nebulaBuilder.SendHashValue(dataHashForAttach),
-	)
+	ibportExecutor.SetAdditionalMeta([]types.AccountMeta{
+		{ PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false },
+		{ PubKey: common.PublicKeyFromString(tokenProgramAddress), IsWritable: true, IsSigner: false },
+		{ PubKey: common.PublicKeyFromString(deployerTokenAccount), IsWritable: true, IsSigner: false },
+		{ PubKey: ibportProgram.PDA, IsWritable: false, IsSigner: false },
+	})
+
+	var allTotallySentByteOperations []executor.PortOperation
+
+	sendNumerousBurnRequests := func(n int) (*models.CommandResponse, error) {
+		var instructionBatches []interface{}
+
+		err = DelegateSPLTokenAmount(deployer.PKPath, deployerTokenAccount, ibportProgram.PDA.ToBase58(), amountForUnwrap * float64(MaxIBPortRequestsLimit))
+		if err != nil {
+			return nil, err
+		}
+
+		t.Log("Delegated some tokens to ibport from  deployer")
+		t.Log("Creating cross chain transfer tx")
+
+		waitTransactionConfirmations()
+
+		i = 0
+		for i < n {
+			ethReceiverPK, err := ethcrypto.GenerateKey()
+			ValidateError(t, err)
+	
+			var ethReceiverAddress [32]byte
+			copy(ethReceiverAddress[:], ethcrypto.PubkeyToAddress(ethReceiverPK.PublicKey).Bytes())
+	
+			fmt.Printf("Iteration #%v \n", i)
+			t.Logf("#%v EVM Receiver:  %v \n", i, ethcrypto.PubkeyToAddress(ethReceiverPK.PublicKey).String())
+			t.Logf("#%v EVM Receiver (bytes): %v \n", i, ethReceiverAddress[:])
+	
+			fmt.Printf("amountForUnwrap: %v \n", amountForUnwrap)
+	
+			ix := ibportInstructionBuilder.CreateTransferUnwrapRequest(ethReceiverAddress, amountForUnwrap)
+
+			instructionBatches = append(instructionBatches, ix)
+
+			castedIx := ix.(executor.CreateTransferUnwrapRequestInstruction)
+			portOperation, err := executor.UnpackByteArray(castedIx.Pack()[:])
+
+			fmt.Printf("castedIx %+v \n", castedIx)
+			fmt.Printf("portOperation %+v \n", portOperation)
+
+
+			if err != nil {
+				return nil, err
+			}
+
+			allTotallySentByteOperations = append(allTotallySentByteOperations, *portOperation)
+
+			i++
+		}
+	
+		multipleBurnsResult, err := ibportExecutor.InvokeInstructionBatches(
+			instructionBatches,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		return multipleBurnsResult, nil
+	}
+
+	waitTransactionConfirmations()
+
+	// check for the limit
+
+	approvedLimitBurnsResult, err := sendNumerousBurnRequests(5)
 	ValidateError(t, err)
+	t.Logf("Sent %v times: CreateTransferUnwrapRequest - Tx: %v \n", i, approvedLimitBurnsResult.TxSignature)
 
-	fmt.Printf("Nebula SendHashValue Call: %v \n", nebulaSendHashValueResponse.TxSignature)
+	waitTransactionConfirmations()
 
-	// deployerAddress, err := ReadAccountAddress(deployerPrivateKeysPath)
-	// ValidateError(t, err)
+	approvedLimitBurnsResult, err = sendNumerousBurnRequests(2)
+	ValidateError(t, err)
+	t.Logf("Sent %v times: CreateTransferUnwrapRequest - Tx: %v \n", i, approvedLimitBurnsResult.TxSignature)
 
-	// tokenOwnerAddress, err := ReadAccountAddress(tokenOwnerPath)
-	// ValidateError(t, err)
+	waitTransactionConfirmations()
 
-	// WrappedFaucet(t, tokenOwnerPath, tokenOwnerAddress, 10)
-	// WrappedFaucet(t, deployerPrivateKeysPath, deployerAddress, 10)
+	approvedLimitBurnsResult, err = sendNumerousBurnRequests(1)
+	ValidateErrorExistence(t, err)
 
-	// waitTransactionConfirmations()
+	t.Logf("+1 On limit unwrap must have failed: %v \n", err)
 
-	// tokenDeployResult, err := CreateToken(tokenOwnerPath)
-	// ValidateError(t, err)
+	waitTransactionConfirmations()
 
-	// tokenProgramAddress := tokenDeployResult.Token.ToBase58()
+	t.Logf("Now - process unconfirmed requests on ib port \n")
 
-	// deployerTokenAccount, err := CreateTokenAccount(deployerPrivateKeysPath, tokenProgramAddress)
-	// ValidateError(t, err)
+	t.Logf("Setting one of the oracles as the invoker")
+	ibportExecutor.SetDeployerPK(operatingConsul.Account)
 
-	// ibportAddressPubkey, ibPortPDA, err := CreatePersistentAccountWithPDA(ibportProgramPath, true, [][]byte{[]byte("ibport")})
-	// if err != nil {
-	// 	fmt.Printf("PDA error: %v", err)
-	// 	t.FailNow()
-	// }
-	// ibportAddress := ibportAddressPubkey.ToBase58()
+	for j, portOperation := range allTotallySentByteOperations[0:len(allTotallySentByteOperations) - 1] {
+		byteArr := portOperation.Pack()
+		fmt.Printf("byteArr: %v \n", byteArr)
+		fmt.Printf("byteArr(len): %v \n", len(byteArr))
+		ix := ibportInstructionBuilder.ConfirmProcessedRequest(portOperation.Pack())
 
-	// fmt.Printf("token  program address: %s\n", tokenProgramAddress)
+		confirmRes, err := ibportExecutor.BuildAndInvoke(
+			ix,
+		)
+		ValidateError(t, err)
 
-	// t.Logf("tokenProgramAddress: %v", tokenProgramAddress)
-	// t.Logf("deployerAddress: %v", deployerAddress)
-	// t.Logf("tokenOwnerAddress: %v", tokenOwnerAddress)
-	// t.Logf("ibportAddress: %v", ibportAddress)
-	// t.Logf("ibPortPDA: %v", ibPortPDA.ToBase58())
-	// t.Logf("deployerTokenAccount: %v", deployerTokenAccount)
+		t.Logf("Confirm Swap #%v: Tx: %v \n", j, confirmRes.TxSignature)
 
-	// deployerPrivateKey, err := ReadPKFromPath(t, deployerPrivateKeysPath)
-	// ValidateError(t, err)
+		waitTransactionConfirmations()
+	}
 
+	allTotallySentByteOperations = make([]executor.PortOperation, 10)
+
+	approvedLimitBurnsResult, err = sendNumerousBurnRequests(5)
+	ValidateError(t, err)
+	t.Logf("Sent %v times: CreateTransferUnwrapRequest - Tx: %v \n", i, approvedLimitBurnsResult.TxSignature)
+
+	waitTransactionConfirmations()
 }

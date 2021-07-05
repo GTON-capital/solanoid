@@ -11,9 +11,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Gravity-Tech/solanoid/commands/executor"
 	"github.com/mr-tron/base58"
 	"github.com/portto/solana-go-sdk/common"
 )
+
 
 func ValidateError(t *testing.T, err error) {
 	if err != nil {
@@ -158,8 +160,8 @@ func trimAndTakeLast(str, del string) string {
 }
 
 func CreateToken(ownerPrivateKeysPath string) (*TokenCreateResult, error) {
-	decimals := 8
-	cmd := exec.Command("spl-token", "create-token", "--owner", ownerPrivateKeysPath, "--decimals", fmt.Sprintf("%v", decimals))
+	decimals := executor.DefaultDecimals
+	cmd := exec.Command("spl-token", "create-token", "--owner", ownerPrivateKeysPath,  "--decimals", fmt.Sprintf("%v", decimals))
 	output, err := cmd.CombinedOutput()
 
 	if err != nil {
@@ -192,6 +194,7 @@ func ReadAccountAddress(privateKeysPath string) (string, error) {
 	output, err := cmd.CombinedOutput()
 
 	if err != nil {
+		fmt.Println(string(output))
 		return "", err
 	}
 	result := string(output)
@@ -238,10 +241,17 @@ func CreatePersistentAccountWithPDA(path string, forceRewrite bool, seeds [][]by
 	}
 
 	var targetAddressPDA common.PublicKey
-	targetAddressPDA, err = common.CreateProgramAddress(seeds, common.PublicKeyFromString(accountAddress))
+
+	targetAddressPDA, err = common.CreateProgramAddress(seeds[:], common.PublicKeyFromString(accountAddress))
+	// targetAddressPDA, _, err = common.FindProgramAddress(seeds[:], common.PublicKeyFromString(accountAddress))
+
 	if err != nil {
 		return CreatePersistentAccountWithPDA(path, forceRewrite, seeds)
 	}
+
+	fmt.Printf("accountAddress: %v \n", accountAddress)
+	fmt.Printf("targetAddressPDA: %v \n", targetAddressPDA)
+
 	return common.PublicKeyFromString(accountAddress), targetAddressPDA, nil
 }
 
@@ -315,6 +325,8 @@ func MintToken(minterPrivateKeysPath, tokenProgramAddress string, amount float64
 	fmt.Printf(string(output))
 
 	if err != nil {
+		fmt.Printf(string(output))
+
 		return err
 	}
 
@@ -335,6 +347,26 @@ func BurnToken(burnerPrivateKeysPath, tokenDataAccount string, amount float64) e
 	return nil
 }
 
+func CreateTokenAccountWithFeePayer(currentOwnerPrivateKeyPath, tokenAddress string) (string, error) {
+	cmd := exec.Command("spl-token", "create-account", tokenAddress, "--fee-payer", currentOwnerPrivateKeyPath)
+	output, err := cmd.CombinedOutput()
+	// t.Log(string(output))
+
+	// Creating account GMuGCTYcCV7FiKg3kQ7LArfZQdhagvUYWNXb1DNZQSGK
+	dataAccountCatchRegex, _ := regexp.Compile("Creating account .+")
+	tokenDataAccount := trimAndTakeLast(string(dataAccountCatchRegex.Find(output)), " ")
+
+	fmt.Println(tokenDataAccount)
+
+	if err != nil {
+		fmt.Println(string(output))
+		return "", err
+	}
+
+	return tokenDataAccount, nil
+}
+
+
 func CreateTokenAccount(currentOwnerPrivateKeyPath, tokenAddress string) (string, error) {
 	cmd := exec.Command("spl-token", "create-account", "--owner", currentOwnerPrivateKeyPath, tokenAddress)
 	output, err := cmd.CombinedOutput()
@@ -347,6 +379,7 @@ func CreateTokenAccount(currentOwnerPrivateKeyPath, tokenAddress string) (string
 	fmt.Println(tokenDataAccount)
 
 	if err != nil {
+		fmt.Println(string(output))
 		return "", err
 	}
 
@@ -394,6 +427,7 @@ func DeploySolanaProgram(t *testing.T, tag string, programPrivateKeysPath, deplo
 func ReadPKFromPath(t *testing.T, path string) (string, error) {
 	result, err := ioutil.ReadFile(path)
 	if err != nil {
+		t.Logf("res: %v \n", result)
 		return "", err
 	}
 	var input []byte
