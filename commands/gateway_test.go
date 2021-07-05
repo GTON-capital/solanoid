@@ -33,20 +33,22 @@ func TestRunSolanaGatewayDeployment(t *testing.T) {
 	balanceBeforeDeploy, err := ReadAccountBalance(deployer.PublicKey.ToBase58())
 	ValidateError(t, err)
 
-	fmt.Printf("balanceBeforeDeploy: %v SOL; \n", balanceBeforeDeploy)
+	fmt.Printf("balanceBeforeDeploy: %v SOL;  \n", balanceBeforeDeploy)
 
 	nebulaProgram, err := NewOperatingAddress(t, "../private-keys/mainnet/nebula.json", &OperatingAddressBuilderOptions{
 		Overwrite: true,
+		WithPDASeeds: []byte(executor.IBPortPDABumpSeeds),
 	})
 	ValidateError(t, err)
-	fmt.Printf("Nebula Program ID: %v \n", nebulaProgram.Account.PublicKey.ToBase58())
+	fmt.Printf("Nebula Program ID: %v \n", nebulaProgram.PublicKey.ToBase58())
 
 	ibportProgram, err := NewOperatingAddress(t, "../private-keys/mainnet/ibport.json", &OperatingAddressBuilderOptions{
 		Overwrite: true,
 		WithPDASeeds: []byte(executor.IBPortPDABumpSeeds),
 	})
+
 	ValidateError(t, err)
-	fmt.Printf("IB Port Program ID: %v \n", ibportProgram.Account.PublicKey.ToBase58())
+	fmt.Printf("IB Port Program ID: %v \n", ibportProgram.PublicKey.ToBase58())
 	fmt.Printf("IB Port PDA: %v \n", ibportProgram.PDA.ToBase58())
 
 	gravityProgramID := "3rDUA7AGseQn8VGjtwQ6NxqbrJq6z7Pmy9L8kQ9zXuhc"
@@ -71,10 +73,13 @@ func TestRunSolanaGatewayDeployment(t *testing.T) {
 
 	RPCEndpoint, _ := InferSystemDefinedRPC()
 
-	tokenDeployResult, err := CreateToken(deployer.PKPath)
-	ValidateError(t, err)
+	// tokenDeployResult, err := CreateToken(deployer.PKPath)
+	// ValidateError(t, err)
 
-	tokenProgramAddress := tokenDeployResult.Token.ToBase58()
+	// tokenProgramAddress := tokenDeployResult.Token.ToBase58()
+
+	// SuSy Wrapped GTON Token Address
+	tokenProgramAddress := "FP5MgcQaD3ppWDqfjXouftsWQBSPW2suRzduLAFs712S"
 
 	waitTransactionConfirmations()
 

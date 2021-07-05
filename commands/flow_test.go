@@ -76,9 +76,6 @@ func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 	tokenProgramAddress := tokenDeployResult.Token.ToBase58()
 
 	fmt.Printf("Token deployed: %v \n", tokenDeployResult.Signature)
-	// deployerTokenAccount, err := CreateTokenAccount(deployer.PKPath, tokenProgramAddress)
-	// ValidateError(t, err)
-
 
 	deployerTokenAccount, err := CreateTokenAccount(deployer.PKPath, tokenProgramAddress)
 	ValidateError(t, err)
@@ -433,4 +430,12 @@ func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 
 		waitTransactionConfirmations()
 	}
+
+	allTotallySentByteOperations = make([]executor.PortOperation, 10)
+
+	approvedLimitBurnsResult, err = sendNumerousBurnRequests(5)
+	ValidateError(t, err)
+	t.Logf("Sent %v times: CreateTransferUnwrapRequest - Tx: %v \n", i, approvedLimitBurnsResult.TxSignature)
+
+	waitTransactionConfirmations()
 }

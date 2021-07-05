@@ -85,7 +85,7 @@ func (port *NebulaInstructionBuilder) Subscribe(subscriber common.PublicKey, min
 	return SubscribeNebulaContractInstruction{
 		Instruction:      4,
 		Subscriber:       subscriber,
-		MinConfirmations: minConfirmations,
+		MinConfirmations:  minConfirmations,
 		Reward:           reward,
 		SubscriptionID:   subscriptionID,
 	}

@@ -249,6 +249,9 @@ func CreatePersistentAccountWithPDA(path string, forceRewrite bool, seeds [][]by
 		return CreatePersistentAccountWithPDA(path, forceRewrite, seeds)
 	}
 
+	fmt.Printf("accountAddress: %v \n", accountAddress)
+	fmt.Printf("targetAddressPDA: %v \n", targetAddressPDA)
+
 	return common.PublicKeyFromString(accountAddress), targetAddressPDA, nil
 }
 

@@ -483,3 +483,121 @@ func TestIBPortAttachValue(t *testing.T) {
 		t.Logf("If so - double spend has been prevented \n")
 	}
 }
+
+
+func TestIBPortTransferOwnership(t *testing.T) {
+	var err error
+
+	deployer, err := NewOperatingAddress(t, "../private-keys/_111test_deployer-pk-deployer.json", nil)
+	ValidateError(t, err)
+
+	ibportProgram, err := NewOperatingAddress(t, "../private-keys/_111test_only_ibport-program.json", &OperatingAddressBuilderOptions{
+		WithPDASeeds: []byte(executor.IBPortPDABumpSeeds),
+	})
+	ValidateError(t, err)
+
+	const BFT = 3
+	
+	consulsList, err := GenerateConsuls(t, "../private-keys/_test_consul_prefix_", BFT)
+	ValidateError(t, err)
+
+	operatingConsul := consulsList.List[0]
+
+	for i, consul := range append(consulsList.List, *deployer) {
+		if i == BFT {
+			WrappedFaucet(t, deployer.PKPath, "", 10)
+		}
+
+		WrappedFaucet(t, deployer.PKPath, consul.PublicKey.ToBase58(), 10)
+	}
+
+	waitTransactionConfirmations()
+
+	RPCEndpoint, _ := InferSystemDefinedRPC()
+
+	deployToken := func(tag string) (string, string) {
+		tokenDeployResult, err := CreateToken(deployer.PKPath)
+		ValidateError(t, err)
+	
+		tokenProgramAddress := tokenDeployResult.Token.ToBase58()
+	
+		fmt.Printf("Token '%v' deployed: %v \n", tag, tokenDeployResult.Signature)
+	
+		deployerTokenAccount, err := CreateTokenAccount(deployer.PKPath, tokenProgramAddress)
+		ValidateError(t, err)
+
+		return tokenProgramAddress, deployerTokenAccount
+	}
+
+	tokenA, tokenDeployerAccount_A := deployToken("A")
+	// tokenB, tokenDeployerAccount_B := deployToken("B")
+
+	waitTransactionConfirmations()
+
+	ibportDataAccount, err := GenerateNewAccount(deployer.PrivateKey, IBPortAllocation, ibportProgram.PublicKey.ToBase58(), RPCEndpoint)
+	ValidateError(t, err)
+
+	_, err = DeploySolanaProgram(t, "ibport", ibportProgram.PKPath, consulsList.List[0].PKPath, "../binaries/ibport.so")
+	ValidateError(t, err)
+
+	ibportExecutor, err := InitGenericExecutor(
+		deployer.PrivateKey,
+		ibportProgram.PublicKey.ToBase58(),
+		ibportDataAccount.Account.PublicKey.ToBase58(),
+		"",
+		RPCEndpoint,
+		common.PublicKeyFromString(""),
+	)
+	ValidateError(t, err)
+
+	waitTransactionConfirmations()
+
+	ibportInitResult, err := ibportExecutor.BuildAndInvoke(
+		executor.IBPortIXBuilder.InitWithOracles(*new(common.PublicKey), common.TokenProgramID, BFT, consulsList.ConcatConsuls()),
+	)
+	fmt.Printf("IB Port - Init: %v \n", ibportInitResult.TxSignature)
+
+	waitTransactionConfirmations()
+
+	// mint some tokens for deployer
+	err = MintToken(deployer.PKPath, tokenA, 10, tokenDeployerAccount_A)
+	ValidateError(t, err)
+	// t.Log("Minted some tokens")
+
+	waitTransactionConfirmations()
+
+	err = AuthorizeToken(t, deployer.PKPath, tokenA, "mint", ibportProgram.PDA.ToBase58())
+	ValidateError(t, err)
+	t.Log("Authorizing IB Port to allow minting")
+
+	waitTransactionConfirmations()
+
+	// mint some tokens for deployer
+	err = MintToken(deployer.PKPath, tokenA, 10, tokenDeployerAccount_A)
+	ValidateErrorExistence(t, err)
+
+	ibportExecutor.SetDeployerPK(operatingConsul.Account)
+	ibportExecutor.SetAdditionalMeta([]types.AccountMeta{
+		{ PubKey: common.PublicKeyFromString(tokenA), IsWritable: true, IsSigner: false },
+		{ PubKey: ibportProgram.PDA, IsWritable: false, IsSigner: false },
+		{ PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false },
+	})
+
+	response, err := ibportExecutor.BuildAndInvoke(
+		executor.IBPortIXBuilder.TransferTokenOwnership(
+			deployer.PublicKey,
+			*new(common.PublicKey),
+		),
+	)
+	ValidateError(t, err)
+
+	fmt.Printf("TransferTokenOwnership: %v \n", response.TxSignature)
+
+	waitTransactionConfirmations()
+
+	// mint some tokens for deployer
+	err = MintToken(deployer.PKPath, tokenA, 10, tokenDeployerAccount_A)
+	ValidateError(t, err)
+
+
+}

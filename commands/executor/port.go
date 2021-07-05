@@ -135,6 +135,20 @@ func (port *IBPortInstructionBuilder) AttachValue(byte_vector []byte) interface{
 	}
 }
 
+func (port *IBPortInstructionBuilder) TransferTokenOwnership(newOwner, newToken common.PublicKey) interface{} {
+	fmt.Printf("TransferOwnership - newOwner: %v, newToken: %v \n", newOwner, newToken)
+
+	return struct {
+		Instruction   uint8
+		NewAuthority  common.PublicKey
+		NewToken      common.PublicKey
+	}{
+		Instruction:  4,
+		NewAuthority: newOwner,
+		NewToken:     newToken,
+	}
+}
+
 
 
 // pub struct PortOperation<'a> {
