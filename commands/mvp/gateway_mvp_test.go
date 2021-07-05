@@ -79,7 +79,7 @@ func TestRunPolygonToSolanaGatewayMVP(t *testing.T) {
 	  Creating account FMtjwGs2V6j3eWvZhLA18tkHuzvBHfpjFcCuuvsweuwC
 	  Signature: 3ojYtfDofzBSNWrRPRSdm3Nz9iBZqbbsV3rJBbpjrW56CPpzFYkj8K8XvnZT284Va6VGq9uqEUiv5yHhpY9HERBM
 	*/
-
+	// solanaGTONTokenAccount := "FMtjwGs2V6j3eWvZhLA18tkHuzvBHfpjFcCuuvsweuwC"
 	solanaGTONTokenAccountCreateResult := commands.CreateTokenAccountWithFeePayer(solanaGTONHolder.PKPath, gtonToken.cfg.destinationAddress)
 	solanaGTONTokenAccount := solanaGTONTokenAccountCreateResult.TokenAccount
 
