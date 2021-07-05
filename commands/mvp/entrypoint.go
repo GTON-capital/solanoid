@@ -28,16 +28,7 @@ func RunMVP() {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			// name := "Nefertiti"
-			// if c.NArg() > 0 {
-			// 	name = c.Args().Get(0)
-			// }
-			// if c.String("lang") == "spanish" {
-			// 	fmt.Println("Hola", name)
-			// } else {
-			// 	fmt.Println("Hello", name)
-			// }
-			return nil
+			return ProcessMVP_PolygonSolana()
 		},
 	}
 

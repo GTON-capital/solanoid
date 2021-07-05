@@ -1,17 +1,7 @@
 package main
 
-import (
-	"fmt"
-	"os"
-
-	"github.com/Gravity-Tech/solanoid/commands"
-)
+import "github.com/Gravity-Tech/solanoid/commands/mvp"
 
 func main() {
-
-	if err := commands.SolanoidCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
+	mvp.RunMVP()
 }

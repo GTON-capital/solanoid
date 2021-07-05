@@ -95,7 +95,16 @@ import (
 	solanaGTONHolderAccount := soltypes.AccountFromPrivateKeyBytes(decodedSolanaGTONHolderPrivKey)
 
 	solanaPKPath := "./public_from-polygon-gton-recipient.json"
-	marshalledSolanaPK, err := json.Marshal(decodedSolanaGTONHolderPrivKey)
+
+	/*
+	 * Workaround specifically for Solana PK 
+	 */
+	asNumberDecodedSolanaGTONHolderPrivKey := make([]int64, len(decodedSolanaGTONHolderPrivKey))
+	for i, b := range decodedSolanaGTONHolderPrivKey {
+		asNumberDecodedSolanaGTONHolderPrivKey[i] = int64(b)
+	}
+	
+	marshalledSolanaPK, err := json.Marshal(asNumberDecodedSolanaGTONHolderPrivKey)
 	if err != nil {
 		return err
 	}
@@ -108,15 +117,11 @@ import (
 		Account:    solanaGTONHolderAccount,
 		PublicKey:  solanaGTONHolderAccount.PublicKey,
 		PrivateKey: base58.Encode(decodedSolanaGTONHolderPrivKey),
+		PKPath: solanaPKPath,
 	}
 
-	// solanaGTONDesignatedRecipient := common.PublicKeyFromString(solanaGTONRecipientAddress)
 	solanaGTONTokenAccountCreateResult := commands.CreateTokenAccountWithFeePayer(solanaGTONHolder.PKPath, gtonToken.cfg.destinationAddress)
 	solanaGTONTokenAccount := solanaGTONTokenAccountCreateResult.TokenAccount
-
-
-	// fmt.Printf("solanaGTONTokenAccount: %v \n", solanaGTONTokenAccountCreateResult.TokenAccount)
-	// // fmt.Printf("solanaGTONTokenAccount(err): %v \n", solanaGTONTokenAccountCreateResult.Error)
 
 	luportClient, err := luport.NewLUPort(ethcommon.HexToAddress(extractorCfg.luportAddress), polygonClient)
 	if err != nil {
@@ -137,7 +142,8 @@ import (
 		return err
 	}
 
-	fmt.Printf("Approving %v GTON spend \n", gtonToken.Float())
+	fmt.Printf("Approving %v GTON spend (Polygon) \n", gtonToken.Float())
+
 	approveTx, err := gtonERC20.Approve(
 		polygonTransactor.transactor,
 		ethcommon.HexToAddress(extractorCfg.luportAddress),
@@ -201,7 +207,7 @@ import (
 
 	for event := range solanaDepositBuffer {
 		tokenDataState := event.(soltoken.TokenAccount)
-		fmt.Printf("SOL - deposit event: %+v \n", tokenDataState)
+		fmt.Printf("Deposit event (Solana): %+v \n", tokenDataState)
 		break
 	}
 
