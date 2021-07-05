@@ -94,7 +94,7 @@ func ProcessMVP_PolygonSolana() error {
 	// solanaGTONHolderPrivKey := ed25519.NewKeyFromSeed(solanaGTONHolderPrivKey)
 	solanaGTONHolderAccount := soltypes.AccountFromPrivateKeyBytes(decodedSolanaGTONHolderPrivKey)
 
-	solanaPKPath := "./public_from-polygon-gton-recipient.json"
+	solanaPKPath := "./mvp-output/public_from-polygon-gton-recipient.json"
 
 	/*
 	 * Workaround specifically for Solana PK
@@ -109,6 +109,7 @@ func ProcessMVP_PolygonSolana() error {
 		return err
 	}
 
+	os.Mkdir("mvp-output", 0777)
 	os.WriteFile(solanaPKPath, marshalledSolanaPK, 0777)
 
 	// PublicKey  common.PublicKey
