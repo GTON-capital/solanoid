@@ -174,6 +174,10 @@ type CrossChainDepositAwaiterConfig struct {
 	PerAwaitTimeout time.Duration
 }
 
+type CrossChainMVPConfig struct {
+	OriginChain, DestinationChain CrossChainDepositAwaiterConfig
+}
+
 type CrossChainTokenDepositAwaiter interface {
 	AwaitTokenDeposit(chan <- interface{}) error
 	SetCfg(*CrossChainDepositAwaiterConfig)
