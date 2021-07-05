@@ -34,7 +34,7 @@ func TestDepositAwaiter(t *testing.T) {
 	transferBuff := &DepositBuffer{}
 	// transferBuff := make(chan *EVMTokenTransferEvent)
 
-	polygonDepositAwaiter = NewGenericDepositAwaiter().
+	polygonDepositAwaiter = NewGenericDepositAwaiter(&CrossChainDepositAwaiterConfig{ PerAwaitTimeout: time.Second }).
 		SetComparator(func(i interface{}) bool {
 			return polygonClient.IsAwaitedDeposit(i, "0xbbc3d3f8c70c1a558bd0b5c25662aa3226b863e9", "0xf480f38c366daac4305dc484b2ad7a496ff00cea", amountTarget)
 		}).

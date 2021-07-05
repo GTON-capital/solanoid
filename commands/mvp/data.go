@@ -164,7 +164,6 @@ type EVMTokenTransfersResult struct {
 
 
 type CrossChainDepositAwaiterConfig struct {
-	NodeURL string
 	PerAwaitTimeout time.Duration
 }
 
@@ -214,8 +213,10 @@ func (gda *GenericDepositAwaiter) AwaitTokenDeposit(buf chan <- interface{}) {
 	}
 }
 
-func NewGenericDepositAwaiter() *GenericDepositAwaiter {
-	return &GenericDepositAwaiter{}
+func NewGenericDepositAwaiter(cfg *CrossChainDepositAwaiterConfig) *GenericDepositAwaiter {
+	return &GenericDepositAwaiter{
+		config: cfg,
+	}
 }
 
 
