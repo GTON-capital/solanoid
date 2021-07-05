@@ -38,7 +38,7 @@ func TestRunPolygonToSolanaGatewayMVP(t *testing.T) {
 		originDecimals: 18,
 		destinationDecimals: 8,
 		originAddress: "0xf480f38c366daac4305dc484b2ad7a496ff00cea",
-		destinationAddress: "FP5MgcQaD3ppWDqfjXouftsWQBSPW2suRzduLAFs712S",
+		destinationAddress: "nVZnRKdr3pmcgnJvYDE8iafgiMiBqxiffQMcyv5ETdA",
 	}, 0)
 	commands.ValidateError(t, err)
 
@@ -46,13 +46,13 @@ func TestRunPolygonToSolanaGatewayMVP(t *testing.T) {
 		originDecimals: 18,
 		destinationDecimals: 8,
 		chainID: 137,
-		originNodeURL: "https://rpc-mainnet.maticvigil.com",
+		// originNodeURL: "https://rpc-mainnet.maticvigil.com",
 		// originNodeURL: "https://rpc-mainnet.matic.quiknode.pro",
-		// originNodeURL: "https://matic-mainnet.chainstacklabs.com",
+		originNodeURL: "https://matic-mainnet.chainstacklabs.com",
 		destinationNodeURL: "https://api.mainnet-beta.solana.com",
 		luportAddress: "0x7725d618122F9A2Ce368dA1624Fbc79ce197c438",
-		ibportDataAccount: "14dHNRGpDgn4rc27xUyWxp23M72ky33kwPaoYhR6uR7y",
-		ibportProgramID: "DSZqp3Q3ydt5HeFeX1PfZJWAK8Re7ZoitK3eoot2aRyY",
+		ibportDataAccount: "9kwBfNbrQAEmEqkZbvMCKkefuJBj7nuqWrq6dzUhW5fJ",
+		ibportProgramID: "AH3QKaj942UUxDjaRaGh7hvdadsD8yfU9LRTa9KXfJkZ",
 	}
 
 	polygonCtx, cancelCtx := context.WithCancel(context.Background())
@@ -67,19 +67,23 @@ func TestRunPolygonToSolanaGatewayMVP(t *testing.T) {
 	transactor, err := ethbind.NewKeyedTransactorWithChainID(polygonGTONHolder.PrivKey, big.NewInt(extractorCfg.chainID))
 	transactor.GasLimit = 10 * 150000
 	transactor.Context = polygonCtx
-	// transactor.GasFeeCap
 
 	commands.ValidateError(t, err)
 
 	polygonTransactor := NewEVMTransactor(polygonClient, transactor)
 
-	solanaGTONHolder, err := commands.ReadOperatingAddress(t, "../../private-keys/_from-polygon-gton-mvp-recipient.json")
+	solanaGTONHolder, err := commands.ReadOperatingAddress(t, "../../public/from-polygon-gton-recipient.json")
 	commands.ValidateError(t, err)
 	_ = solanaGTONHolder
 
-	// solanaGTONTokenAccount, err := commands.CreateTokenAccountWithFeePayer(solanaGTONHolder.PKPath, gtonToken.cfg.destinationAddress)
-	// commands.ValidateError(t, err)
-	solanaGTONTokenAccount := "828Gd2UmaTF8sNpsLY2ZMERG2Wnym4kcjVJKni6ni5LH"
+	// solanaGTONTokenAccount := "828Gd2UmaTF8sNpsLY2ZMERG2Wnym4kcjVJKni6ni5LH"
+
+	/*
+	> spl-token create-account --fee-payer private-keys/_from-polygon-gton-mvp-recipient.json nVZnRKdr3pmcgnJvYDE8iafgiMiBqxiffQMcyv5ETdA
+	  Creating account FMtjwGs2V6j3eWvZhLA18tkHuzvBHfpjFcCuuvsweuwC
+	  Signature: 3ojYtfDofzBSNWrRPRSdm3Nz9iBZqbbsV3rJBbpjrW56CPpzFYkj8K8XvnZT284Va6VGq9uqEUiv5yHhpY9HERBM
+	*/
+	solanaGTONTokenAccount := "FMtjwGs2V6j3eWvZhLA18tkHuzvBHfpjFcCuuvsweuwC"
 	fmt.Printf("solanaGTONTokenAccount: %v \n", solanaGTONTokenAccount)
 
 	luportClient, err := luport.NewLUPort(ethcommon.HexToAddress(extractorCfg.luportAddress), polygonClient)
@@ -98,12 +102,16 @@ func TestRunPolygonToSolanaGatewayMVP(t *testing.T) {
 	commands.ValidateError(t, err)
 
 	fmt.Printf("Approving %v GTON spend \n", gtonToken.Float())
-	_, err = gtonERC20.Approve(
+	approveTx, err := gtonERC20.Approve(
 		polygonTransactor.transactor,
 		ethcommon.HexToAddress(extractorCfg.luportAddress),
 		gtonToken.AsOriginBigInt(),
 	)
 	commands.ValidateError(t, err)
+
+	approveTxResult, err := ethbind.WaitMined(transactor.Context, polygonClient, approveTx)
+
+	t.Logf("Approve %v GTON spend tx (Polygon): %v \n", gtonToken.Float(), approveTxResult.TxHash)
 
 	fmt.Printf("Locking %v GTON \n", gtonToken.Float())
 
