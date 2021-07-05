@@ -16,7 +16,6 @@ import (
 	"github.com/portto/solana-go-sdk/common"
 )
 
-
 func ValidateError(t *testing.T, err error) {
 	if err != nil {
 		t.Logf("Error: %v \n", err)
@@ -159,9 +158,16 @@ func trimAndTakeLast(str, del string) string {
 	return lastEl
 }
 
+func trimAndTakeAtIndex(str, del string, i int) string {
+	resultStr := strings.Trim(str, "\n\r ")
+	resultList := strings.Split(resultStr, del)
+	lastEl := resultList[i]
+	return lastEl
+}
+
 func CreateToken(ownerPrivateKeysPath string) (*TokenCreateResult, error) {
 	decimals := executor.DefaultDecimals
-	cmd := exec.Command("spl-token", "create-token", "--owner", ownerPrivateKeysPath,  "--decimals", fmt.Sprintf("%v", decimals))
+	cmd := exec.Command("spl-token", "create-token", "--owner", ownerPrivateKeysPath, "--decimals", fmt.Sprintf("%v", decimals))
 	output, err := cmd.CombinedOutput()
 
 	if err != nil {
@@ -347,25 +353,34 @@ func BurnToken(burnerPrivateKeysPath, tokenDataAccount string, amount float64) e
 	return nil
 }
 
-func CreateTokenAccountWithFeePayer(currentOwnerPrivateKeyPath, tokenAddress string) (string, error) {
+type CreateTokenAccountResponse struct {
+	TokenAccount string
+	Error        error
+}
+
+func CreateTokenAccountWithFeePayer(currentOwnerPrivateKeyPath, tokenAddress string) CreateTokenAccountResponse {
 	cmd := exec.Command("spl-token", "create-account", tokenAddress, "--fee-payer", currentOwnerPrivateKeyPath)
 	output, err := cmd.CombinedOutput()
 	// t.Log(string(output))
 
 	// Creating account GMuGCTYcCV7FiKg3kQ7LArfZQdhagvUYWNXb1DNZQSGK
 	dataAccountCatchRegex, _ := regexp.Compile("Creating account .+")
-	tokenDataAccount := trimAndTakeLast(string(dataAccountCatchRegex.Find(output)), " ")
+	tokenDataAccount := trimAndTakeAtIndex(string(dataAccountCatchRegex.Find(output)), " ", 2)
 
-	fmt.Println(tokenDataAccount)
+	fmt.Printf("TDA: %v \n", tokenDataAccount)
 
 	if err != nil {
-		fmt.Println(string(output))
-		return "", err
+		return CreateTokenAccountResponse{
+			TokenAccount: tokenDataAccount,
+			Error:        err,
+		}
 	}
 
-	return tokenDataAccount, nil
+	return CreateTokenAccountResponse{
+		TokenAccount: tokenDataAccount,
+		Error:        nil,
+	}
 }
-
 
 func CreateTokenAccount(currentOwnerPrivateKeyPath, tokenAddress string) (string, error) {
 	cmd := exec.Command("spl-token", "create-account", "--owner", currentOwnerPrivateKeyPath, tokenAddress)

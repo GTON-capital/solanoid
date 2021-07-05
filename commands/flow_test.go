@@ -257,7 +257,7 @@ func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 
 			var dataHashForAttach [64]byte
 			copy(dataHashForAttach[:], executor.BuildCrossChainMintByteVector(swapId, common.PublicKeyFromString(deployerTokenAccount), attachedAmount))
-		
+
 			fmt.Printf("Iteration #%v \n", i)
 			fmt.Printf("Amount: %v \n", attachedAmount)
 			fmt.Printf("DataHashForAttach: %v \n", dataHashForAttach)
@@ -272,17 +272,17 @@ func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 			ValidateError(t, err)
 
 			fmt.Printf("#%v Nebula SendHashValue Call: %v \n", i, nebulaSendHashValueResponse.TxSignature)
-			
+
 			nebulaExecutor.EraseAdditionalSigners()
 			nebulaExecutor.SetDeployerPK(operatingConsul.Account)
 
 			nebulaExecutor.SetAdditionalMeta([]types.AccountMeta{
-				{ PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false },
-				{ PubKey: ibportProgram.PublicKey, IsWritable: false, IsSigner: false },
-				{ PubKey: ibportDataAccount.Account.PublicKey, IsWritable: true, IsSigner: false },
-				{ PubKey: common.PublicKeyFromString(tokenProgramAddress), IsWritable: true, IsSigner: false },
-				{ PubKey: common.PublicKeyFromString(deployerTokenAccount), IsWritable: true, IsSigner: false },
-				{ PubKey: ibportProgram.PDA, IsWritable: false, IsSigner: false },
+				{PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false},
+				{PubKey: ibportProgram.PublicKey, IsWritable: false, IsSigner: false},
+				{PubKey: ibportDataAccount.Account.PublicKey, IsWritable: true, IsSigner: false},
+				{PubKey: common.PublicKeyFromString(tokenProgramAddress), IsWritable: true, IsSigner: false},
+				{PubKey: common.PublicKeyFromString(deployerTokenAccount), IsWritable: true, IsSigner: false},
+				{PubKey: ibportProgram.PDA, IsWritable: false, IsSigner: false},
 			})
 
 			waitTransactionConfirmations()
@@ -295,14 +295,14 @@ func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 					continue
 				}
 				ValidateError(t, err)
-			
+
 				fmt.Printf("#%v Nebula SendValueToSubs Call:  %v \n", i, nebulaAttachResponse.TxSignature)
 
 				waitTransactionConfirmations()
 
 				break
 			}
-		
+
 			i++
 			pulseID++
 		}
@@ -322,10 +322,10 @@ func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 	nebulaExecutor.SetDeployerPK(deployer.Account)
 
 	ibportExecutor.SetAdditionalMeta([]types.AccountMeta{
-		{ PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false },
-		{ PubKey: common.PublicKeyFromString(tokenProgramAddress), IsWritable: true, IsSigner: false },
-		{ PubKey: common.PublicKeyFromString(deployerTokenAccount), IsWritable: true, IsSigner: false },
-		{ PubKey: ibportProgram.PDA, IsWritable: false, IsSigner: false },
+		{PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false},
+		{PubKey: common.PublicKeyFromString(tokenProgramAddress), IsWritable: true, IsSigner: false},
+		{PubKey: common.PublicKeyFromString(deployerTokenAccount), IsWritable: true, IsSigner: false},
+		{PubKey: ibportProgram.PDA, IsWritable: false, IsSigner: false},
 	})
 
 	var allTotallySentByteOperations []executor.PortOperation
@@ -333,7 +333,7 @@ func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 	sendNumerousBurnRequests := func(n int) (*models.CommandResponse, error) {
 		var instructionBatches []interface{}
 
-		err = DelegateSPLTokenAmount(deployer.PKPath, deployerTokenAccount, ibportProgram.PDA.ToBase58(), amountForUnwrap * float64(MaxIBPortRequestsLimit))
+		err = DelegateSPLTokenAmount(deployer.PKPath, deployerTokenAccount, ibportProgram.PDA.ToBase58(), amountForUnwrap*float64(MaxIBPortRequestsLimit))
 		if err != nil {
 			return nil, err
 		}
@@ -347,16 +347,16 @@ func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 		for i < n {
 			ethReceiverPK, err := ethcrypto.GenerateKey()
 			ValidateError(t, err)
-	
+
 			var ethReceiverAddress [32]byte
 			copy(ethReceiverAddress[:], ethcrypto.PubkeyToAddress(ethReceiverPK.PublicKey).Bytes())
-	
+
 			fmt.Printf("Iteration #%v \n", i)
 			t.Logf("#%v EVM Receiver:  %v \n", i, ethcrypto.PubkeyToAddress(ethReceiverPK.PublicKey).String())
 			t.Logf("#%v EVM Receiver (bytes): %v \n", i, ethReceiverAddress[:])
-	
+
 			fmt.Printf("amountForUnwrap: %v \n", amountForUnwrap)
-	
+
 			ix := ibportInstructionBuilder.CreateTransferUnwrapRequest(ethReceiverAddress, amountForUnwrap)
 
 			instructionBatches = append(instructionBatches, ix)
@@ -367,7 +367,6 @@ func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 			fmt.Printf("castedIx %+v \n", castedIx)
 			fmt.Printf("portOperation %+v \n", portOperation)
 
-
 			if err != nil {
 				return nil, err
 			}
@@ -376,7 +375,7 @@ func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 
 			i++
 		}
-	
+
 		multipleBurnsResult, err := ibportExecutor.InvokeInstructionBatches(
 			instructionBatches,
 		)
@@ -415,7 +414,7 @@ func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 	t.Logf("Setting one of the oracles as the invoker")
 	ibportExecutor.SetDeployerPK(operatingConsul.Account)
 
-	for j, portOperation := range allTotallySentByteOperations[0:len(allTotallySentByteOperations) - 1] {
+	for j, portOperation := range allTotallySentByteOperations[0 : len(allTotallySentByteOperations)-1] {
 		byteArr := portOperation.Pack()
 		fmt.Printf("byteArr: %v \n", byteArr)
 		fmt.Printf("byteArr(len): %v \n", len(byteArr))
