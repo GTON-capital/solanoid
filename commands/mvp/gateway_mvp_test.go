@@ -111,6 +111,8 @@ func TestRunPolygonToSolanaGatewayMVP(t *testing.T) {
 
 	t.Logf("Approve %v GTON spend tx (Polygon): %v \n", gtonToken.Float(), approveTx.Hash().Hex())
 
+	time.Sleep(time.Second * 3)
+
 	fmt.Printf("Locking %v GTON \n", gtonToken.Float())
 
 	// (1)
