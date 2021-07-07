@@ -413,28 +413,42 @@ func AuthorizeToken(t *testing.T, currentOwnerPrivateKeyPath, tokenAddress, auth
 	return nil
 }
 
+func UpgradeDeployedSolanaProgram(t *testing.T, tag string, deployedProgramAddress, deployerPrivateKeysPath, programBinaryPath string) (string, error) {
+	t.Logf("upgrading program: %v \n", tag)
+
+	cmd := exec.Command("solana", "program", "deploy", "--keypair", deployerPrivateKeysPath, "--program-id", deployedProgramAddress, programBinaryPath)
+
+	output, err := cmd.CombinedOutput()
+
+	outputList := strings.Split(string(output), " ")
+	programID := outputList[len(outputList)-1]
+	programID = strings.Trim(programID, "\n\r")
+
+	t.Logf("Program: %v; Upgraded Program ID is: %v\n", tag, programID)
+
+	if err != nil {
+		return "", err
+	}
+
+	return programID, nil
+}
+
 func DeploySolanaProgram(t *testing.T, tag string, programPrivateKeysPath, deployerPrivateKeysPath, programBinaryPath string) (string, error) {
-	t.Log("deploying program")
+	t.Logf("deploying program: %v \n", tag)
 
 	cmd := exec.Command("solana", "program", "deploy", "--keypair", deployerPrivateKeysPath, "--program-id", programPrivateKeysPath, programBinaryPath)
 
 	output, err := cmd.CombinedOutput()
-
-	// t.Log(string(output))
 
 	outputList := strings.Split(string(output), " ")
 	programID := outputList[len(outputList)-1]
 	programID = strings.Trim(programID, "\n\r")
 
 	t.Logf("Program: %v; Deployed Program ID is: %v\n", tag, programID)
-	// t.Logf("Program: %v; Deployed Program ID is: %v\n", tag, common.PublicKeyFromString(programID))
 
 	if err != nil {
 		return "", err
-		// log.Fatal(err)
 	}
-
-	// t.Log(output)
 
 	return programID, nil
 }

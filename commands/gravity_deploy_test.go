@@ -169,7 +169,7 @@ func waitTransactionConfirmations() {
 	// time.Sleep(time.Second * 5)
 	time.Sleep(time.Second * 3) // the most safe timeout
 	// time.Sleep(time.Second * 30)
-	// time.Sleep(time.Second * 15)
+	// time.Sleep(time.Second * 30)
 	// time.Sleep(time.Second * 45)
 }
 

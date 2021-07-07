@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"math/rand"
 	"testing"
@@ -60,10 +61,10 @@ func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 
 	for i, consul := range append(consulsList.List, *deployer) {
 		if i == BFT {
-			WrappedFaucet(t, deployer.PKPath, "", 100)
+			WrappedFaucet(t, deployer.PKPath, "", 10)
 		}
 
-		WrappedFaucet(t, deployer.PKPath, consul.PublicKey.ToBase58(), 100)
+		WrappedFaucet(t, deployer.PKPath, consul.PublicKey.ToBase58(), 10)
 	}
 
 	waitTransactionConfirmations()
@@ -259,7 +260,14 @@ func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 			copy(rawDataValue[:], executor.BuildCrossChainMintByteVector(swapId, common.PublicKeyFromString(deployerTokenAccount), attachedAmount))
 
 			var dataHashForAttach [32]byte
-			copy(dataHashForAttach[:], ethcrypto.Keccak256(rawDataValue[:]))
+
+			hashingFunction := func(input []byte) []byte {
+				digest := sha256.Sum256(input)
+				return digest[:]
+			}
+
+			// copy(dataHashForAttach[:], ethcrypto.Keccak256(rawDataValue[:]))
+			copy(dataHashForAttach[:], hashingFunction(rawDataValue[:]))
 		
 			fmt.Printf("Iteration #%v \n", i)
 			fmt.Printf("Amount: %v \n", attachedAmount)
