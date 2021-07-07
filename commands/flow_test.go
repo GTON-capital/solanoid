@@ -255,12 +255,16 @@ func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 
 			attachedAmount := float64(uint64(rand.Float64() * 10))
 
-			var dataHashForAttach [64]byte
-			copy(dataHashForAttach[:], executor.BuildCrossChainMintByteVector(swapId, common.PublicKeyFromString(deployerTokenAccount), attachedAmount))
+			var rawDataValue [64]byte
+			copy(rawDataValue[:], executor.BuildCrossChainMintByteVector(swapId, common.PublicKeyFromString(deployerTokenAccount), attachedAmount))
 
+			var dataHashForAttach [32]byte
+			copy(dataHashForAttach[:], ethcrypto.Keccak256(rawDataValue[:]))
+		
 			fmt.Printf("Iteration #%v \n", i)
 			fmt.Printf("Amount: %v \n", attachedAmount)
-			fmt.Printf("DataHashForAttach: %v \n", dataHashForAttach)
+			fmt.Printf("Raw Data Value: %v \n", rawDataValue)
+			fmt.Printf("Data Value Hash: %v \n", dataHashForAttach)
 
 			nebulaExecutor.EraseAdditionalMeta()
 			nebulaExecutor.SetAdditionalSigners(consulsList.ToBftSigners())
@@ -287,21 +291,17 @@ func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 
 			waitTransactionConfirmations()
 
-			for {
-				nebulaAttachResponse, err := nebulaExecutor.BuildAndInvoke(
-					nebulaBuilder.SendValueToSubs(dataHashForAttach, nebula.Bytes, uint64(pulseID), subID),
-				)
-				if err != nil {
-					continue
-				}
-				ValidateError(t, err)
-
-				fmt.Printf("#%v Nebula SendValueToSubs Call:  %v \n", i, nebulaAttachResponse.TxSignature)
-
-				waitTransactionConfirmations()
-
-				break
+			nebulaAttachResponse, err := nebulaExecutor.BuildAndInvoke(
+				nebulaBuilder.SendValueToSubs(rawDataValue, nebula.Bytes, uint64(pulseID), subID),
+			)
+			if err != nil {
+				continue
 			}
+			ValidateError(t, err)
+		
+			fmt.Printf("#%v Nebula SendValueToSubs Call:  %v \n", i, nebulaAttachResponse.TxSignature)
+
+			waitTransactionConfirmations()
 
 			i++
 			pulseID++
