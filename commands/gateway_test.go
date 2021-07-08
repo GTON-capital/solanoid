@@ -178,3 +178,4 @@ func TestRunSolanaGatewayDeployment(t *testing.T) {
 	fmt.Printf("balanceAfterDeploy: %v SOL; \n", balanceAfterDeploy)
 	fmt.Printf("balance diff: %v SOL; \n", balanceBeforeDeploy-balanceAfterDeploy)
 }
+

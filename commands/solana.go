@@ -310,11 +310,26 @@ func TransferSPLTokens(tokenHolderPath, tokenAddress, recipientTokenAccountAddre
 	return nil
 }
 
+
+// spl-token approve [FLAGS] [OPTIONS] <TOKEN_ACCOUNT_ADDRESS> <TOKEN_AMOUNT> <DELEGATE_TOKEN_ACCOUNT_ADDRESS>
+func DelegateSPLTokenAmountWithFeePayer(tokenOwnerPath, tokenAccountAddress, delegateTokenAccountAddress string, amount float64) error {
+	cmd := exec.Command("spl-token", "approve", "--fee-payer", tokenOwnerPath, tokenAccountAddress, fmt.Sprintf("%v", amount), delegateTokenAccountAddress)
+	output, err := cmd.CombinedOutput()
+	fmt.Println(string(output))
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+
 // spl-token approve [FLAGS] [OPTIONS] <TOKEN_ACCOUNT_ADDRESS> <TOKEN_AMOUNT> <DELEGATE_TOKEN_ACCOUNT_ADDRESS>
 func DelegateSPLTokenAmount(tokenOwnerPath, tokenAccountAddress, delegateTokenAccountAddress string, amount float64) error {
 	cmd := exec.Command("spl-token", "approve", "--owner", tokenOwnerPath, tokenAccountAddress, fmt.Sprintf("%v", amount), delegateTokenAccountAddress)
 	output, err := cmd.CombinedOutput()
-	fmt.Printf(string(output))
+	fmt.Println(string(output))
 
 	if err != nil {
 		return err
