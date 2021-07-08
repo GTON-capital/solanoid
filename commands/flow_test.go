@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/Gravity-Tech/solanoid/commands/executor"
+	"github.com/Gravity-Tech/solanoid/commands/ws"
 	"github.com/Gravity-Tech/solanoid/models"
 	"github.com/Gravity-Tech/solanoid/models/nebula"
 	"github.com/gorilla/websocket"
@@ -519,75 +520,16 @@ func TestDataRealloc(t *testing.T) {
 }
 
 
-type WSLogsSubscribeNotification struct {
-	Jsonrpc string `json:"jsonrpc"`
-	Method  string `json:"method"`
-	Params  struct {
-		Result struct {
-			Context struct {
-				Slot int `json:"slot"`
-			} `json:"context"`
-			Value struct {
-				Signature string      `json:"signature"`
-				Err       interface{} `json:"err"`
-				Logs      []string    `json:"logs"`
-			} `json:"value"`
-		} `json:"result"`
-		Subscription int `json:"subscription"`
-	} `json:"params"`
-}
-
-type WSLogsSubscribeParam struct {
-	Mentions   []string `json:"mentions,omitempty"`
-	Commitment string   `json:"commitment,omitempty"`
-} 
-type WSLogsSubscribeBody struct {
-	Jsonrpc string `json:"jsonrpc"`
-	ID      int    `json:"id"`
-	Method  string `json:"method"`
-	Params  []WSLogsSubscribeParam `json:"params"`
-}
-type WSAccountNotification struct {
-	Jsonrpc string `json:"jsonrpc"`
-	Method  string `json:"method"`
-	Params  struct {
-		Result struct {
-			Context struct {
-				Slot int `json:"slot"`
-			} `json:"context"`
-			Value struct {
-				Data       []string `json:"data"`
-				Executable bool     `json:"executable"`
-				Lamports   int      `json:"lamports"`
-				Owner      string   `json:"owner"`
-				RentEpoch  int      `json:"rentEpoch"`
-			} `json:"value"`
-		} `json:"result"`
-		Subscription int `json:"subscription"`
-	} `json:"params"`
-}
-
-type WSRequestBody struct {
-	Jsonrpc string        `json:"jsonrpc"`
-	ID      int           `json:"id"`
-	Method  string        `json:"method"`
-	Params  []interface{} `json:"params"`
-}
-type WSEncoding struct {
-	Encoding   string `json:"encoding"`
-	Commitment string `json:"commitment"`
-}
-
-func buildAccountSubscribeRequest(watched string) WSRequestBody {
+func buildAccountSubscribeRequest(watched string) ws.RequestBody {
 	watchRequestParams := []interface{} {
 		watched,
-		WSEncoding {
+		ws.Encoding {
 			Encoding: "base64",
 			Commitment: "finalized",
 		},
 	}
 
-	return WSRequestBody {
+	return ws.RequestBody {
 		Jsonrpc: "2.0",
 		ID: 1,
 		Method: "accountSubscribe",
@@ -595,12 +537,12 @@ func buildAccountSubscribeRequest(watched string) WSRequestBody {
 	}
 }
 
-func buildLogsSubscribeRequest(watched string) WSLogsSubscribeBody {
-	return WSLogsSubscribeBody {
+func buildLogsSubscribeRequest(watched string) ws.LogsSubscribeBody {
+	return ws.LogsSubscribeBody {
 		Jsonrpc: "2.0",
 		ID: 1,
 		Method: "logsSubscribe",
-		Params: []WSLogsSubscribeParam {
+		Params: []ws.LogsSubscribeParam {
 			{
 				Mentions: []string {
 					watched,
@@ -743,7 +685,7 @@ func TestMintWatcher(t *testing.T) {
 		log.Printf("recv: %s", message)
 
 
-		var responseUnpacked WSLogsSubscribeNotification
+		var responseUnpacked ws.LogsSubscribeNotification
 		err = json.Unmarshal(message, &responseUnpacked)
 		if err != nil {
 			fmt.Printf("Error on WSLogsSubscribeNotification unpack: %v \n", err)
