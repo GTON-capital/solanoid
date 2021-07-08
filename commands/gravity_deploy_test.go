@@ -599,3 +599,36 @@ func TestIBPortTransferOwnership(t *testing.T) {
 	ValidateError(t, err)
 
 }
+
+
+func TestCheckBalanceDiffOn100BytesAlloc(t *testing.T) {
+    deployer, err := ReadOperatingAddress(t, "../private-keys/mainnet/deployer.json")
+    ValidateError(t, err)
+
+	RPCEndpoint, _ := InferSystemDefinedRPC()
+
+
+	balanceBeforeDeploy, err := ReadAccountBalance(deployer.PublicKey.ToBase58())
+	ValidateError(t, err)
+
+	fmt.Printf("balanceBeforeDeploy: %v SOL;  \n", balanceBeforeDeploy)
+
+    testProgram, err := NewOperatingAddress(t, "../private-keys/test_alloc_acc.json", &OperatingAddressBuilderOptions{
+        Overwrite:    true,
+        WithPDASeeds: []byte(executor.IBPortPDABumpSeeds),
+    })
+
+    testDataAccount, err := GenerateNewAccount(deployer.PrivateKey, 500, testProgram.PublicKey.ToBase58(), RPCEndpoint)
+    ValidateError(t, err)
+    fmt.Printf("Test Data Account: %v \n", testDataAccount.Account.PublicKey.ToBase58())
+
+	time.Sleep(time.Second * 20)
+
+
+	balanceAfterDeploy, err := ReadAccountBalance(deployer.PublicKey.ToBase58())
+	ValidateError(t, err)
+
+	fmt.Printf("balanceAfterDeploy: %v SOL;  \n", balanceBeforeDeploy)
+
+	fmt.Printf("diff of balance: %v \n ", balanceAfterDeploy - balanceBeforeDeploy)
+}

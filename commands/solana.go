@@ -103,7 +103,10 @@ func inferSystemDefinedSolanaConfigParam(prefix string) (string, error) {
 	result := rgx.Find(output)
 	resultStr := strings.Trim(string(result), "\n\r ")
 	resultList := strings.Split(resultStr, " ")
-	matchResult := resultList[len(resultList)-1]
+
+	fmt.Printf("%v \n", resultList)
+	matchResult := resultList[2]
+	
 
 	fmt.Println(resultList)
 	matchResult = strings.Trim(matchResult, "\n\r")

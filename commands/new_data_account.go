@@ -67,18 +67,163 @@ func newAccCommand(ccmd *cobra.Command, args []string) {
 	// }
 }
 
-func GenerateNewAccount(privateKey string, space uint64, programID, clientEndpoint string) (*models.CommandResponse, error) {
-	// pk, err := base58.Decode(newDataAccPrivateKey)
+func AllocateAccount(deployerPrivateKey string, existingAccount types.Account, space uint64, programID, clientEndpoint string) (*models.CommandResponse, error) {
+	pk, err := base58.Decode(deployerPrivateKey)
+	if err != nil {
+		zap.L().Fatal(err.Error())
+	}
+	account := types.AccountFromPrivateKeyBytes(pk)
+
+	c := client.NewClient(clientEndpoint)
+
+	res, err := c.GetRecentBlockhash(context.Background())
+	if err != nil {
+		log.Fatalf("get recent block hash error, err: %v\n", err)
+		return nil, err
+	}
+
+	instruction := sysprog.Allocate(
+		existingAccount.PublicKey,
+		space,
+	)
+	message := types.NewMessage(
+		account.PublicKey,
+		[]types.Instruction{
+			instruction,
+		},
+		res.Blockhash,
+	)
+
+
+	serializedMessage, err := message.Serialize()
+	if err != nil {
+		log.Fatalf("serialize message error, err: %v\n", err)
+		return nil, err
+	}
+
+	// fmt.Println("------- begin message --------")
+	// fmt.Println(hex.EncodeToString(serializedMessage))
+	// fmt.Println("-------- end message ---------")
+
+	tx, err := types.CreateTransaction(message, map[common.PublicKey]types.Signature{
+		account.PublicKey: ed25519.Sign(account.PrivateKey, serializedMessage),
+		existingAccount.PublicKey:  ed25519.Sign(existingAccount.PrivateKey, serializedMessage),
+	})
+	if err != nil {
+		log.Fatalf("generate tx error, err: %v\n", err)
+		return nil, err
+	}
+
+	rawTx, err := tx.Serialize()
+	if err != nil {
+		log.Fatalf("serialize tx error, err: %v\n", err)
+		return nil, err
+	}
+
+	txSig, err := c.SendRawTransaction(context.Background(), rawTx)
+	if err != nil {
+		log.Fatalf("send tx error, err: %v\n", err)
+		return nil, err
+	}
+
+	log.Println("txHash:", txSig)
+	// fmt.Printf("Data Acc privake key: %s\n", base58.Encode(newAcc.PrivateKey))
+	fmt.Printf("Data account address: %s\n", existingAccount.PublicKey.ToBase58())
+
+	return &models.CommandResponse{
+		SerializedMessage: hex.EncodeToString(serializedMessage),
+		TxSignature:       txSig,
+		Message:           &message,
+		Account:           &existingAccount,
+	}, nil
+}
+
+func GenerateNewAccountWithSeed(privateKey string, newAcc types.Account, space uint64, programID, clientEndpoint string) (*models.CommandResponse, error) {
 	pk, err := base58.Decode(privateKey)
 	if err != nil {
 		zap.L().Fatal(err.Error())
 	}
 	account := types.AccountFromPrivateKeyBytes(pk)
 
-	// pk, err = base58.Decode(programPrivateKey)
-	// if err != nil {
-	// 	zap.L().Fatal(err.Error())
-	// }
+	program := common.PublicKeyFromString(programID)
+
+	c := client.NewClient(clientEndpoint)
+
+	res, err := c.GetRecentBlockhash(context.Background())
+	if err != nil {
+		log.Fatalf("get recent block hash error, err: %v\n", err)
+		return nil, err
+	}
+
+	rentBalance, err := c.GetMinimumBalanceForRentExemption(context.Background(), space)
+	if err != nil {
+		zap.L().Fatal(err.Error())
+		return nil, err
+	}
+	instruction := sysprog.CreateAccount(
+		account.PublicKey,
+		newAcc.PublicKey,
+		program,
+		rentBalance,
+		space,
+	)
+	message := types.NewMessage(
+		account.PublicKey,
+		[]types.Instruction{
+			instruction,
+		},
+		res.Blockhash,
+	)
+
+	serializedMessage, err := message.Serialize()
+	if err != nil {
+		log.Fatalf("serialize message error, err: %v\n", err)
+		return nil, err
+	}
+
+	// fmt.Println("------- begin message --------")
+	// fmt.Println(hex.EncodeToString(serializedMessage))
+	// fmt.Println("-------- end message ---------")
+
+	tx, err := types.CreateTransaction(message, map[common.PublicKey]types.Signature{
+		account.PublicKey: ed25519.Sign(account.PrivateKey, serializedMessage),
+		newAcc.PublicKey:  ed25519.Sign(newAcc.PrivateKey, serializedMessage),
+	})
+	if err != nil {
+		log.Fatalf("generate tx error, err: %v\n", err)
+		return nil, err
+	}
+
+	rawTx, err := tx.Serialize()
+	if err != nil {
+		log.Fatalf("serialize tx error, err: %v\n", err)
+		return nil, err
+	}
+
+	txSig, err := c.SendRawTransaction(context.Background(), rawTx)
+	if err != nil {
+		log.Fatalf("send tx error, err: %v\n", err)
+		return nil, err
+	}
+
+	log.Println("txHash:", txSig)
+	// fmt.Printf("Data Acc privake key: %s\n", base58.Encode(newAcc.PrivateKey))
+	fmt.Printf("Data account address: %s\n", newAcc.PublicKey.ToBase58())
+
+	return &models.CommandResponse{
+		SerializedMessage: hex.EncodeToString(serializedMessage),
+		TxSignature:       txSig,
+		Message:           &message,
+		Account:           &newAcc,
+	}, nil
+}
+
+func GenerateNewAccount(privateKey string, space uint64, programID, clientEndpoint string) (*models.CommandResponse, error) {
+	pk, err := base58.Decode(privateKey)
+	if err != nil {
+		zap.L().Fatal(err.Error())
+	}
+	account := types.AccountFromPrivateKeyBytes(pk)
 
 	program := common.PublicKeyFromString(programID)
 
@@ -142,10 +287,6 @@ func GenerateNewAccount(privateKey string, space uint64, programID, clientEndpoi
 		log.Fatalf("send tx error, err: %v\n", err)
 		return nil, err
 	}
-
-	// log.Print("Waiting")
-	// // waitTx(txSig)
-	// log.Print("End waiting")
 
 	log.Println("txHash:", txSig)
 	// fmt.Printf("Data Acc privake key: %s\n", base58.Encode(newAcc.PrivateKey))
