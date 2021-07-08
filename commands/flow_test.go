@@ -2,8 +2,8 @@ package commands
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -16,8 +16,8 @@ import (
 	"github.com/Gravity-Tech/solanoid/models/nebula"
 	"github.com/gorilla/websocket"
 
+	solclient "github.com/portto/solana-go-sdk/client"
 	"github.com/portto/solana-go-sdk/common"
-	"github.com/portto/solana-go-sdk/tokenprog"
 	"github.com/portto/solana-go-sdk/types"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -518,6 +518,35 @@ func TestDataRealloc(t *testing.T) {
 	fmt.Printf("#1 == #2: %v \n", bytes.Equal(testDataAccount.Account.PublicKey[:], testDataAccount2.Account.PublicKey[:]))
 }
 
+
+type WSLogsSubscribeNotification struct {
+	Jsonrpc string `json:"jsonrpc"`
+	Method  string `json:"method"`
+	Params  struct {
+		Result struct {
+			Context struct {
+				Slot int `json:"slot"`
+			} `json:"context"`
+			Value struct {
+				Signature string      `json:"signature"`
+				Err       interface{} `json:"err"`
+				Logs      []string    `json:"logs"`
+			} `json:"value"`
+		} `json:"result"`
+		Subscription int `json:"subscription"`
+	} `json:"params"`
+}
+
+type WSLogsSubscribeParam struct {
+	Mentions   []string `json:"mentions,omitempty"`
+	Commitment string   `json:"commitment,omitempty"`
+} 
+type WSLogsSubscribeBody struct {
+	Jsonrpc string `json:"jsonrpc"`
+	ID      int    `json:"id"`
+	Method  string `json:"method"`
+	Params  []WSLogsSubscribeParam `json:"params"`
+}
 type WSAccountNotification struct {
 	Jsonrpc string `json:"jsonrpc"`
 	Method  string `json:"method"`
@@ -549,6 +578,40 @@ type WSEncoding struct {
 	Commitment string `json:"commitment"`
 }
 
+func buildAccountSubscribeRequest(watched string) WSRequestBody {
+	watchRequestParams := []interface{} {
+		watched,
+		WSEncoding {
+			Encoding: "base64",
+			Commitment: "finalized",
+		},
+	}
+
+	return WSRequestBody {
+		Jsonrpc: "2.0",
+		ID: 1,
+		Method: "accountSubscribe",
+		Params: watchRequestParams,
+	}
+}
+
+func buildLogsSubscribeRequest(watched string) WSLogsSubscribeBody {
+	return WSLogsSubscribeBody {
+		Jsonrpc: "2.0",
+		ID: 1,
+		Method: "logsSubscribe",
+		Params: []WSLogsSubscribeParam {
+			{
+				Mentions: []string {
+					watched,
+				},
+			},
+			{
+				Commitment: "finalized",
+			},
+		},
+	}
+}
 func TestMintWatcher(t *testing.T) {
 	var err error
 
@@ -560,7 +623,7 @@ func TestMintWatcher(t *testing.T) {
 	// })
 	// ValidateError(t, err)
 
-	// RPCEndpoint, _ := InferSystemDefinedRPC()
+	RPCEndpoint, _ := InferSystemDefinedRPC()
 	WSEndpoint, err := InferSystemDefinedWebSocketURL()
 	ValidateError(t, err)
 
@@ -636,22 +699,7 @@ func TestMintWatcher(t *testing.T) {
 		t.Log("Minted some tokens")
 	}()
 
-	buildAccountSubscribeRequest := func(watched string) WSRequestBody {
-		watchRequestParams := []interface{} {
-			watched,
-			WSEncoding {
-				Encoding: "base64",
-				Commitment: "finalized",
-			},
-		}
-
-		return WSRequestBody {
-			Jsonrpc: "2.0",
-			ID: 1,
-			Method: "accountSubscribe",
-			Params: watchRequestParams,
-		}
-	}
+	
 	// buildAccountUnsubscribeRequest := func(subID int64) WSRequestBody {
 	// 	return WSRequestBody {
 	// 		Jsonrpc: "2.0",
@@ -663,7 +711,8 @@ func TestMintWatcher(t *testing.T) {
 	// 	}
 	// }
 	
-	watchRequest := buildAccountSubscribeRequest(deployerTokenAccount)
+	// watchRequest := buildAccountSubscribeRequest(deployerTokenAccount)
+	watchRequest := buildLogsSubscribeRequest(deployerTokenAccount)
 
 	watchRequestBytes, err := json.Marshal(&watchRequest)
 	ValidateError(t, err)
@@ -693,32 +742,55 @@ func TestMintWatcher(t *testing.T) {
 		}
 		log.Printf("recv: %s", message)
 
-		var responseUnpacked WSAccountNotification
+
+		var responseUnpacked WSLogsSubscribeNotification
 		err = json.Unmarshal(message, &responseUnpacked)
 		if err != nil {
-			fmt.Printf("Error on WSAccountNotification unpack: %v \n", err)
+			fmt.Printf("Error on WSLogsSubscribeNotification unpack: %v \n", err)
 			continue
 		}
 
-		if len(responseUnpacked.Params.Result.Value.Data) == 0 {
+		txID := responseUnpacked.Params.Result.Value.Signature
+		if txID == "" {
 			continue
 		}
 
-		accountValue := responseUnpacked.Params.Result.Value.Data[0]
-		decodedAccountValue, err := base64.StdEncoding.DecodeString(accountValue)
+		solanaClient := solclient.NewClient(RPCEndpoint)
+
+		ctx := context.Background()
+		
+		response, err := solanaClient.GetConfirmedTransaction(ctx, txID)
 		ValidateError(t, err)
 
-		tokenAccount, err := tokenprog.TokenAccountFromData(decodedAccountValue)
+		fmt.Printf("RESPONSE: %+v \n", response)
+		// var responseUnpacked WSAccountNotification
+		// err = json.Unmarshal(message, &responseUnpacked)
+		// if err != nil {
+		// 	fmt.Printf("Error on WSAccountNotification unpack: %v \n", err)
+		// 	continue
+		// }
 
-		if err != nil {
-			// log.Println("read:", err)
-			fmt.Printf("Error on TokenAccount unpack: %v \n", err)
-			continue
-		}
+		// if len(responseUnpacked.Params.Result.Value.Data) == 0 {
+		// 	continue
+		// }
 
-		log.Printf("recv: %s", message)
+		// accountValue := responseUnpacked.Params.Result.Value.Data[0]
+		// decodedAccountValue, err := base64.StdEncoding.DecodeString(accountValue)
+		// ValidateError(t, err)
 
-		fmt.Printf("%+v \n", tokenAccount)
+		// tokenAccount, err := tokenprog.TokenAccountFromData(decodedAccountValue)
+		// ValidateError(t, err)
+
+
+		// if err != nil {
+		// 	// log.Println("read:", err)
+		// 	fmt.Printf("Error on TokenAccount unpack: %v \n", err)
+		// 	continue
+		// }
+
+		// log.Printf("recv: %s", message)
+
+		// fmt.Printf("%+v \n", tokenAccount)
 	}
 
 	// ticker := time.NewTicker(time.Second)
