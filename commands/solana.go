@@ -103,7 +103,10 @@ func inferSystemDefinedSolanaConfigParam(prefix string) (string, error) {
 	result := rgx.Find(output)
 	resultStr := strings.Trim(string(result), "\n\r ")
 	resultList := strings.Split(resultStr, " ")
-	matchResult := resultList[len(resultList)-1]
+
+	fmt.Printf("%v \n", resultList)
+	matchResult := resultList[2]
+	
 
 	fmt.Println(resultList)
 	matchResult = strings.Trim(matchResult, "\n\r")
@@ -310,11 +313,26 @@ func TransferSPLTokens(tokenHolderPath, tokenAddress, recipientTokenAccountAddre
 	return nil
 }
 
+
+// spl-token approve [FLAGS] [OPTIONS] <TOKEN_ACCOUNT_ADDRESS> <TOKEN_AMOUNT> <DELEGATE_TOKEN_ACCOUNT_ADDRESS>
+func DelegateSPLTokenAmountWithFeePayer(tokenOwnerPath, tokenAccountAddress, delegateTokenAccountAddress string, amount float64) error {
+	cmd := exec.Command("spl-token", "approve", "--fee-payer", tokenOwnerPath, tokenAccountAddress, fmt.Sprintf("%v", amount), delegateTokenAccountAddress)
+	output, err := cmd.CombinedOutput()
+	fmt.Println(string(output))
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+
 // spl-token approve [FLAGS] [OPTIONS] <TOKEN_ACCOUNT_ADDRESS> <TOKEN_AMOUNT> <DELEGATE_TOKEN_ACCOUNT_ADDRESS>
 func DelegateSPLTokenAmount(tokenOwnerPath, tokenAccountAddress, delegateTokenAccountAddress string, amount float64) error {
 	cmd := exec.Command("spl-token", "approve", "--owner", tokenOwnerPath, tokenAccountAddress, fmt.Sprintf("%v", amount), delegateTokenAccountAddress)
 	output, err := cmd.CombinedOutput()
-	fmt.Printf(string(output))
+	fmt.Println(string(output))
 
 	if err != nil {
 		return err
@@ -413,28 +431,42 @@ func AuthorizeToken(t *testing.T, currentOwnerPrivateKeyPath, tokenAddress, auth
 	return nil
 }
 
+func UpgradeDeployedSolanaProgram(t *testing.T, tag string, deployedProgramAddress, deployerPrivateKeysPath, programBinaryPath string) (string, error) {
+	t.Logf("upgrading program: %v \n", tag)
+
+	cmd := exec.Command("solana", "program", "deploy", "--keypair", deployerPrivateKeysPath, "--program-id", deployedProgramAddress, programBinaryPath)
+
+	output, err := cmd.CombinedOutput()
+
+	outputList := strings.Split(string(output), " ")
+	programID := outputList[len(outputList)-1]
+	programID = strings.Trim(programID, "\n\r")
+
+	t.Logf("Program: %v; Upgraded Program ID is: %v\n", tag, programID)
+
+	if err != nil {
+		return "", err
+	}
+
+	return programID, nil
+}
+
 func DeploySolanaProgram(t *testing.T, tag string, programPrivateKeysPath, deployerPrivateKeysPath, programBinaryPath string) (string, error) {
-	t.Log("deploying program")
+	t.Logf("deploying program: %v \n", tag)
 
 	cmd := exec.Command("solana", "program", "deploy", "--keypair", deployerPrivateKeysPath, "--program-id", programPrivateKeysPath, programBinaryPath)
 
 	output, err := cmd.CombinedOutput()
-
-	// t.Log(string(output))
 
 	outputList := strings.Split(string(output), " ")
 	programID := outputList[len(outputList)-1]
 	programID = strings.Trim(programID, "\n\r")
 
 	t.Logf("Program: %v; Deployed Program ID is: %v\n", tag, programID)
-	// t.Logf("Program: %v; Deployed Program ID is: %v\n", tag, common.PublicKeyFromString(programID))
 
 	if err != nil {
 		return "", err
-		// log.Fatal(err)
 	}
-
-	// t.Log(output)
 
 	return programID, nil
 }

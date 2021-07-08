@@ -1,14 +1,23 @@
 package commands
 
 import (
+	"bytes"
+	"context"
+	"crypto/sha256"
+	"encoding/json"
 	"fmt"
+	"log"
 	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/Gravity-Tech/solanoid/commands/executor"
+	"github.com/Gravity-Tech/solanoid/commands/ws"
 	"github.com/Gravity-Tech/solanoid/models"
 	"github.com/Gravity-Tech/solanoid/models/nebula"
+	"github.com/gorilla/websocket"
 
+	solclient "github.com/portto/solana-go-sdk/client"
 	"github.com/portto/solana-go-sdk/common"
 	"github.com/portto/solana-go-sdk/types"
 
@@ -60,10 +69,10 @@ func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 
 	for i, consul := range append(consulsList.List, *deployer) {
 		if i == BFT {
-			WrappedFaucet(t, deployer.PKPath, "", 100)
+			WrappedFaucet(t, deployer.PKPath, "", 10)
 		}
 
-		WrappedFaucet(t, deployer.PKPath, consul.PublicKey.ToBase58(), 100)
+		WrappedFaucet(t, deployer.PKPath, consul.PublicKey.ToBase58(), 10)
 	}
 
 	waitTransactionConfirmations()
@@ -255,12 +264,23 @@ func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 
 			attachedAmount := float64(uint64(rand.Float64() * 10))
 
-			var dataHashForAttach [64]byte
-			copy(dataHashForAttach[:], executor.BuildCrossChainMintByteVector(swapId, common.PublicKeyFromString(deployerTokenAccount), attachedAmount))
+			var rawDataValue [64]byte
+			copy(rawDataValue[:], executor.BuildCrossChainMintByteVector(swapId, common.PublicKeyFromString(deployerTokenAccount), attachedAmount))
 
+			var dataHashForAttach [32]byte
+
+			hashingFunction := func(input []byte) []byte {
+				digest := sha256.Sum256(input)
+				return digest[:]
+			}
+
+			// copy(dataHashForAttach[:], ethcrypto.Keccak256(rawDataValue[:]))
+			copy(dataHashForAttach[:], hashingFunction(rawDataValue[:]))
+		
 			fmt.Printf("Iteration #%v \n", i)
 			fmt.Printf("Amount: %v \n", attachedAmount)
-			fmt.Printf("DataHashForAttach: %v \n", dataHashForAttach)
+			fmt.Printf("Raw Data Value: %v \n", rawDataValue)
+			fmt.Printf("Data Value Hash: %v \n", dataHashForAttach)
 
 			nebulaExecutor.EraseAdditionalMeta()
 			nebulaExecutor.SetAdditionalSigners(consulsList.ToBftSigners())
@@ -287,21 +307,17 @@ func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 
 			waitTransactionConfirmations()
 
-			for {
-				nebulaAttachResponse, err := nebulaExecutor.BuildAndInvoke(
-					nebulaBuilder.SendValueToSubs(dataHashForAttach, nebula.Bytes, uint64(pulseID), subID),
-				)
-				if err != nil {
-					continue
-				}
-				ValidateError(t, err)
-
-				fmt.Printf("#%v Nebula SendValueToSubs Call:  %v \n", i, nebulaAttachResponse.TxSignature)
-
-				waitTransactionConfirmations()
-
-				break
+			nebulaAttachResponse, err := nebulaExecutor.BuildAndInvoke(
+				nebulaBuilder.SendValueToSubs(rawDataValue, nebula.Bytes, uint64(pulseID), subID),
+			)
+			if err != nil {
+				continue
 			}
+			ValidateError(t, err)
+		
+			fmt.Printf("#%v Nebula SendValueToSubs Call:  %v \n", i, nebulaAttachResponse.TxSignature)
+
+			waitTransactionConfirmations()
 
 			i++
 			pulseID++
@@ -437,4 +453,301 @@ func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 	t.Logf("Sent %v times: CreateTransferUnwrapRequest - Tx: %v \n", i, approvedLimitBurnsResult.TxSignature)
 
 	waitTransactionConfirmations()
+}
+
+
+
+type Logger struct {
+	Tag     string
+	counter int
+}
+
+func (l *Logger) Log(val interface{}) {
+	fmt.Printf("#%v - %v: %v \n", l.counter, l.Tag, val)
+	l.counter++
+}
+
+func BuildLoggerWithTag(tag string) *Logger {
+	return &Logger { Tag: tag }
+}
+
+func TestDataRealloc(t *testing.T) {
+	var err error
+
+	deployer, err := NewOperatingAddress(t, "../private-keys/_test_deployer-pk-deployer.json", nil)
+	ValidateError(t, err)
+
+	testProgram, err := NewOperatingAddress(t, "../private-keys/_test_only-gravity-program.json", nil)
+	ValidateError(t, err)
+
+
+	WrappedFaucet(t, deployer.PKPath, "", 10)
+
+	waitTx := func() {
+		time.Sleep(time.Second * 15)
+	}
+
+
+	RPCEndpoint, _ := InferSystemDefinedRPC()
+
+	waitTx()
+
+	txLogger := BuildLoggerWithTag("tx")
+
+	const StartAllocation = 500
+
+	dataAcc := types.NewAccount()
+
+	testDataAccount, err := GenerateNewAccountWithSeed(deployer.PrivateKey, dataAcc, StartAllocation, testProgram.PublicKey.ToBase58(), RPCEndpoint)
+	ValidateError(t, err)
+
+	fmt.Printf("#1 Test Data Account: %v \n", testDataAccount.Account.PublicKey.ToBase58())
+	fmt.Printf("#1 Test Data Account(PK): %v \n", testDataAccount.Account.PrivateKey)
+
+	txLogger.Log(testDataAccount.TxSignature)
+
+
+	// testDataAccount2, err := AllocateAccount(deployer.PrivateKey, *testDataAccount.Account, StartAllocation * 3, testProgram.PublicKey.ToBase58(), RPCEndpoint)
+	testDataAccount2, err := GenerateNewAccountWithSeed(deployer.PrivateKey, dataAcc, StartAllocation * 3, testProgram.PublicKey.ToBase58(), RPCEndpoint)
+	ValidateError(t, err)
+
+	fmt.Printf("#2 Test Data Account: %v \n", testDataAccount2.Account.PublicKey.ToBase58())
+	fmt.Printf("#2 Test Data Account(PK): %v \n", testDataAccount2.Account.PrivateKey)
+
+	txLogger.Log(testDataAccount2.TxSignature)
+
+	fmt.Printf("#1 == #2: %v \n", bytes.Equal(testDataAccount.Account.PublicKey[:], testDataAccount2.Account.PublicKey[:]))
+}
+
+
+func buildAccountSubscribeRequest(watched string) ws.RequestBody {
+	watchRequestParams := []interface{} {
+		watched,
+		ws.Encoding {
+			Encoding: "base64",
+			Commitment: "finalized",
+		},
+	}
+
+	return ws.RequestBody {
+		Jsonrpc: "2.0",
+		ID: 1,
+		Method: "accountSubscribe",
+		Params: watchRequestParams,
+	}
+}
+
+func buildLogsSubscribeRequest(watched string) ws.LogsSubscribeBody {
+	return ws.LogsSubscribeBody {
+		Jsonrpc: "2.0",
+		ID: 1,
+		Method: "logsSubscribe",
+		Params: []ws.LogsSubscribeParam {
+			{
+				Mentions: []string {
+					watched,
+				},
+			},
+			{
+				Commitment: "finalized",
+			},
+		},
+	}
+}
+func TestMintWatcher(t *testing.T) {
+	var err error
+
+	deployer, err := NewOperatingAddress(t, "../private-keys/_test_deployer-pk-deployer.json", nil)
+	ValidateError(t, err)
+
+	// ibportProgram, err := NewOperatingAddress(t, "../private-keys/_test_only_ibport-program.json", &OperatingAddressBuilderOptions{
+	// 	WithPDASeeds: []byte(executor.IBPortPDABumpSeeds),
+	// })
+	// ValidateError(t, err)
+
+	RPCEndpoint, _ := InferSystemDefinedRPC()
+	WSEndpoint, err := InferSystemDefinedWebSocketURL()
+	ValidateError(t, err)
+
+	// ibportDataAccount, err := GenerateNewAccount(deployer.PrivateKey, IBPortAllocation, ibportProgram.PublicKey.ToBase58(), RPCEndpoint)
+	// ValidateError(t, err)
+
+	WrappedFaucet(t, deployer.PKPath, "", 10)
+
+	waitTransactionConfirmations()
+
+	tokenDeployResult, err := CreateToken(deployer.PKPath)
+	ValidateError(t, err)
+
+	tokenProgramAddress := tokenDeployResult.Token.ToBase58()
+
+	fmt.Printf("Token deployed: %v \n", tokenDeployResult.Signature)
+
+	deployerTokenAccount, err := CreateTokenAccount(deployer.PKPath, tokenProgramAddress)
+	ValidateError(t, err)
+
+	waitTransactionConfirmations()
+
+
+	// ibportExecutor, err := InitGenericExecutor(
+	// 	deployer.PrivateKey,
+	// 	ibportProgram.PublicKey.ToBase58(),
+	// 	ibportDataAccount.Account.PublicKey.ToBase58(),
+	// 	"",
+	// 	RPCEndpoint,
+	// 	common.PublicKeyFromString(""),
+	// )
+	// ValidateError(t, err)
+
+	// ibportExecutor.BuildAndInvoke(
+
+	// )
+
+	// waitTransactionConfirmations()
+
+	fmt.Printf("WS Endpoint: %v \n", WSEndpoint)
+	// u := url.URL{Scheme: "ws", Host: WSEndpoint, Path: "/" }
+
+
+	log.Printf("connecting to %s", WSEndpoint)
+
+	c, _, err := websocket.DefaultDialer.Dial(WSEndpoint, nil)
+	ValidateError(t, err)
+
+	defer c.Close()
+
+	done := make(chan struct{})
+
+
+	// {
+	// 	"jsonrpc": "2.0",
+	// 	"id": 1,
+	// 	"method": "accountSubscribe",
+	// 	"params": [
+	// 	  "CM78CPUeXjn8o3yroDHxUtKsZZgoy4GPkPPXfouKNH12",
+	// 	  {
+	// 		"encoding": "base64",
+	// 		"commitment": "finalized"
+	// 	  }
+	// 	]
+	//   }
+
+	// mint some tokens for deployer
+	go func() {
+		time.Sleep(time.Second * 3)
+		err = MintToken(deployer.PKPath, tokenProgramAddress, 1_000_000, deployerTokenAccount)
+		ValidateError(t, err)
+
+		t.Log("Minted some tokens")
+	}()
+
+	
+	// buildAccountUnsubscribeRequest := func(subID int64) WSRequestBody {
+	// 	return WSRequestBody {
+	// 		Jsonrpc: "2.0",
+	// 		ID: 1,
+	// 		Method: "accountSubscribe",
+	// 		Params: []interface{} {
+	// 			subID,
+	// 		},
+	// 	}
+	// }
+	
+	// watchRequest := buildAccountSubscribeRequest(deployerTokenAccount)
+	watchRequest := buildLogsSubscribeRequest(deployerTokenAccount)
+
+	watchRequestBytes, err := json.Marshal(&watchRequest)
+	ValidateError(t, err)
+
+	err = c.WriteMessage(websocket.TextMessage, watchRequestBytes)
+	ValidateError(t, err)
+
+	// go func() {
+	// 	defer close(done)
+
+	// 	for {
+	// 		_, message, err := c.ReadMessage()
+	// 		if err != nil {
+	// 			log.Println("read:", err)
+	// 			return
+	// 		}
+	// 		log.Printf("recv: %s", message)
+	// 	}
+	// }()
+	defer close(done)
+
+	for {
+		_, message, err := c.ReadMessage()
+		if err != nil {
+			log.Println("read:", err)
+			return
+		}
+		log.Printf("recv: %s", message)
+
+
+		var responseUnpacked ws.LogsSubscribeNotification
+		err = json.Unmarshal(message, &responseUnpacked)
+		if err != nil {
+			fmt.Printf("Error on WSLogsSubscribeNotification unpack: %v \n", err)
+			continue
+		}
+
+		txID := responseUnpacked.Params.Result.Value.Signature
+		if txID == "" {
+			continue
+		}
+
+		solanaClient := solclient.NewClient(RPCEndpoint)
+
+		ctx := context.Background()
+		
+		response, err := solanaClient.GetConfirmedTransaction(ctx, txID)
+		ValidateError(t, err)
+
+		fmt.Printf("RESPONSE: %+v \n", response)
+		// var responseUnpacked WSAccountNotification
+		// err = json.Unmarshal(message, &responseUnpacked)
+		// if err != nil {
+		// 	fmt.Printf("Error on WSAccountNotification unpack: %v \n", err)
+		// 	continue
+		// }
+
+		// if len(responseUnpacked.Params.Result.Value.Data) == 0 {
+		// 	continue
+		// }
+
+		// accountValue := responseUnpacked.Params.Result.Value.Data[0]
+		// decodedAccountValue, err := base64.StdEncoding.DecodeString(accountValue)
+		// ValidateError(t, err)
+
+		// tokenAccount, err := tokenprog.TokenAccountFromData(decodedAccountValue)
+		// ValidateError(t, err)
+
+
+		// if err != nil {
+		// 	// log.Println("read:", err)
+		// 	fmt.Printf("Error on TokenAccount unpack: %v \n", err)
+		// 	continue
+		// }
+
+		// log.Printf("recv: %s", message)
+
+		// fmt.Printf("%+v \n", tokenAccount)
+	}
+
+	// ticker := time.NewTicker(time.Second)
+	// defer ticker.Stop()
+
+	// for {
+	// 	select {
+	// 	case <-done:
+	// 		return
+	// 	case t := <-ticker.C:
+	// 		err := c.WriteMessage(websocket.TextMessage, []byte(t.String()))
+	// 		if err != nil {
+	// 			log.Println("write:", err)
+	// 			return
+	// 		}
+	// 	}
+	// }
 }

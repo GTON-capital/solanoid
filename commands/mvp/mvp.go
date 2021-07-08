@@ -129,8 +129,12 @@ func ProcessMVP_PolygonSolana() error {
 		return err
 	}
 
-	transferAmount := float64(int64(rand.Float64()*1000)) / 1e6
+	randomFloat := func() float64 {
+		return (rand.NormFloat64() + (float64(time.Now().Second()) / 60)) / 10
+	}
 
+	transferAmount := float64(int64(randomFloat()*1000)) / 1e6
+	
 	// gtonToken.Set(0.0000227)
 	gtonToken.Set(transferAmount)
 
@@ -155,6 +159,8 @@ func ProcessMVP_PolygonSolana() error {
 	}
 
 	fmt.Printf("Approve %v GTON spend tx (Polygon): %v \n", gtonToken.Float(), approveTx.Hash().Hex())
+
+	time.Sleep(time.Second * 10)
 
 	fmt.Printf("Locking %v GTON \n", gtonToken.Float())
 

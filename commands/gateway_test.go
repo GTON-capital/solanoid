@@ -73,13 +73,14 @@ func TestRunSolanaGatewayDeployment(t *testing.T) {
 
 	RPCEndpoint, _ := InferSystemDefinedRPC()
 
-	// tokenDeployResult, err := CreateToken(deployer.PKPath)
-	// ValidateError(t, err)
-
-	// tokenProgramAddress := tokenDeployResult.Token.ToBase58()
+	tokenDeployResult, err := CreateToken(deployer.PKPath)
+	ValidateError(t, err)
+	
+	tokenProgramAddress := tokenDeployResult.Token.ToBase58()
+	fmt.Printf("token address: %v \n", tokenProgramAddress)
 
 	// SuSy Wrapped GTON Token Address
-	tokenProgramAddress := "FP5MgcQaD3ppWDqfjXouftsWQBSPW2suRzduLAFs712S"
+	// tokenProgramAddress := "FP5MgcQaD3ppWDqfjXouftsWQBSPW2suRzduLAFs712S"
 
 	waitTransactionConfirmations()
 
@@ -177,3 +178,4 @@ func TestRunSolanaGatewayDeployment(t *testing.T) {
 	fmt.Printf("balanceAfterDeploy: %v SOL; \n", balanceAfterDeploy)
 	fmt.Printf("balance diff: %v SOL; \n", balanceBeforeDeploy-balanceAfterDeploy)
 }
+

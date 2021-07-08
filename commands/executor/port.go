@@ -83,7 +83,10 @@ func (ix *CreateTransferUnwrapRequestInstruction) Pack() []byte {
 
 func (port *IBPortInstructionBuilder) CreateTransferUnwrapRequest(receiver [32]byte, amount float64) interface{} {
 	var requestID [16]byte
-    rand.Read(requestID[:])
+
+	// uint id = uint(keccak256(abi.encodePacked(msg.sender, receiver, block.number, amount)));
+
+	rand.Read(requestID[:])
 
 	fmt.Printf("CreateTransferUnwrapRequest - rq_id: %v amount: %v \n", requestID, amount)
 	amountBytes := float64ToByte(amount)

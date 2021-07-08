@@ -66,7 +66,7 @@ type SendValueToSubsNebulaContractInstruction struct {
 }
 type SendHashValueNebulaContractInstruction struct {
 	Instruction uint8
-	DataValue   [64]byte
+	DataValue   [32]byte
 }
 
 type NebulaInstructionBuilder struct{}
@@ -101,7 +101,7 @@ func (port *NebulaInstructionBuilder) SendValueToSubs(data [64]byte, dataType ui
 	}
 }
 
-func (port *NebulaInstructionBuilder) SendHashValue(data [64]byte) interface{} {
+func (port *NebulaInstructionBuilder) SendHashValue(data [32]byte) interface{} {
 	return SendHashValueNebulaContractInstruction{
 		Instruction: 2,
 		DataValue:   data,
