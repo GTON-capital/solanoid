@@ -15,8 +15,10 @@ import (
 	"github.com/Gravity-Tech/solanoid/commands/executor"
 
 	luport "github.com/Gravity-Tech/gateway/abi/ethereum/luport"
+	"github.com/portto/solana-go-sdk/common"
 	solcommon "github.com/portto/solana-go-sdk/common"
 	soltoken "github.com/portto/solana-go-sdk/tokenprog"
+	"github.com/portto/solana-go-sdk/types"
 	soltypes "github.com/portto/solana-go-sdk/types"
 
 	ethbind "github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -47,7 +49,7 @@ func ProcessMVP_PolygonSolana() error {
 		return err
 	}
 
-	IBPortProgramPDA := solcommon.PublicKeyFromString("CYEnZhJdYaUjgFtGQ2FgXe4vp4zMiqY8RsdqwNFduxdm")
+	// IBPortProgramPDA := solcommon.PublicKeyFromString("CYEnZhJdYaUjgFtGQ2FgXe4vp4zMiqY8RsdqwNFduxdm")
 
 	extractorCfg := &extractorCfg{
 		originDecimals:      18,
@@ -55,9 +57,10 @@ func ProcessMVP_PolygonSolana() error {
 		chainID:             137,
 		originNodeURL:       "https://rpc-mainnet.maticvigil.com",
 		// originNodeURL: "https://rpc-mainnet.matic.quiknode.pro",
+		// originNodeURL: "https://apis.ankr.com/6052791850e6426392593b0ddba45bf5/d37735e535d9d051230799cae45aeb6a/polygon/full/main",
 		// originNodeURL: "https://matic-mainnet.chainstacklabs.com",
 		destinationNodeURL: "https://api.mainnet-beta.solana.com",
-		luportAddress:      "0x7725d618122F9A2Ce368dA1624Fbc79ce197c438",
+		luportAddress:      "0xD2C80231a5E1C7B621c2bb96819b20a00E1be7D2",
 		ibportDataAccount:  "9kwBfNbrQAEmEqkZbvMCKkefuJBj7nuqWrq6dzUhW5fJ",
 		ibportProgramID:    "AH3QKaj942UUxDjaRaGh7hvdadsD8yfU9LRTa9KXfJkZ",
 	}
@@ -76,7 +79,8 @@ func ProcessMVP_PolygonSolana() error {
 	}
 
 	transactor, err := ethbind.NewKeyedTransactorWithChainID(polygonGTONHolder.PrivKey, big.NewInt(extractorCfg.chainID))
-	transactor.GasLimit = 10 * 150000
+	transactor.GasLimit = 1_000_000
+	// transactor.GasPrice = big.NewInt(30000)
 	transactor.Context = polygonCtx
 
 	if err != nil {
@@ -147,7 +151,12 @@ func ProcessMVP_PolygonSolana() error {
 		return err
 	}
 
+
 	fmt.Printf("Approving %v GTON spend (Polygon) \n", gtonToken.Float())
+
+	polygonTransactor.transactor.Context = context.Background()
+	polygonTransactor.transactor.GasLimit = 1_000_000
+	// polygonTransactor.transactor.GasPrice = big.NewInt(100000)
 
 	approveTx, err := gtonERC20.Approve(
 		polygonTransactor.transactor,
@@ -158,9 +167,13 @@ func ProcessMVP_PolygonSolana() error {
 		return err
 	}
 
-	fmt.Printf("Approve %v GTON spend tx (Polygon): %v \n", gtonToken.Float(), approveTx.Hash().Hex())
+	// time.Sleep(time.Second * 30)
+	_, err = ethbind.WaitMined(polygonTransactor.transactor.Context, polygonTransactor.ethClient, approveTx)
+	if err != nil {
+		return err
+	}
 
-	time.Sleep(time.Second * 10)
+	fmt.Printf("Approve %v GTON spend tx (Polygon): %v \n", gtonToken.Float(), approveTx.Hash().Hex())
 
 	fmt.Printf("Locking %v GTON \n", gtonToken.Float())
 
@@ -170,6 +183,11 @@ func ProcessMVP_PolygonSolana() error {
 		gtonToken.AsOriginBigInt(),
 		solcommon.PublicKeyFromString(solanaGTONTokenAccount),
 	)
+	if err != nil {
+		return err
+	}
+
+	_, err = ethbind.WaitMined(polygonTransactor.transactor.Context, polygonTransactor.ethClient, lockFundsTx)
 	if err != nil {
 		return err
 	}
@@ -207,9 +225,9 @@ func ProcessMVP_PolygonSolana() error {
 		err = solanaDepositAwaiter.AwaitTokenDeposit(solanaDepositBuffer)
 	}()
 
-	if err != nil {
-		return err
-	}
+	// if err != nil {
+	// 	return err
+	// }
 
 	for event := range solanaDepositBuffer {
 		tokenDataState := event.(soltoken.TokenAccount)
@@ -230,12 +248,24 @@ func ProcessMVP_PolygonSolana() error {
 		return err
 	}
 
-	err = commands.DelegateSPLTokenAmount(solanaGTONHolder.PKPath, gtonToken.cfg.destinationAddress, IBPortProgramPDA.ToBase58(), gtonToken.Float())
+	ibPortPDA, err := common.CreateProgramAddress([][]byte{[]byte(executor.IBPortPDABumpSeeds)}, common.PublicKeyFromString(extractorCfg.ibportProgramID))
 	if err != nil {
 		return err
 	}
 
-	time.Sleep(time.Second * 20)
+	ibportExecutor.SetAdditionalMeta([]types.AccountMeta{
+		{PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false},
+		{PubKey: common.PublicKeyFromString(gtonToken.cfg.destinationAddress), IsWritable: true, IsSigner: false},
+		{PubKey: common.PublicKeyFromString(solanaGTONTokenAccount), IsWritable: true, IsSigner: false},
+		{PubKey: ibPortPDA, IsWritable: false, IsSigner: false},
+	})
+
+	err = commands.DelegateSPLTokenAmountWithFeePayer(solanaGTONHolder.PKPath, solanaGTONTokenAccount, ibPortPDA.ToBase58(), gtonToken.Float())
+	if err != nil {
+		return err
+	}
+
+	time.Sleep(time.Second * 45)
 
 	fmt.Printf("Approved %v GTON spend (Solana) \n", gtonToken.Float())
 
@@ -257,7 +287,7 @@ func ProcessMVP_PolygonSolana() error {
 		return err
 	}
 
-	time.Sleep(time.Second * 25)
+	time.Sleep(time.Second * 45)
 
 	fmt.Printf("Lock %v GTON tx (Solana): %v \n", gtonToken.Float(), burnFundsResponse.TxSignature)
 

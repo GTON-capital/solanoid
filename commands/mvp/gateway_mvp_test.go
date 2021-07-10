@@ -62,7 +62,7 @@ func BuildMVPConfig() (*MVPConfig, error) {
 		originNodeURL:       "https://rpc-mainnet.maticvigil.com",
 		destinationNodeURL: "https://api.mainnet-beta.solana.com",
 		luportAddress:      "0x7725d618122F9A2Ce368dA1624Fbc79ce197c438",
-		ibportDataAccount:  "9kwBfNbrQAEmEqkZbvMCKkefuJBj7nuqWrq6dzUhW5fJ",
+		ibportDataAccount:  "B9mZLg1yk7eFPBJ7PSN15tHVzuWidKg5L68uzCiSAsSm",
 		ibportProgramID:    "AH3QKaj942UUxDjaRaGh7hvdadsD8yfU9LRTa9KXfJkZ",
 	}
 
@@ -217,23 +217,25 @@ func TestBurn_PolygonSolana(t *testing.T) {
 
 	solanaGTONHolder, err := commands.ReadOperatingAddress(t, "../../public/from-polygon-gton-recipient.json")
 	commands.ValidateError(t, err)
-	_ = solanaGTONHolder
+	// _ = solanaGTONHolder
 
 	// solanaGTONTokenAccount := "FMtjwGs2V6j3eWvZhLA18tkHuzvBHfpjFcCuuvsweuwC"
 	solanaGTONTokenAccount := meta.SolanaGTONTokenRecever
 
-	burnAmount := 0.0001
+	burnAmount := 0.00003051995432112345
+	// burnAmount := 0.00003
 
 	_ = solanaGTONTokenAccount
 	// delegate amount to port BINARY for burning and request creation
-	err = commands.DelegateSPLTokenAmount(solanaGTONHolder.PKPath, solanaGTONTokenAccount, ibPortPDA.ToBase58(), burnAmount)
+	err = commands.DelegateSPLTokenAmountWithFeePayer(solanaGTONHolder.PKPath, solanaGTONTokenAccount, ibPortPDA.ToBase58(), burnAmount)
 	commands.ValidateError(t, err)
 
 	t.Log("Delegated some tokens to ibport from  deployer")
 	t.Log("Creating cross chain transfer tx")
 
 	// executor.waitTransactionConfirmations()
-	waitTransactionConfirmations()
+	// waitTransactionConfirmations()
+	time.Sleep(time.Second * 30)
 
 	// ethReceiverPK, err := ethcrypto.GenerateKey()
 	// commands.ValidateError(t, err)
@@ -255,7 +257,6 @@ func TestBurn_PolygonSolana(t *testing.T) {
 		common.PublicKeyFromString(""),
 	)
 	commands.ValidateError(t, err)
-
 
 	ibportExecutor.SetAdditionalMeta([]types.AccountMeta{
 		{PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false},

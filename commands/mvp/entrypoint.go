@@ -1,8 +1,10 @@
 package mvp
 
 import (
+	"fmt"
 	"log"
 	"os"
+	"runtime/debug"
 
 	"github.com/urfave/cli/v2"
 )
@@ -28,7 +30,10 @@ func RunMVP() {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			return ProcessMVP_PolygonSolana()
+			err := ProcessMVP_PolygonSolana()
+			fmt.Printf("Error occured during MVP: %v \n", err)
+			debug.PrintStack()
+			return err
 		},
 	}
 
