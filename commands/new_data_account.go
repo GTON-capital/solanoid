@@ -22,7 +22,8 @@ import (
 const (
 	GravityContractAllocation = 299
 	MultisigAllocation        = 355
-	IBPortAllocation          = 1500
+	IBPortAllocation          = 150000
+	LUPortAllocation          = 150000
 	NebulaAllocation          = 1500
 )
 

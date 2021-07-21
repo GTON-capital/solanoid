@@ -632,3 +632,5 @@ func TestCheckBalanceDiffOn100BytesAlloc(t *testing.T) {
 
 	fmt.Printf("diff of balance: %v \n ", balanceAfterDeploy - balanceBeforeDeploy)
 }
+
+
