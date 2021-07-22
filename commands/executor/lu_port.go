@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"fmt"
 
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/portto/solana-go-sdk/common"
 )
 
@@ -49,6 +50,15 @@ func (ix *CreateTransferWrapRequestInstruction) Pack() []byte {
 	res = append(res, ix.Receiver[:]...)
 
 	return res
+}
+
+
+func RandomEVMAddress() [32]byte {
+	ethReceiverPK, _ := ethcrypto.GenerateKey()
+
+	var ethReceiverAddress [32]byte
+	copy(ethReceiverAddress[:], ethcrypto.PubkeyToAddress(ethReceiverPK.PublicKey).Bytes())
+	return ethReceiverAddress
 }
 
 func (port *LUPortInstructionBuilder) CreateTransferWrapRequest(receiver [32]byte, amount float64) interface{} {

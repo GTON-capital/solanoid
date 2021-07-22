@@ -174,6 +174,7 @@ func CreateToken(ownerPrivateKeysPath string) (*TokenCreateResult, error) {
 	output, err := cmd.CombinedOutput()
 
 	if err != nil {
+		fmt.Println(string(output))
 		return nil, err
 	}
 
@@ -465,6 +466,7 @@ func DeploySolanaProgram(t *testing.T, tag string, programPrivateKeysPath, deplo
 	t.Logf("Program: %v; Deployed Program ID is: %v\n", tag, programID)
 
 	if err != nil {
+		t.Log(string(output))
 		return "", err
 	}
 
