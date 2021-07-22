@@ -74,6 +74,9 @@ func TestLUPortFullFlow(t *testing.T) {
 
 	deployerTokenAccount, err := CreateTokenAccount(deployer.PKPath, tokenMint.ToBase58())
 	ValidateError(t, err)
+	
+	luportTokenAccount, err := CreateTokenAccount(luportProgram.PKPath, tokenMint.ToBase58())
+	ValidateError(t, err)
 
 	luportAddress := luportProgram.PublicKey.ToBase58()
 
@@ -127,7 +130,7 @@ func TestLUPortFullFlow(t *testing.T) {
 		{PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false},
 		{PubKey: tokenMint, IsWritable: true, IsSigner: false},
 		{PubKey: common.PublicKeyFromString(deployerTokenAccount), IsWritable: true, IsSigner: false},
-		{PubKey: luportProgram.PDA, IsWritable: false, IsSigner: false},
+		{PubKey: common.PublicKeyFromString(luportTokenAccount), IsWritable: true, IsSigner: false},
 	})
 
 	evmReceiver := executor.RandomEVMAddress()
@@ -142,9 +145,9 @@ func TestLUPortFullFlow(t *testing.T) {
 		executor.LUPortIXBuilder.CreateTransferWrapRequest(evmReceiver, lockAmounts[0]),
 	)
 	ValidateError(t, err)
-	t.Logf("LUPort CreateTransferWrapRequest (%v): %v \n", lockAmounts[0], lockTokens.TxSignature)
+	t.Logf("LUPort #1 CreateTransferWrapRequest (%v): %v \n", lockAmounts[0], lockTokens.TxSignature)
 	
-
+	
 	// dataHashForAttach := executor.BuildCrossChainMintByteVector(swapId, common.PublicKeyFromString(deployerTokenAccount), attachedAmount)
 
 	// allow ibport to mint
