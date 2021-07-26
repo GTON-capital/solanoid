@@ -8,7 +8,9 @@ import (
 	"github.com/portto/solana-go-sdk/common"
 )
 
-
+const (
+	CommonGravityBumpSeeds = "ibport"
+)
 
 func Float64ToBytes(f float64) []byte {
 	return float64ToByte(f)
