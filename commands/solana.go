@@ -401,6 +401,7 @@ func CreateTokenAccountWithFeePayer(currentOwnerPrivateKeyPath, tokenAddress str
 	}
 }
 
+
 func CreateTokenAccount(currentOwnerPrivateKeyPath, tokenAddress string) (string, error) {
 	cmd := exec.Command("spl-token", "create-account", "--owner", currentOwnerPrivateKeyPath, tokenAddress)
 	output, err := cmd.CombinedOutput()

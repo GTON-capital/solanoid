@@ -45,6 +45,8 @@ func TestNebulaSendValueToLUPortSubscriber(t *testing.T) {
 	luportProgram, err := NewOperatingAddress(t, "../private-keys/_test_only_luport-program.json", &OperatingAddressBuilderOptions{
 		WithPDASeeds: []byte(executor.CommonGravityBumpSeeds),
 	})
+
+	t.Logf("LU Port PDA: %v \n", luportProgram.PDA.ToBase58())
 	ValidateError(t, err)
 
 	const BFT = 3
@@ -116,9 +118,6 @@ func TestNebulaSendValueToLUPortSubscriber(t *testing.T) {
 			},
 		},
 	)
-
-	waitTransactionConfirmations()
-
 
 	waitTransactionConfirmations()
 
@@ -215,8 +214,21 @@ func TestNebulaSendValueToLUPortSubscriber(t *testing.T) {
 
 	waitTransactionConfirmations()
 
-	luportTokenAccount, err := CreateTokenAccount(luportProgram.PKPath, tokenMint.ToBase58())
-	ValidateError(t, err)
+	luportTokenAccount, _ := CreateTokenAccount(luportProgram.PKPath, tokenMint.ToBase58())
+
+	
+	// luportTokenAccountResponse, err := GenerateNewTokenAccount(
+	// 	deployer.PrivateKey,
+	// 	165,
+	// 	luportProgram.PDA,
+	// 	tokenMint,
+	// 	RPCEndpoint,
+	// )
+	// ValidateError(t, err)
+
+	// luportTokenAccount := luportTokenAccountResponse.TokenAccount
+	fmt.Printf("LU Port Token Account: %v \n", luportTokenAccount)
+	// luportTokenAccount, err :=  CreateTokenAccount(luportProgram.PKPath, tokenMint.ToBase58())
 
 	luportExecutor.SetAdditionalMeta([]types.AccountMeta{
 		{PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false},
@@ -341,7 +353,7 @@ func TestNebulaSendValueToLUPortSubscriber(t *testing.T) {
 
 	// Should pass valid
 	for i := 0; i < len(hashQueue); i++ {
-		err = attachValue(i, i, nebulaExecutor, operatingConsul.Account, hashQueue[i], consulsList.ToBftSigners(), common.PublicKeyFromString(deployerTokenAccount))
+		err = attachValue(i, i, nebulaExecutor, operatingConsul.Account, hashQueue[i], consulsList.ToBftSigners(), common.PublicKeyFromString(deployerTokenAccount),)
 
 		if i == 0 {
 			ValidateErrorExistence(t, err)
