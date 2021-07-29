@@ -133,7 +133,10 @@ func TestLUPortFullFlow(t *testing.T) {
 		{PubKey: common.PublicKeyFromString(luportTokenAccount), IsWritable: true, IsSigner: false},
 	})
 
-	evmReceiver := executor.RandomEVMAddress()
+	evmReceiver20bytes := executor.RandomEVMAddress()
+	var evmReceiver32bytes [32]byte
+	copy(evmReceiver32bytes[:], evmReceiver20bytes[:])
+
 	lockAmounts := []float64 {
 		1.235,
 		0.4234,
@@ -142,78 +145,24 @@ func TestLUPortFullFlow(t *testing.T) {
 	waitTransactionConfirmations()
 
 	lockTokens, err := luportExecutor.BuildAndInvoke(
-		executor.LUPortIXBuilder.CreateTransferWrapRequest(evmReceiver, lockAmounts[0]),
+		executor.LUPortIXBuilder.CreateTransferWrapRequest(evmReceiver32bytes, lockAmounts[0]),
 	)
 	ValidateError(t, err)
 	t.Logf("LUPort #1 CreateTransferWrapRequest (%v): %v \n", lockAmounts[0], lockTokens.TxSignature)
 	
-
-	// dataHashForAttach := executor.BuildCrossChainMintByteVector(swapId, common.PublicKeyFromString(deployerTokenAccount), attachedAmount)
-
-	// allow ibport to mint
-	// err = AuthorizeToken(t, tokenOwner.PKPath, tokenProgramAddress, "mint", luportProgram.PDA.ToBase58())
-	// ValidateError(t, err)
-	// t.Log("Authorizing ib port to allow minting")
-	// t.Log("Call attach value ")
-
-	// waitTransactionConfirmations()
-
-	// swapId := make([]byte, 16)
-	// rand.Read(swapId)
-
-	// t.Logf("Token Swap  Id: %v \n", swapId)
-
-	// attachedAmount := float64(227)
-
-	// t.Logf("15 - Float As Bytes: %v \n", executor.Float64ToBytes(attachedAmount))
-
-	// dataHashForAttach := executor.BuildCrossChainMintByteVector(swapId, common.PublicKeyFromString(deployerTokenAccount), attachedAmount)
-
-	// ibportCreateTransferUnwrapRequestResult, err := ibportExecutor.BuildAndInvoke(
-	// 	instructionBuilder.AttachValue(dataHashForAttach),
-	// )
-	// ValidateError(t, err)
-
-	// t.Logf("#1 AttachValue - Tx: %v \n", ibportCreateTransferUnwrapRequestResult.TxSignature)
-
-	// t.Logf("Checking for double spend problem \n")
-
-	// swapIdSecond := make([]byte, 16)
-	// rand.Read(swapIdSecond)
-
-	// dataHashForAttachSecond := executor.BuildCrossChainMintByteVector(swapIdSecond, common.PublicKeyFromString(deployerTokenAccount), attachedAmount)
-
-	// waitTransactionConfirmations()
-
-	// ibportCreateTransferUnwrapRequestResult, err = ibportExecutor.BuildAndInvoke(
-	// 	instructionBuilder.AttachValue(dataHashForAttachSecond),
-	// )
-	// ValidateError(t, err)
-
-	// t.Logf("#2 AttachValue - Tx:  %v \n", ibportCreateTransferUnwrapRequestResult.TxSignature)
-
-	// waitTransactionConfirmations()
-
-	// swapIdThird := make([]byte, 16)
-	// rand.Read(swapIdThird)
-
-	// dataHashForAttachThird := executor.BuildCrossChainMintByteVector(swapIdThird, common.PublicKeyFromString(deployerTokenAccount), attachedAmount)
-
-	// waitTransactionConfirmations()
-
-	// ibportCreateTransferUnwrapRequestResult, err = ibportExecutor.BuildAndInvoke(
-	// 	instructionBuilder.AttachValue(dataHashForAttachThird),
-	// )
-	// ValidateError(t, err)
-
-	// t.Logf("#3 AttachValue - Tx:  %v \n", ibportCreateTransferUnwrapRequestResult.TxSignature)
-
-	// ibportCreateTransferUnwrapRequestResult, err = ibportExecutor.BuildAndInvoke(
-	// 	instructionBuilder.AttachValue(dataHashForAttachThird),
-	// )
-
-	// if err != nil {
-	// 	t.Logf("Program must fail with error 0x1 \n")
-	// 	t.Logf("If so - double spend has been prevented \n")
+	// baBuilder := executor.SolanaToEVMBABuilder{
+	// 	Amount: lockAmounts[0],
+	// 	// Receiver: evmReceiver,
+	// 	Origin: common.PublicKeyFromString(deployerTokenAccount),
 	// }
+	// baBuilder.SetCfg(executor.BACfg{
+	// 	OriginDecimals: 8,
+	// 	DestDecimals: 18,
+	// })
+
+	// failingDataHashForAttach := baBuilder.BuildForReverse()
+
+	// baBuilder.Receiver = evmReceiver20bytes
+	// correctDataHashForAttach := baBuilder.BuildForReverse()
+
 }

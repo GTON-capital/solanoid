@@ -53,10 +53,10 @@ func (ix *CreateTransferWrapRequestInstruction) Pack() []byte {
 }
 
 
-func RandomEVMAddress() [32]byte {
+func RandomEVMAddress() [20]byte {
 	ethReceiverPK, _ := ethcrypto.GenerateKey()
 
-	var ethReceiverAddress [32]byte
+	var ethReceiverAddress [20]byte
 	copy(ethReceiverAddress[:], ethcrypto.PubkeyToAddress(ethReceiverPK.PublicKey).Bytes())
 	return ethReceiverAddress
 }

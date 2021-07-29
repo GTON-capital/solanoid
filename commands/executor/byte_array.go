@@ -20,6 +20,61 @@ type CrossChainBridgeBABuilder interface {
 	BuildForReverse() []byte
 }
 
+type EVMSOLByteArrayData struct {
+	SwapID []byte
+	Amount *big.Int
+	Receiver []byte
+	Operation byte
+}
+
+// func ParseByteArrayData(arr []byte) (*EVMSOLByteArrayData, error) {
+// 	// cmd (1 byte) + swap id (32 bytes) + amount (8 bytes) + receiver (20 bytes)
+
+// 	var offset int
+// 	if len(arr) == 61 {
+// 		Operation := arr[0]
+// 		offset += 1
+
+// 		var SwapID []byte
+// 		copy(SwapID[:], arr[offset:offset + 32])
+// 		offset += 32
+
+// 		Amount := big.NewInt(0).SetBytes(arr[offset:offset + 8])
+// 		offset += 8
+
+// 		Receiver := 
+// 		offset += 8
+
+// 		return &EVMSOLByteArrayData {
+// 			SwapID,
+// 			Amount,
+// 			Operation,
+// 			Receiver,
+// 		}, nil
+// 	}
+// 	if len(arr) == 57 {
+// 		Operation := arr[0]
+// 		offset += 1
+
+// 		var SwapID [32]byte
+// 		copy(SwapID[:], arr[offset:offset + 16])
+// 		offset += 16
+
+// 		Amount := big.NewInt(0).SetBytes(arr[offset:offset + 8])
+// 		offset += 8
+
+// 		Receiver
+// 		// res = append(res, 'm')
+// 		// // swap id
+// 		// res = append(res, swapId[0:16]...)
+// 		// // amount
+// 		// res = append(res, Float64ToBytes(amount)...)
+// 		// // receiver
+// 		// res = append(res, receiver[:]...)
+// 	}
+
+// 	return nil, fmt.Errorf("invalid byte arr")
+// }
 
 type EVMToSolanaBABuilder struct {
 	lastSwapID [32]byte

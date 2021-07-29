@@ -167,7 +167,7 @@ func TestPDA(t *testing.T) {
 func waitTransactionConfirmations() {
 	// time.Sleep(time.Millisecond * 500)
 	// time.Sleep(time.Second * 10)
-	time.Sleep(time.Second * 5) // the most safe timeout
+	time.Sleep(time.Second * 3) // the most safe timeout
 	// time.Sleep(time.Second * 30)
 	// time.Sleep(time.Second * 30)
 	// time.Sleep(time.Second * 45)
