@@ -312,10 +312,10 @@ func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 			nebulaAttachResponse, err := nebulaExecutor.BuildAndInvoke(
 				nebulaBuilder.SendValueToSubs(rawDataValue, nebula.Bytes, uint64(pulseID), subID),
 			)
+			ValidateError(t, err)
 			if err != nil {
 				continue
 			}
-			ValidateError(t, err)
 		
 			fmt.Printf("#%v Nebula SendValueToSubs Call:  %v \n", i, nebulaAttachResponse.TxSignature)
 
@@ -420,41 +420,41 @@ func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 
 	waitTransactionConfirmations()
 
-	approvedLimitBurnsResult, err = sendNumerousBurnRequests(1)
-	ValidateErrorExistence(t, err)
+	// approvedLimitBurnsResult, err = sendNumerousBurnRequests(1)
+	// ValidateErrorExistence(t, err)
 
-	t.Logf("+1 On limit unwrap must have failed: %v \n", err)
+	// t.Logf("+1 On limit unwrap must have failed: %v \n", err)
 
-	waitTransactionConfirmations()
+	// waitTransactionConfirmations()
 
-	t.Logf("Now - process unconfirmed requests on ib port \n")
+	// t.Logf("Now - process unconfirmed requests on ib port \n")
 
-	t.Logf("Setting one of the oracles as the invoker")
-	ibportExecutor.SetDeployerPK(operatingConsul.Account)
+	// t.Logf("Setting one of the oracles as the invoker")
+	// ibportExecutor.SetDeployerPK(operatingConsul.Account)
 
-	for j, portOperation := range allTotallySentByteOperations[0 : len(allTotallySentByteOperations)-1] {
-		byteArr := portOperation.Pack()
-		fmt.Printf("byteArr: %v \n", byteArr)
-		fmt.Printf("byteArr(len): %v \n", len(byteArr))
-		ix := ibportInstructionBuilder.ConfirmProcessedRequest(portOperation.Pack())
+	// for j, portOperation := range allTotallySentByteOperations[0 : len(allTotallySentByteOperations)-1] {
+	// 	byteArr := portOperation.Pack()
+	// 	fmt.Printf("byteArr: %v \n", byteArr)
+	// 	fmt.Printf("byteArr(len): %v \n", len(byteArr))
+	// 	ix := ibportInstructionBuilder.ConfirmProcessedRequest(portOperation.Pack())
 
-		confirmRes, err := ibportExecutor.BuildAndInvoke(
-			ix,
-		)
-		ValidateError(t, err)
+	// 	confirmRes, err := ibportExecutor.BuildAndInvoke(
+	// 		ix,
+	// 	)
+	// 	ValidateError(t, err)
 
-		t.Logf("Confirm Swap #%v: Tx: %v \n", j, confirmRes.TxSignature)
+	// 	t.Logf("Confirm Swap #%v: Tx: %v \n", j, confirmRes.TxSignature)
 
-		waitTransactionConfirmations()
-	}
+	// 	waitTransactionConfirmations()
+	// }
 
-	allTotallySentByteOperations = make([]executor.PortOperation, 10)
+	// allTotallySentByteOperations = make([]executor.PortOperation, 10)
 
-	approvedLimitBurnsResult, err = sendNumerousBurnRequests(5)
-	ValidateError(t, err)
-	t.Logf("Sent %v times: CreateTransferUnwrapRequest - Tx: %v \n", i, approvedLimitBurnsResult.TxSignature)
+	// approvedLimitBurnsResult, err = sendNumerousBurnRequests(5)
+	// ValidateError(t, err)
+	// t.Logf("Sent %v times: CreateTransferUnwrapRequest - Tx: %v \n", i, approvedLimitBurnsResult.TxSignature)
 
-	waitTransactionConfirmations()
+	// waitTransactionConfirmations()
 }
 
 

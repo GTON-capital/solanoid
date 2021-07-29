@@ -148,7 +148,7 @@ func TestLUPortFullFlow(t *testing.T) {
 	t.Logf("LUPort #1 CreateTransferWrapRequest (%v): %v \n", lockAmounts[0], lockTokens.TxSignature)
 	
 
-	dataHashForAttach := executor.BuildCrossChainMintByteVector(swapId, common.PublicKeyFromString(deployerTokenAccount), attachedAmount)
+	// dataHashForAttach := executor.BuildCrossChainMintByteVector(swapId, common.PublicKeyFromString(deployerTokenAccount), attachedAmount)
 
 	// allow ibport to mint
 	// err = AuthorizeToken(t, tokenOwner.PKPath, tokenProgramAddress, "mint", luportProgram.PDA.ToBase58())
