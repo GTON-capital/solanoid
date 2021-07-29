@@ -552,8 +552,9 @@ func TestIBPortTransferOwnership(t *testing.T) {
 	waitTransactionConfirmations()
 
 	ibportInitResult, err := ibportExecutor.BuildAndInvoke(
-		executor.IBPortIXBuilder.InitWithOracles(*new(common.PublicKey), common.TokenProgramID, BFT, consulsList.ConcatConsuls()),
+		executor.IBPortIXBuilder.InitWithOracles(*new(common.PublicKey), common.TokenProgramID, common.PublicKeyFromString(tokenA), BFT, consulsList.ConcatConsuls()),
 	)
+	ValidateError(t, err)
 	fmt.Printf("IB Port - Init: %v \n", ibportInitResult.TxSignature)
 
 	waitTransactionConfirmations()

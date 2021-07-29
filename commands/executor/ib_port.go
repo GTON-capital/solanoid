@@ -31,17 +31,20 @@ func (port *IBPortInstructionBuilder) Init(nebula, token common.PublicKey) inter
 	}
 }
 
-func (port *IBPortInstructionBuilder) InitWithOracles(nebula, token common.PublicKey, bft uint8, oracles []byte) interface{} {
+
+func (port *IBPortInstructionBuilder) InitWithOracles(nebula, token, tokenMint common.PublicKey, bft uint8, oracles []byte) interface{} {
 	return struct {
 		Instruction       uint8
 		NebulaDataAccount common.PublicKey
 		TokenDataAccount  common.PublicKey
+		TokenMint         common.PublicKey
 		Bft               uint8
 		Oracles           []byte
 	}{
 		Instruction:       0,
 		NebulaDataAccount: nebula,
 		TokenDataAccount:  token,
+		TokenMint:         tokenMint,
 		Bft:               bft,
 		Oracles:           oracles,
 	}

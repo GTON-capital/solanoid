@@ -190,7 +190,7 @@ func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 			},
 			func() {
 				ibportInitResult, err := ibportExecutor.BuildAndInvoke(
-					executor.IBPortIXBuilder.InitWithOracles(nebulaProgram.PublicKey, common.TokenProgramID, BFT, consulsList.ConcatConsuls()),
+					executor.IBPortIXBuilder.InitWithOracles(nebulaProgram.PublicKey, common.TokenProgramID, tokenDeployResult.Token, BFT, consulsList.ConcatConsuls()),
 				)
 
 				fmt.Printf("IB Port Init: %v \n", ibportInitResult.TxSignature)

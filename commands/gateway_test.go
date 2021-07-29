@@ -145,7 +145,7 @@ func TestRunSolanaGatewayDeployment(t *testing.T) {
 	waitTransactionConfirmations()
 
 	ibportInitResult, err := ibportExecutor.BuildAndInvoke(
-		ibportBuilder.InitWithOracles(nebulaProgram.PublicKey, common.TokenProgramID, BFT, consulsAsByteList),
+		ibportBuilder.InitWithOracles(nebulaProgram.PublicKey, common.TokenProgramID, tokenDeployResult.Token, BFT, consulsAsByteList),
 	)
 
 	fmt.Printf("IB Port Init: %v \n", ibportInitResult.TxSignature)
