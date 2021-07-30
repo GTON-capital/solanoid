@@ -303,17 +303,22 @@ func ReadSPLTokenBalance(ownerPrivateKeysPath, tokenProgramAddress string) (floa
 
 
 // spl-token transfer <TOKEN_ADDRESS> <TOKEN_AMOUNT> <RECIPIENT_ADDRESS or RECIPIENT_TOKEN_ACCOUNT_ADDRESS> --config <PATH>
-func TransferSPLTokensAllowUnfunded(tokenHolderPath, tokenAddress, recipient string, amount float64) error {
+func TransferSPLTokensAllowUnfunded(tokenHolderPath, tokenAddress, recipient string, amount float64) CreateTokenAccountResponse {
 	cmd := exec.Command("spl-token", "transfer", "--fund-recipient", "--allow-unfunded-recipient", "--owner",
 		tokenHolderPath, tokenAddress, fmt.Sprintf("%v", amount), recipient)
 	output, err := cmd.CombinedOutput()
 	fmt.Printf(string(output))
 
 	if err != nil {
-		return err
+		return CreateTokenAccountResponse { Error: err }
 	}
 
-	return nil
+	dataAccountCatchRegex, _ := regexp.Compile("Recipient associated token account: .+")
+	tokenDataAccount := trimAndTakeAtIndex(string(dataAccountCatchRegex.Find(output)), " ", 4)
+
+	return CreateTokenAccountResponse {
+		TokenAccount: tokenDataAccount,
+	}
 }
 
 

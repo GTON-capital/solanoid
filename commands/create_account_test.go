@@ -68,10 +68,10 @@ func TestCreateAccountForPDA(t *testing.T) {
 
 	waitTransactionConfirmations()
 
-	// fmt.Printf("LU Port PDA token account: %v \n", luportTokenAccount)
 
 	// err = TransferSPLTokensAllowUnfunded(deployer.PKPath, tokenMint.ToBase58(), luportProgram.PublicKey.ToBase58(), 1)
-	err = TransferSPLTokensAllowUnfunded(deployer.PKPath, tokenMint.ToBase58(), luportProgram.PDA.ToBase58(), 1)
-	ValidateError(t, err)
+	assocTokenCreateResponse := TransferSPLTokensAllowUnfunded(deployer.PKPath, tokenMint.ToBase58(), luportProgram.PDA.ToBase58(), 0)
+	ValidateError(t, assocTokenCreateResponse.Error)
 
+	fmt.Printf("LU Port PDA token account: %v \n", assocTokenCreateResponse.TokenAccount)
 }

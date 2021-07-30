@@ -102,18 +102,6 @@ func TestNebulaSendValueToLUPortSubscriber(t *testing.T) {
 	luportDataAccount, err := GenerateNewAccount(deployer.PrivateKey, LUPortAllocation, luportProgram.PublicKey.ToBase58(), RPCEndpoint)
 	ValidateError(t, err)
 
-	luportTokenAccountResponse, err := GenerateNewTokenAccount(
-		deployer.PrivateKey,
-		165,
-		luportProgram.PublicKey,
-		tokenMint,
-		RPCEndpoint,
-		"ibport",
-	)
-	ValidateError(t, err)
-
-	luportTokenAccount := luportTokenAccountResponse.Account.PublicKey.ToBase58()
-
 	waitTransactionConfirmations()
 
 	ParallelExecution(
@@ -230,8 +218,12 @@ func TestNebulaSendValueToLUPortSubscriber(t *testing.T) {
 
 	// luportTokenAccount, _ := CreateTokenAccount(luportProgram.PKPath, tokenMint.ToBase58())
 
-	
-	fmt.Printf("LU Port Token Account: %v \n", luportTokenAccount)
+	luportTokenAccountCreateResponse := TransferSPLTokensAllowUnfunded(deployer.PKPath, tokenMint.ToBase58(), luportProgram.PDA.ToBase58(), 0)
+	ValidateError(t, luportTokenAccountCreateResponse.Error)
+
+	luportTokenAccount := luportTokenAccountCreateResponse.TokenAccount
+
+	fmt.Printf("LU Port PDA Token Account: %v \n", luportTokenAccount)
 	// luportTokenAccount, err :=  CreateTokenAccount(luportProgram.PKPath, tokenMint.ToBase58())
 
 	luportExecutor.SetAdditionalMeta([]types.AccountMeta{
@@ -277,10 +269,10 @@ func TestNebulaSendValueToLUPortSubscriber(t *testing.T) {
 		}
 
 		// copy(dataHashForAttach[:], ethcrypto.Keccak256(rawDataValue[:]))
-		copy(dataHashForAttach[:], hashingFunction(rawDataValue[:]))
+		copy(dataHashForAttach[:], hashingFunction(rawDataValue64bytes[:]))
 	
 		fmt.Printf("Iteration #%v \n", i)
-		fmt.Printf("Raw Data Value: %v \n", rawDataValue)
+		fmt.Printf("Raw Data Value: %v \n", rawDataValue64bytes)
 		fmt.Printf("Data Value Hash: %v \n", dataHashForAttach)
 
 		nebulaExecutor.EraseAdditionalMeta()
@@ -341,26 +333,30 @@ func TestNebulaSendValueToLUPortSubscriber(t *testing.T) {
 		DestDecimals: 18,
 	})
 
-	failingDataHashForAttach := baBuilder.BuildForReverse()
+	correctDataHashForAttach := baBuilder.BuildForReverse()[:]
 
-	baBuilder.Receiver = evmReceiver20bytes
-	correctDataHashForAttach := baBuilder.BuildForReverse()
+	// baBuilder.Origin = common.PublicKeyFromBytes(make([]byte, 32))
+	baBuilder.Origin = *new(common.PublicKey)
 
+	failingDataHashForAttach := baBuilder.BuildForReverse()[:]
 	
 	hashQueue := [][]byte { failingDataHashForAttach, correctDataHashForAttach }
 
 	// Should fail - caller - is not a gravity oracle
+
 	for i := 0; i < len(hashQueue); i++ {
 		err = attachValue(i, i, nebulaExecutor, deployer.Account, hashQueue[i], make([]executor.GravityBftSigner, 0), common.PublicKeyFromString(deployerTokenAccount))
 		ValidateErrorExistence(t, err)
 	}
 
-	// Should pass valid
-	for i := 0; i < len(hashQueue); i++ {
-		err = attachValue(i, i, nebulaExecutor, operatingConsul.Account, hashQueue[i], consulsList.ToBftSigners(), common.PublicKeyFromString(deployerTokenAccount),)
 
-		if i == 0 {
+	// Should pass valid
+	for j := 0; j < len(hashQueue); j++ {
+		err = attachValue(j, j, nebulaExecutor, operatingConsul.Account, hashQueue[j], consulsList.ToBftSigners(), common.PublicKeyFromString(deployerTokenAccount))
+
+		if j == 0 {
 			ValidateErrorExistence(t, err)
+			continue
 		}
 		ValidateError(t, err)
 	}
