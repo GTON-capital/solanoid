@@ -221,7 +221,7 @@ func GenerateNewAccountWithSeed(privateKey string, newAcc types.Account, space u
 	}, nil
 }
 
-func GenerateNewTokenAccount(privateKey string, space uint64, owner, tokenMint common.PublicKey, clientEndpoint string) (*models.CommandResponse, error) {
+func GenerateNewTokenAccount(privateKey string, space uint64, owner, tokenMint common.PublicKey, clientEndpoint string, seeds string) (*models.CommandResponse, error) {
 	pk, err := base58.Decode(privateKey)
 	if err != nil {
 		zap.L().Fatal(err.Error())
@@ -251,12 +251,12 @@ func GenerateNewTokenAccount(privateKey string, space uint64, owner, tokenMint c
 		rentBalance,
 		space,
 	)
-
-	initializeAccountIx := soltoken.InitializeAccount2(
+	initializeAccountIx := soltoken.InitializeAccount(
 		newAcc.PublicKey,
 		tokenMint,
 		owner,
 	)
+	
 	message := types.NewMessage(
 		account.PublicKey,
 		[]types.Instruction{

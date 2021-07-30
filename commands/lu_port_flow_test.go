@@ -102,6 +102,20 @@ func TestNebulaSendValueToLUPortSubscriber(t *testing.T) {
 	luportDataAccount, err := GenerateNewAccount(deployer.PrivateKey, LUPortAllocation, luportProgram.PublicKey.ToBase58(), RPCEndpoint)
 	ValidateError(t, err)
 
+	luportTokenAccountResponse, err := GenerateNewTokenAccount(
+		deployer.PrivateKey,
+		165,
+		luportProgram.PublicKey,
+		tokenMint,
+		RPCEndpoint,
+		"ibport",
+	)
+	ValidateError(t, err)
+
+	luportTokenAccount := luportTokenAccountResponse.Account.PublicKey.ToBase58()
+
+	waitTransactionConfirmations()
+
 	ParallelExecution(
 		[]func(){
 			func() {
@@ -214,19 +228,9 @@ func TestNebulaSendValueToLUPortSubscriber(t *testing.T) {
 
 	waitTransactionConfirmations()
 
-	luportTokenAccount, _ := CreateTokenAccount(luportProgram.PKPath, tokenMint.ToBase58())
+	// luportTokenAccount, _ := CreateTokenAccount(luportProgram.PKPath, tokenMint.ToBase58())
 
 	
-	// luportTokenAccountResponse, err := GenerateNewTokenAccount(
-	// 	deployer.PrivateKey,
-	// 	165,
-	// 	luportProgram.PDA,
-	// 	tokenMint,
-	// 	RPCEndpoint,
-	// )
-	// ValidateError(t, err)
-
-	// luportTokenAccount := luportTokenAccountResponse.TokenAccount
 	fmt.Printf("LU Port Token Account: %v \n", luportTokenAccount)
 	// luportTokenAccount, err :=  CreateTokenAccount(luportProgram.PKPath, tokenMint.ToBase58())
 
