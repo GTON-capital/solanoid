@@ -25,7 +25,7 @@ func TestCreateAccountForPDA(t *testing.T) {
 
 	waitTransactionConfirmations()
 
-	RPCEndpoint, _ := InferSystemDefinedRPC()
+	// RPCEndpoint, _ := InferSystemDefinedRPC()
 
 	tokenDeployResult, err := CreateToken(deployer.PKPath)
 	ValidateError(t, err)
@@ -48,22 +48,30 @@ func TestCreateAccountForPDA(t *testing.T) {
 	 * The account problem
 	 * The goal is to not require a signature
 	 */
-	luportTokenAccountResponse, err := GenerateNewTokenAccount(
-		deployer.PrivateKey,
-		165, // alloc for token holder
-		// luportProgram.PublicKey also FAILS:
-		// send tx error, err: Transaction simulation failed: Error processing Instruction 1: instruction modified data of an account it does not own
-		luportProgram.PDA,
-		tokenMint,
-		RPCEndpoint,
-		"ibport",
-	)
-	ValidateError(t, err)
+	//  tokenprog.
+	// luportTokenAccountResponse, err := GenerateNewTokenAccount(
+	// 	deployer.PrivateKey,
+	// 	165, // alloc for token holder
+	// 	// luportProgram.PublicKey also FAILS:
+	// 	// send tx error, err: Transaction simulation failed: Error processing Instruction 1: instruction modified data of an account it does not own
+	// 	luportProgram.PDA,
+	// 	tokenMint,
+	// 	RPCEndpoint,
+	// 	"ibport",
+	// )
+	// ValidateError(t, err)
 
-	luportTokenAccount := luportTokenAccountResponse.Account.PublicKey.ToBase58()
+	// luportTokenAccount, err := CreateTokenAccount(luportProgram.PKPath, tokenMint.ToBase58())
+	// ValidateError(t, err)
+
+	// // luportTokenAccount := luportTokenAccountResponse.Account.PublicKey.ToBase58()
 
 	waitTransactionConfirmations()
 
-	fmt.Printf("LU Port PDA token account: %v \n", luportTokenAccount)
+	// fmt.Printf("LU Port PDA token account: %v \n", luportTokenAccount)
+
+	// err = TransferSPLTokensAllowUnfunded(deployer.PKPath, tokenMint.ToBase58(), luportProgram.PublicKey.ToBase58(), 1)
+	err = TransferSPLTokensAllowUnfunded(deployer.PKPath, tokenMint.ToBase58(), luportProgram.PDA.ToBase58(), 1)
+	ValidateError(t, err)
 
 }
