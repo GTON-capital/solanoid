@@ -148,6 +148,16 @@ func (ets *SolanaToEVMBABuilder) BuildForReverse() []byte {
 	return buildUnlockSolana(swapID[:], ets.Origin, ets.Amount)
 }
 
+// func (ets *SolanaToEVMBABuilder) BuildConfirmationForReverse() []byte {
+// 	var swapID [16]byte
+// 	copy(swapID[:], ets.lastSwapID[:])
+	
+// 	confirmationByteArray := buildUnlockSolana(swapID[:], ets.Origin, ets.Amount)
+// 	confirmationByteArray[0] = 'c'
+
+// 	return confirmationByteArray
+// }
+
 func rndSwapID() [32]byte {
 	var subID [32]byte
 	rand.Read(subID[:])
@@ -212,4 +222,10 @@ func buildUnlockSolana(swapId []byte, receiver common.PublicKey, amount float64)
 	res = append(res, receiver[:]...)
 
 	return res
+}
+
+
+func WrapIntoConfirmedRequest(bytearray []byte) []byte {
+	bytearray[0] = 'c'
+	return bytearray
 }
