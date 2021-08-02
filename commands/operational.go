@@ -51,6 +51,23 @@ func ReadOperatingAddress(t *testing.T, path string) (*OperatingAddress, error) 
 	return address, nil
 }
 
+func NewOperatingBinaryAddressFromString(binary string, seeds []byte) (*OperatingAddress, error) {
+	var err error
+	var targetAddressPDA common.PublicKey
+
+	if len(seeds) > 0 {
+		targetAddressPDA, err = common.CreateProgramAddress([][]byte{ seeds[:] }, common.PublicKeyFromString(binary))
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &OperatingAddress{
+		PublicKey: common.PublicKeyFromString(binary),
+		PDA: targetAddressPDA,
+	}, nil
+}
+
 func NewOperatingAddress(t *testing.T, path string, options *OperatingAddressBuilderOptions) (*OperatingAddress, error) {
 	var err error
 

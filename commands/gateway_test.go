@@ -17,10 +17,6 @@ func TestRunSolanaGatewayDeployment(t *testing.T) {
 	deployer, err := ReadOperatingAddress(t, "../private-keys/mainnet/deployer.json")
 	ValidateError(t, err)
 
-	// deployer, err := NewOperatingAddress(t, "../private-keys/mainnet/deployer.json",  &OperatingAddressBuilderOptions {
-	// 	Overwrite: true,
-	// })
-	// ValidateError(t, err)
 
 	mathWalletUser := "ANRHaW53Z89VWV5ycLr1HFW6dCTiLRj3RSiYNBBF8er1"
 
