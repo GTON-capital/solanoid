@@ -107,12 +107,12 @@ func GetAssociatedTokenAddress(
 //         data: vec![],
 //     }
 // }
-func CreateAssociatedTokenAccountIX(fundingAddress, targetWallet, splTokenMint common.PublicKey) (*types.Instruction, error) {
+func CreateAssociatedTokenAccountIX(fundingAddress, targetWallet, splTokenMint common.PublicKey) (*types.Instruction, common.PublicKey, error) {
 	associatedAccountAddress, err := GetAssociatedTokenAddress(
 		targetWallet, splTokenMint,
 	)
 	if err != nil {
-		return nil, err
+		return nil, associatedAccountAddress, err
 	}
 
 	return &types.Instruction {
@@ -126,13 +126,13 @@ func CreateAssociatedTokenAccountIX(fundingAddress, targetWallet, splTokenMint c
 			{ PubKey: common.TokenProgramID, IsSigner: false, IsWritable: false },
 			{ PubKey: common.SysVarRentPubkey, IsSigner: false, IsWritable: false },
 		},
-	}, nil
+	}, associatedAccountAddress, nil
 }
 
 func CreateAssociatedTokenAccountIXNonFailing(fundingAddress, splTokenMint common.PublicKey) (types.Account, *types.Instruction) {
 	targetWallet := types.NewAccount()
 
-	ix, err := CreateAssociatedTokenAccountIX(fundingAddress, targetWallet.PublicKey, splTokenMint)
+	ix, _, err := CreateAssociatedTokenAccountIX(fundingAddress, targetWallet.PublicKey, splTokenMint)
 	if err != nil {
 		return CreateAssociatedTokenAccountIXNonFailing(fundingAddress, splTokenMint)
 	}
