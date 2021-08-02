@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/Gravity-Tech/solanoid/commands/contract"
 	"github.com/Gravity-Tech/solanoid/commands/executor"
+	"github.com/portto/solana-go-sdk/types"
 )
 
 
@@ -44,34 +46,25 @@ func TestCreateAccountForPDA(t *testing.T) {
 	ValidateError(t, err)
 	t.Logf("Minted %v tokens to %v \n", 1_000_000, deployerTokenAccount)
 
-	/*
-	 * The account problem
-	 * The goal is to not require a signature
-	 */
-	//  tokenprog.
-	// luportTokenAccountResponse, err := GenerateNewTokenAccount(
-	// 	deployer.PrivateKey,
-	// 	165, // alloc for token holder
-	// 	// luportProgram.PublicKey also FAILS:
-	// 	// send tx error, err: Transaction simulation failed: Error processing Instruction 1: instruction modified data of an account it does not own
-	// 	luportProgram.PDA,
-	// 	tokenMint,
-	// 	RPCEndpoint,
-	// 	"ibport",
-	// )
-	// ValidateError(t, err)
-
-	// luportTokenAccount, err := CreateTokenAccount(luportProgram.PKPath, tokenMint.ToBase58())
-	// ValidateError(t, err)
-
-	// // luportTokenAccount := luportTokenAccountResponse.Account.PublicKey.ToBase58()
-
 	waitTransactionConfirmations()
 
 
-	// err = TransferSPLTokensAllowUnfunded(deployer.PKPath, tokenMint.ToBase58(), luportProgram.PublicKey.ToBase58(), 1)
-	assocTokenCreateResponse := TransferSPLTokensAllowUnfunded(deployer.PKPath, tokenMint.ToBase58(), luportProgram.PDA.ToBase58(), 0)
-	ValidateError(t, assocTokenCreateResponse.Error)
+	RPCEndpoint, _ := InferSystemDefinedRPC()
 
-	fmt.Printf("LU Port PDA token account: %v \n", assocTokenCreateResponse.TokenAccount)
+	deployerExecutor, err := executor.NewEmptyExecutor(deployer.PrivateKey, RPCEndpoint)
+	ValidateError(t, err)
+
+	targetWallet, ix := contract.CreateAssociatedTokenAccountIXNonFailing(deployer.PublicKey, tokenMint)
+
+	deployerExecutor.SetAdditionalSigners([]executor.GravityBftSigner { 
+		*executor.NewGravityBftSignerFromAccount(targetWallet),
+	})
+
+	response, err := deployerExecutor.InvokeIXList(
+		[]types.Instruction { *ix },
+	)
+	ValidateError(t, err)
+
+	fmt.Printf("LU Port PDA token account: %v; Tx: %v; \n", targetWallet, response.TxSignature)
 }
+

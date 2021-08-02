@@ -301,7 +301,6 @@ func ReadSPLTokenBalance(ownerPrivateKeysPath, tokenProgramAddress string) (floa
 	return castedBalance, nil
 }
 
-
 // spl-token transfer <TOKEN_ADDRESS> <TOKEN_AMOUNT> <RECIPIENT_ADDRESS or RECIPIENT_TOKEN_ACCOUNT_ADDRESS> --config <PATH>
 func TransferSPLTokensAllowUnfunded(tokenHolderPath, tokenAddress, recipient string, amount float64) CreateTokenAccountResponse {
 	cmd := exec.Command("spl-token", "transfer", "--fund-recipient", "--allow-unfunded-recipient", "--owner",

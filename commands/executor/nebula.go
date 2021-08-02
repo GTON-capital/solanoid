@@ -132,6 +132,11 @@ func NewGravityBftSigner(privateKey string) *GravityBftSigner {
 		account,
 	}
 }
+func NewGravityBftSignerFromAccount(account types.Account) *GravityBftSigner {
+	return &GravityBftSigner{
+		account,
+	}
+}
 
 func (signer *GravityBftSigner) Sign(message []byte) []byte {
 	return ed25519.Sign(signer.account.PrivateKey, message)
@@ -289,6 +294,10 @@ func (ge *GenericExecutor) buildIx(instruction interface{}) (*types.Instruction,
 	return builtInstruction, nil
 }
 
+func (ge *GenericExecutor) InvokeIXList(ixs []types.Instruction) (*models.CommandResponse, error) {
+	return ge.invokeInstruction(ixs)
+}
+
 func (ge *GenericExecutor) InvokePureInstruction(instruction interface{}) (*models.CommandResponse, error) {
 	builtIx, err := ge.buildIx(instruction)
 	if err != nil {
@@ -332,6 +341,20 @@ func (ge *GenericExecutor) BuildInstruction(instruction interface{}) (*types.Ins
 		Accounts:  accountMeta,
 		ProgramID: common.PublicKeyFromString(ge.nebulaProgramID),
 		Data:      data,
+	}, nil
+}
+
+func NewEmptyExecutor(privateKey, clientEndpoint string) (*GenericExecutor, error) {
+	pk, err := base58.Decode(privateKey)
+	if err != nil {
+		zap.L().Fatal(err.Error())
+		return nil, err
+	}
+	account := types.AccountFromPrivateKeyBytes(pk)
+
+	return &GenericExecutor{
+		deployerPrivKey: account,
+		clientEndpoint: clientEndpoint,
 	}, nil
 }
 
