@@ -54,17 +54,14 @@ func TestCreateAccountForPDA(t *testing.T) {
 	deployerExecutor, err := executor.NewEmptyExecutor(deployer.PrivateKey, RPCEndpoint)
 	ValidateError(t, err)
 
-	targetWallet, ix := contract.CreateAssociatedTokenAccountIXNonFailing(deployer.PublicKey, tokenMint)
-
-	deployerExecutor.SetAdditionalSigners([]executor.GravityBftSigner { 
-		*executor.NewGravityBftSignerFromAccount(targetWallet),
-	})
+	ix, tokenAccount, err := contract.CreateAssociatedTokenAccountIX(deployer.PublicKey, luportProgram.PDA, tokenMint)
+	ValidateError(t, err)
 
 	response, err := deployerExecutor.InvokeIXList(
 		[]types.Instruction { *ix },
 	)
 	ValidateError(t, err)
 
-	fmt.Printf("LU Port PDA token account: %v; Tx: %v; \n", targetWallet, response.TxSignature)
+	fmt.Printf("LU Port PDA token account: %v; Tx: %v; \n", tokenAccount, response.TxSignature)
 }
 
