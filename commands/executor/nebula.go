@@ -71,6 +71,8 @@ type SendHashValueNebulaContractInstruction struct {
 
 type NebulaInstructionBuilder struct{}
 
+var NebulaIXBuilder = &NebulaInstructionBuilder{}
+
 func (port *NebulaInstructionBuilder) Init(bft, dataType uint8, gravityProgramID common.PublicKey, oracles []byte) interface{} {
 	return InitNebulaContractInstruction{
 		Instruction:              0,

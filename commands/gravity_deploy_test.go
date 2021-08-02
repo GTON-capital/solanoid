@@ -166,7 +166,7 @@ func TestPDA(t *testing.T) {
 
 func waitTransactionConfirmations() {
 	// time.Sleep(time.Millisecond * 500)
-	// time.Sleep(time.Second * 5)
+	// time.Sleep(time.Second * 10)
 	time.Sleep(time.Second * 3) // the most safe timeout
 	// time.Sleep(time.Second * 30)
 	// time.Sleep(time.Second * 30)
@@ -552,8 +552,9 @@ func TestIBPortTransferOwnership(t *testing.T) {
 	waitTransactionConfirmations()
 
 	ibportInitResult, err := ibportExecutor.BuildAndInvoke(
-		executor.IBPortIXBuilder.InitWithOracles(*new(common.PublicKey), common.TokenProgramID, BFT, consulsList.ConcatConsuls()),
+		executor.IBPortIXBuilder.InitWithOracles(*new(common.PublicKey), common.TokenProgramID, common.PublicKeyFromString(tokenA), BFT, consulsList.ConcatConsuls()),
 	)
+	ValidateError(t, err)
 	fmt.Printf("IB Port - Init: %v \n", ibportInitResult.TxSignature)
 
 	waitTransactionConfirmations()
@@ -632,3 +633,5 @@ func TestCheckBalanceDiffOn100BytesAlloc(t *testing.T) {
 
 	fmt.Printf("diff of balance: %v \n ", balanceAfterDeploy - balanceBeforeDeploy)
 }
+
+

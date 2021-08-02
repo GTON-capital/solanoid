@@ -174,6 +174,7 @@ func CreateToken(ownerPrivateKeysPath string) (*TokenCreateResult, error) {
 	output, err := cmd.CombinedOutput()
 
 	if err != nil {
+		fmt.Println(string(output))
 		return nil, err
 	}
 
@@ -300,6 +301,28 @@ func ReadSPLTokenBalance(ownerPrivateKeysPath, tokenProgramAddress string) (floa
 	return castedBalance, nil
 }
 
+
+// spl-token transfer <TOKEN_ADDRESS> <TOKEN_AMOUNT> <RECIPIENT_ADDRESS or RECIPIENT_TOKEN_ACCOUNT_ADDRESS> --config <PATH>
+func TransferSPLTokensAllowUnfunded(tokenHolderPath, tokenAddress, recipient string, amount float64) CreateTokenAccountResponse {
+	cmd := exec.Command("spl-token", "transfer", "--fund-recipient", "--allow-unfunded-recipient", "--owner",
+		tokenHolderPath, tokenAddress, fmt.Sprintf("%v", amount), recipient)
+	output, err := cmd.CombinedOutput()
+	fmt.Printf(string(output))
+
+	if err != nil {
+		return CreateTokenAccountResponse { Error: err }
+	}
+
+	dataAccountCatchRegex, _ := regexp.Compile("Recipient associated token account: .+")
+	tokenDataAccount := trimAndTakeAtIndex(string(dataAccountCatchRegex.Find(output)), " ", 4)
+
+	return CreateTokenAccountResponse {
+		TokenAccount: tokenDataAccount,
+	}
+}
+
+
+
 // spl-token transfer <TOKEN_ADDRESS> <TOKEN_AMOUNT> <RECIPIENT_ADDRESS or RECIPIENT_TOKEN_ACCOUNT_ADDRESS> --config <PATH>
 func TransferSPLTokens(tokenHolderPath, tokenAddress, recipientTokenAccountAddress, delegate string, amount float64) error {
 	cmd := exec.Command("spl-token", "transfer", "--owner", tokenHolderPath, "--from", delegate, tokenAddress, fmt.Sprintf("%v", amount), recipientTokenAccountAddress)
@@ -400,6 +423,7 @@ func CreateTokenAccountWithFeePayer(currentOwnerPrivateKeyPath, tokenAddress str
 	}
 }
 
+
 func CreateTokenAccount(currentOwnerPrivateKeyPath, tokenAddress string) (string, error) {
 	cmd := exec.Command("spl-token", "create-account", "--owner", currentOwnerPrivateKeyPath, tokenAddress)
 	output, err := cmd.CombinedOutput()
@@ -465,6 +489,7 @@ func DeploySolanaProgram(t *testing.T, tag string, programPrivateKeysPath, deplo
 	t.Logf("Program: %v; Deployed Program ID is: %v\n", tag, programID)
 
 	if err != nil {
+		t.Log(string(output))
 		return "", err
 	}
 
