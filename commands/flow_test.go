@@ -227,30 +227,8 @@ func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 
 	fmt.Printf("Nebula Subscribe with the same subID must have failed: %v \n", err.Error())
 
-	// WrappedFaucet(t, deployer.PKPath, ibportProgram.PublicKey.ToBase58(), 10)
-
 	waitTransactionConfirmations()
-	// waitTransactionConfirmations()
 
-	// fmt.Println("Testing SendValueToSubs call from one of the consuls")
-
-	// swapId := make([]byte, 16)
-	// rand.Read(swapId)
-
-	// var dataHashForAttach [64]byte
-	// copy(dataHashForAttach[:], executor.BuildCrossChainMintByteVector(swapId, common.PublicKeyFromString(deployerTokenAccount), 2.227))
-
-	// nebulaExecutor.SetDeployerPK(deployer.Account)
-	// _, err = nebulaExecutor.BuildAndInvoke(
-	// 	nebulaBuilder.SendValueToSubs(dataHashForAttach, nebula.Bytes, 1, subID),
-	// )
-	// ValidateErrorExistence(t, err)
-
-	// fmt.Printf("Nebula SendValueToSubs Call Should Have Failed - Access Denied(from port):  %v \n", err.Error())
-
-	// waitTransactionConfirmations()
-
-	// TODO: set to 30, 50 or 100
 	i, requestsCount := 0, 1
 	pulseID := 0
 

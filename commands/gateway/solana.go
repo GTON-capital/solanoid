@@ -24,6 +24,7 @@ type GatewayDeployResult struct {}
 func DeploySolanaGateway_LUPort(t *testing.T, consuls []string, originTokenMint common.PublicKey) *GatewayDeployResult {
 	var err error
 
+	fmt.Printf("Token being wrapped: %v \n", originTokenMint.ToBase58())
 	deployer, err := commands.ReadOperatingAddress(t, "../../private-keys/mainnet/deployer.json")
 	commands.ValidateError(t, err)
 
@@ -72,7 +73,7 @@ func DeploySolanaGateway_LUPort(t *testing.T, consuls []string, originTokenMint 
 
 	luportDataAccount, err := commands.GenerateNewAccount(deployer.PrivateKey, commands.LUPortAllocation, luportProgram.PublicKey.ToBase58(), RPCEndpoint)
 	commands.ValidateError(t, err)
-	fmt.Printf("LU Port Data Account: %v \n", luportProgram.Account.PublicKey.ToBase58())
+	fmt.Printf("LU Port Data Account: %v \n", luportDataAccount.Account.PublicKey.ToBase58())
 
 	WaitTransactionConfirmations()
 	
