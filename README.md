@@ -2,20 +2,20 @@
 
 # Solanoid
 
-### Intro
+## Intro
 
 Solanoid is framework for testing and building programs on Solana blockchain written in Go.
 
-### Purpose
+## Purpose
 
 Solanoid aims to fill the gap between writing and testing contracts on Solana. There's no yet built-in testing framework so we considered to present Solanoid.
 
-### Dependencies
+## Dependencies
 
 1. Go >= 1.15.
 2. `solana-cli`.
 
-### Features
+## Features
 
 1. Allows binding compiled smart contracts via symlinks for deployment via framework. Example: [Details](bind-symlink.sh)
 
@@ -83,7 +83,7 @@ func (port *NebulaInstructionBuilder) Init(bft, dataType uint8, gravityProgramID
 9. Deployment via tests. Example [commands/gateway_test.go](commands/gateway_test.go#L14)
 10. Facility for writing MVPs between Solana and EVM [Solana and EVM Gateway MVP](commands/mvp/gateway_mvp_test.go) (Polygon is disabled atm)
 
-### Tutorial on Deployment/Testing with/without Multisig.
+## Tutorial on Deployment/Testing with/without Multisig.
 
 To get the most of the Solanoid, follow these steps:
 
@@ -197,19 +197,19 @@ func TestHelloWorld(t *testing.T) {
 6. Custom data models - in `models/`.
 
 
-# MVPs between Solana <-> EVM and vice versa
+## MVPs between Solana <-> EVM and vice versa
 
 <!-- 1. You need to repeat same steps mentioned in Testing/Deployment tutorial. -->
 Solanoid provides an example on how to write MVPs for dApps between EVM and Solana. Please consider check it here [this gateway example between Solana and EVM](commands/mvp/gateway_mvp_test.go).
 
-### Things to consider
+## Things to consider
 
 1. When writing tests consider awaiting till confirmations reach MAX (via `	waitTransactionConfirmations()` call) - for Mainnet it's about 30 seconds, Devnet - 15 seconds. If you won't wait, state transition is not guaranteed. 
 2. Tests require temporary addresses to operate with. For such purpose use `NewOperatingAddress` function.
 3. Deployment tests require persisten addresses. For such purpose use `ReadOperatingAddress` function.
 
 
-### The Future
+## The Future
 
 1. We have obvious responsibility on managing and keeping this repo up-to-date but we'll be happy to receive issues/PR from any contributor.
 2. There is a naming misconception in several functions due to a fact that Solanoid has been considered as a proprietary software for SuSy dApp. However, we think that this software should be opensource. We'll make Solanoid more generic.
