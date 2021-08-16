@@ -8,7 +8,7 @@ Solanoid is framework for testing and building programs on Solana blockchain wri
 
 ### Purpose
 
-Solanoid aims to fulfill a gap between writing and testing contracts on Solana. There's no yet built-in testing framework so we considered to present Solanoid.
+Solanoid aims to fill the gap between writing and testing contracts on Solana. There's no yet built-in testing framework so we considered to present Solanoid.
 
 ### Dependencies
 
@@ -86,8 +86,79 @@ func (port *NebulaInstructionBuilder) Init(bft, dataType uint8, gravityProgramID
 
 To get the most of the Solanoid, follow these steps:
 
-1. Fork the repository
+1. Fork the repository. Clone it.
+
+```bash
+git clone <your_profile_or_org>/solanoid
+```
+
 2. If you build your own custom program: declare method signatures in `commands/executor`.
+
+```go
+// commands/executor/helloworld.go
+
+package executor
+
+type SayHelloWorldIX struct {
+	Instruction uint8
+	Message     string
+}
+
+type HelloWorldProgramIXBuilder struct{}
+
+func (builder *HelloWorldProgramIXBuilder) SayHello(message string) interface{} {
+	return SayHelloWorldIX{
+		Instruction: 0,
+		Message: message,
+	}
+}
+
+// Then call your method via abstraction
+// commands/helloworld_test.go
+
+func TestHelloWorld(t *testing.T) {
+	deployer, err := NewOperatingAddress(t, "path_to_deployer", nil)
+	ValidateError(t, err)
+
+	helloWorldProgram, err := NewOperatingAddress(t, "path_to_program_address", nil)
+	ValidateError(t, err)
+
+
+	// RPC is inferred via `solana config get`
+	RPCEndpoint, _ := InferSystemDefinedRPC()
+
+	// deployment
+	_, err = DeploySolanaProgram(t, "helloworld", helloWorldProgram.PKPath, deployer.PKPath, "path_to_program_binary")
+	ValidateError(t, err)
+
+	// contract bytes allocation
+	HelloWorldContractAllocation := 750
+
+	helloWorldDataAccount, err := GenerateNewAccount(deployer.PrivateKey, HelloWorldContractAllocation, helloWorldProgram.PublicKey.ToBase58(), RPCEndpoint)
+	ValidateError(t, err)
+
+	helloWorldExecutor, err := InitGenericExecutor(
+		deployer.PrivateKey,
+		helloWorldProgram.PublicKey.ToBase58(),
+		helloWorldDataAccount.Account.PublicKey.ToBase58(),
+		"", // Empty if we want NO MULTISIG
+		RPCEndpoint,
+		common.PublicKeyFromString(""), // can be omitted always
+	)
+	ValidateError(t, err)
+
+	// we wait right before every method call
+	waitTransactionConfirmations()
+
+	ixbuilder := &executor.HelloWorldProgramIXBuilder{}
+
+	sayHelloResponse, err := helloWorldExecutor.BuildAndInvoke(
+		ixbuilder.SayHello("HELLO WORLD"),
+	)
+	fmt.Printf("Hello World Call Result: %v \n", sayHelloResponse.TxSignature)
+	ValidateError(t, err)
+}
+```
 3. Tests can be declared in `commands/` directory.
 4. Custom data models - in `models/`.
 
