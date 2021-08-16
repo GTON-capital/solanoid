@@ -14,7 +14,8 @@ func TestDeploySolanaToEVMGateway(t *testing.T) {
 }
 
 func TestDeploySolanaGateway_LUPort(t *testing.T) {
-	DeploySolanaGateway_LUPort(t, contract.SolanaGravityConsuls(), common.PublicKeyFromString(contract.RaydiumToken))
+	// DeploySolanaGateway_LUPort(t, contract.SolanaGravityConsuls(), common.PublicKeyFromString(contract.RaydiumToken))
+	DeploySolanaGateway_LUPort(t, contract.SolanaGravityConsuls(), common.PublicKeyFromString(contract.SerumToken))
 }
 
 func TestDeploySolanaGateway_IBPort(t *testing.T) {
