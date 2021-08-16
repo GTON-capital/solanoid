@@ -9,7 +9,6 @@ import (
 	"github.com/portto/solana-go-sdk/common"
 )
 
-
 type BACfg struct {
 	OriginDecimals, DestDecimals int
 }
@@ -21,19 +20,19 @@ type CrossChainBridgeBABuilder interface {
 }
 
 type EVMSOLByteArrayData struct {
-	SwapID []byte
-	Amount *big.Int
-	Receiver []byte
+	SwapID    []byte
+	Amount    *big.Int
+	Receiver  []byte
 	Operation byte
 }
 
 type EVMToSolanaBABuilder struct {
 	lastSwapID [32]byte
-	cfg    BACfg
+	cfg        BACfg
 
 	// Amount *big.Int
-	Amount *big.Int
-	Origin [20]byte
+	Amount   *big.Int
+	Origin   [20]byte
 	Receiver common.PublicKey
 }
 
@@ -66,13 +65,13 @@ func (ets *EVMToSolanaBABuilder) BuildForReverse() []byte {
 
 type SolanaToEVMBABuilder struct {
 	lastSwapID [32]byte
-	cfg    BACfg
+	cfg        BACfg
 
 	// Amount *big.Int
 	// Amount *big.Int
 	Amount float64
 	// Origin [32]byte
-	Origin common.PublicKey
+	Origin   common.PublicKey
 	Receiver [20]byte
 }
 
@@ -95,7 +94,7 @@ func (ets *SolanaToEVMBABuilder) BuildForReverse() []byte {
 	ets.lastSwapID = rndSwapID()
 	var swapID [16]byte
 	copy(swapID[:], ets.lastSwapID[:])
-	
+
 	return buildUnlockSolana(swapID[:], ets.Origin, ets.Amount)
 }
 
@@ -164,7 +163,6 @@ func buildUnlockSolana(swapId []byte, receiver common.PublicKey, amount float64)
 
 	return res
 }
-
 
 func WrapIntoConfirmedRequest(bytearray []byte) []byte {
 	bytearray[0] = 'c'

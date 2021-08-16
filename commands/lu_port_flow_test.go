@@ -237,7 +237,7 @@ func TestNebulaSendValueToLUPortSubscriber(t *testing.T) {
 	var evmReceiver32bytes [32]byte
 	copy(evmReceiver32bytes[:], evmReceiver20bytes[:])
 
-	lockAmounts := []float64 {
+	lockAmounts := []float64{
 		1.235,
 	}
 
@@ -248,7 +248,6 @@ func TestNebulaSendValueToLUPortSubscriber(t *testing.T) {
 	)
 	ValidateError(t, err)
 	t.Logf("LUPort #1 CreateTransferWrapRequest (%v): %v \n", lockAmounts[0], lockTokens.TxSignature)
-	
 
 	attachValue := func(i, pulseID int, nebulaExecutor *executor.GenericExecutor,
 		operator types.Account, rawDataValue []byte, additionalSigners []executor.GravityBftSigner,
@@ -256,7 +255,6 @@ func TestNebulaSendValueToLUPortSubscriber(t *testing.T) {
 	) error {
 		swapId := make([]byte, 16)
 		rand.Read(swapId)
-
 
 		var rawDataValue64bytes [64]byte
 		copy(rawDataValue64bytes[:], rawDataValue)
@@ -270,7 +268,7 @@ func TestNebulaSendValueToLUPortSubscriber(t *testing.T) {
 
 		// copy(dataHashForAttach[:], ethcrypto.Keccak256(rawDataValue[:]))
 		copy(dataHashForAttach[:], hashingFunction(rawDataValue64bytes[:]))
-	
+
 		fmt.Printf("Iteration #%v \n", i)
 		fmt.Printf("Raw Data Value: %v \n", rawDataValue64bytes)
 		fmt.Printf("Data Value Hash: %v \n", dataHashForAttach)
@@ -323,14 +321,13 @@ func TestNebulaSendValueToLUPortSubscriber(t *testing.T) {
 		return nil
 	}
 
-
 	baBuilder := executor.SolanaToEVMBABuilder{
 		Amount: lockAmounts[0],
 		Origin: common.PublicKeyFromString(deployerTokenAccount),
 	}
 	baBuilder.SetCfg(executor.BACfg{
 		OriginDecimals: 8,
-		DestDecimals: 18,
+		DestDecimals:   18,
 	})
 
 	correctDataHashForAttach := baBuilder.BuildForReverse()[:]
@@ -339,8 +336,8 @@ func TestNebulaSendValueToLUPortSubscriber(t *testing.T) {
 	baBuilder.Origin = *new(common.PublicKey)
 
 	failingDataHashForAttach := baBuilder.BuildForReverse()[:]
-	
-	hashQueue := [][]byte { failingDataHashForAttach, correctDataHashForAttach }
+
+	hashQueue := [][]byte{failingDataHashForAttach, correctDataHashForAttach}
 
 	// Should fail - caller - is not a gravity oracle
 
@@ -348,7 +345,6 @@ func TestNebulaSendValueToLUPortSubscriber(t *testing.T) {
 		err = attachValue(i, i, nebulaExecutor, deployer.Account, hashQueue[i], make([]executor.GravityBftSigner, 0), common.PublicKeyFromString(deployerTokenAccount))
 		ValidateErrorExistence(t, err)
 	}
-
 
 	// Should pass valid
 	for j := 0; j < len(hashQueue); j++ {

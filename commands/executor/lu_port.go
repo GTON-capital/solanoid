@@ -8,7 +8,6 @@ import (
 	"github.com/portto/solana-go-sdk/common"
 )
 
-
 var LUPortIXBuilder = &LUPortInstructionBuilder{}
 
 type LUPortInstructionBuilder struct{}
@@ -49,7 +48,6 @@ func (ix *CreateTransferWrapRequestInstruction) Pack() []byte {
 	return res
 }
 
-
 func RandomEVMAddress() [20]byte {
 	ethReceiverPK, _ := ethcrypto.GenerateKey()
 
@@ -68,7 +66,7 @@ func (port *LUPortInstructionBuilder) CreateTransferWrapRequest(receiver [32]byt
 	fmt.Printf("CreateTransferUnwrapRequest - rq_id: %v amount: %v \n", requestID, amount)
 	amountBytes := float64ToByte(amount)
 
-	return CreateTransferWrapRequestInstruction {
+	return CreateTransferWrapRequestInstruction{
 		Instruction: 1,
 		TokenAmount: amountBytes,
 		Receiver:    receiver,
@@ -77,8 +75,8 @@ func (port *LUPortInstructionBuilder) CreateTransferWrapRequest(receiver [32]byt
 }
 func (port *LUPortInstructionBuilder) ConfirmProcessedRequest(requestID []byte) interface{} {
 	return struct {
-		Instruction     uint8
-		RequestID     []byte
+		Instruction uint8
+		RequestID   []byte
 	}{
 		Instruction: 3,
 		RequestID:   requestID,
@@ -101,13 +99,12 @@ func (port *LUPortInstructionBuilder) TransferTokenOwnership(newOwner, newToken 
 	fmt.Printf("TransferOwnership - newOwner: %v, newToken: %v \n", newOwner, newToken)
 
 	return struct {
-		Instruction   uint8
-		NewAuthority  common.PublicKey
-		NewToken      common.PublicKey
+		Instruction  uint8
+		NewAuthority common.PublicKey
+		NewToken     common.PublicKey
 	}{
 		Instruction:  4,
 		NewAuthority: newOwner,
 		NewToken:     newToken,
 	}
 }
-

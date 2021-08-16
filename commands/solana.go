@@ -93,7 +93,6 @@ func inferSystemDefinedSolanaConfigParam(prefix string) (string, error) {
 
 	fmt.Printf("%v \n", resultList)
 	matchResult := resultList[2]
-	
 
 	fmt.Println(resultList)
 	matchResult = strings.Trim(matchResult, "\n\r")
@@ -112,7 +111,6 @@ func InferSystemDefinedWebSocketURL() (string, error) {
 func InferSystemDefinedRPC() (string, error) {
 	return inferSystemDefinedSolanaConfigParam("RPC URL")
 }
-
 
 type TokenCreateResult struct {
 	Token     common.PublicKey
@@ -273,18 +271,16 @@ func TransferSPLTokensAllowUnfunded(tokenHolderPath, tokenAddress, recipient str
 	fmt.Printf(string(output))
 
 	if err != nil {
-		return CreateTokenAccountResponse { Error: err }
+		return CreateTokenAccountResponse{Error: err}
 	}
 
 	dataAccountCatchRegex, _ := regexp.Compile("Recipient associated token account: .+")
 	tokenDataAccount := trimAndTakeAtIndex(string(dataAccountCatchRegex.Find(output)), " ", 4)
 
-	return CreateTokenAccountResponse {
+	return CreateTokenAccountResponse{
 		TokenAccount: tokenDataAccount,
 	}
 }
-
-
 
 // spl-token transfer <TOKEN_ADDRESS> <TOKEN_AMOUNT> <RECIPIENT_ADDRESS or RECIPIENT_TOKEN_ACCOUNT_ADDRESS> --config <PATH>
 func TransferSPLTokens(tokenHolderPath, tokenAddress, recipientTokenAccountAddress, delegate string, amount float64) error {
@@ -299,7 +295,6 @@ func TransferSPLTokens(tokenHolderPath, tokenAddress, recipientTokenAccountAddre
 	return nil
 }
 
-
 // spl-token approve [FLAGS] [OPTIONS] <TOKEN_ACCOUNT_ADDRESS> <TOKEN_AMOUNT> <DELEGATE_TOKEN_ACCOUNT_ADDRESS>
 func DelegateSPLTokenAmountWithFeePayer(tokenOwnerPath, tokenAccountAddress, delegateTokenAccountAddress string, amount float64) error {
 	cmd := exec.Command("spl-token", "approve", "--fee-payer", tokenOwnerPath, tokenAccountAddress, fmt.Sprintf("%v", amount), delegateTokenAccountAddress)
@@ -312,7 +307,6 @@ func DelegateSPLTokenAmountWithFeePayer(tokenOwnerPath, tokenAccountAddress, del
 
 	return nil
 }
-
 
 // spl-token approve [FLAGS] [OPTIONS] <TOKEN_ACCOUNT_ADDRESS> <TOKEN_AMOUNT> <DELEGATE_TOKEN_ACCOUNT_ADDRESS>
 func DelegateSPLTokenAmount(tokenOwnerPath, tokenAccountAddress, delegateTokenAccountAddress string, amount float64) error {
@@ -385,7 +379,6 @@ func CreateTokenAccountWithFeePayer(currentOwnerPrivateKeyPath, tokenAddress str
 		Error:        nil,
 	}
 }
-
 
 func CreateTokenAccount(currentOwnerPrivateKeyPath, tokenAddress string) (string, error) {
 	cmd := exec.Command("spl-token", "create-account", "--owner", currentOwnerPrivateKeyPath, tokenAddress)

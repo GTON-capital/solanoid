@@ -17,7 +17,6 @@ func TestRunSolanaGatewayDeployment(t *testing.T) {
 	deployer, err := ReadOperatingAddress(t, "../private-keys/mainnet/deployer.json")
 	ValidateError(t, err)
 
-
 	mathWalletUser := "ANRHaW53Z89VWV5ycLr1HFW6dCTiLRj3RSiYNBBF8er1"
 
 	_ = mathWalletUser
@@ -67,7 +66,7 @@ func TestRunSolanaGatewayDeployment(t *testing.T) {
 
 	tokenDeployResult, err := CreateToken(deployer.PKPath)
 	ValidateError(t, err)
-	
+
 	tokenProgramAddress := tokenDeployResult.Token.ToBase58()
 	fmt.Printf("token address: %v \n", tokenProgramAddress)
 
@@ -170,4 +169,3 @@ func TestRunSolanaGatewayDeployment(t *testing.T) {
 	fmt.Printf("balanceAfterDeploy: %v SOL; \n", balanceAfterDeploy)
 	fmt.Printf("balance diff: %v SOL; \n", balanceBeforeDeploy-balanceAfterDeploy)
 }
-

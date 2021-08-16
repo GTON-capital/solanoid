@@ -7,8 +7,6 @@ import (
 	"github.com/portto/solana-go-sdk/common"
 )
 
-
-
 func TestDeploySolanaToEVMGateway(t *testing.T) {
 	DeploySolanaGateway_LUPort(t, contract.SolanaGravityConsuls(), common.PublicKeyFromString(contract.RaydiumToken))
 }

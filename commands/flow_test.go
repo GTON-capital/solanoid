@@ -254,7 +254,7 @@ func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 
 			// copy(dataHashForAttach[:], ethcrypto.Keccak256(rawDataValue[:]))
 			copy(dataHashForAttach[:], hashingFunction(rawDataValue[:]))
-		
+
 			fmt.Printf("Iteration #%v \n", i)
 			fmt.Printf("Amount: %v \n", attachedAmount)
 			fmt.Printf("Raw Data Value: %v \n", rawDataValue)
@@ -294,7 +294,7 @@ func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 			if err != nil {
 				continue
 			}
-		
+
 			fmt.Printf("#%v Nebula SendValueToSubs Call:  %v \n", i, nebulaAttachResponse.TxSignature)
 
 			waitTransactionConfirmations()
@@ -435,8 +435,6 @@ func TestNebulaSendValueToIBPortSubscriber(t *testing.T) {
 	// waitTransactionConfirmations()
 }
 
-
-
 type Logger struct {
 	Tag     string
 	counter int
@@ -448,7 +446,7 @@ func (l *Logger) Log(val interface{}) {
 }
 
 func BuildLoggerWithTag(tag string) *Logger {
-	return &Logger { Tag: tag }
+	return &Logger{Tag: tag}
 }
 
 func TestDataRealloc(t *testing.T) {
@@ -460,13 +458,11 @@ func TestDataRealloc(t *testing.T) {
 	testProgram, err := NewOperatingAddress(t, "../private-keys/_test_only-gravity-program.json", nil)
 	ValidateError(t, err)
 
-
 	WrappedFaucet(t, deployer.PKPath, "", 10)
 
 	waitTx := func() {
 		time.Sleep(time.Second * 15)
 	}
-
 
 	RPCEndpoint, _ := InferSystemDefinedRPC()
 
@@ -486,9 +482,8 @@ func TestDataRealloc(t *testing.T) {
 
 	txLogger.Log(testDataAccount.TxSignature)
 
-
 	// testDataAccount2, err := AllocateAccount(deployer.PrivateKey, *testDataAccount.Account, StartAllocation * 3, testProgram.PublicKey.ToBase58(), RPCEndpoint)
-	testDataAccount2, err := GenerateNewAccountWithSeed(deployer.PrivateKey, dataAcc, StartAllocation * 3, testProgram.PublicKey.ToBase58(), RPCEndpoint)
+	testDataAccount2, err := GenerateNewAccountWithSeed(deployer.PrivateKey, dataAcc, StartAllocation*3, testProgram.PublicKey.ToBase58(), RPCEndpoint)
 	ValidateError(t, err)
 
 	fmt.Printf("#2 Test Data Account: %v \n", testDataAccount2.Account.PublicKey.ToBase58())
@@ -499,32 +494,31 @@ func TestDataRealloc(t *testing.T) {
 	fmt.Printf("#1 == #2: %v \n", bytes.Equal(testDataAccount.Account.PublicKey[:], testDataAccount2.Account.PublicKey[:]))
 }
 
-
 func buildAccountSubscribeRequest(watched string) ws.RequestBody {
-	watchRequestParams := []interface{} {
+	watchRequestParams := []interface{}{
 		watched,
-		ws.Encoding {
-			Encoding: "base64",
+		ws.Encoding{
+			Encoding:   "base64",
 			Commitment: "finalized",
 		},
 	}
 
-	return ws.RequestBody {
+	return ws.RequestBody{
 		Jsonrpc: "2.0",
-		ID: 1,
-		Method: "accountSubscribe",
-		Params: watchRequestParams,
+		ID:      1,
+		Method:  "accountSubscribe",
+		Params:  watchRequestParams,
 	}
 }
 
 func buildLogsSubscribeRequest(watched string) ws.LogsSubscribeBody {
-	return ws.LogsSubscribeBody {
+	return ws.LogsSubscribeBody{
 		Jsonrpc: "2.0",
-		ID: 1,
-		Method: "logsSubscribe",
-		Params: []ws.LogsSubscribeParam {
+		ID:      1,
+		Method:  "logsSubscribe",
+		Params: []ws.LogsSubscribeParam{
 			{
-				Mentions: []string {
+				Mentions: []string{
 					watched,
 				},
 			},
@@ -568,7 +562,6 @@ func TestMintWatcher(t *testing.T) {
 
 	waitTransactionConfirmations()
 
-
 	// ibportExecutor, err := InitGenericExecutor(
 	// 	deployer.PrivateKey,
 	// 	ibportProgram.PublicKey.ToBase58(),
@@ -588,7 +581,6 @@ func TestMintWatcher(t *testing.T) {
 	fmt.Printf("WS Endpoint: %v \n", WSEndpoint)
 	// u := url.URL{Scheme: "ws", Host: WSEndpoint, Path: "/" }
 
-
 	log.Printf("connecting to %s", WSEndpoint)
 
 	c, _, err := websocket.DefaultDialer.Dial(WSEndpoint, nil)
@@ -597,7 +589,6 @@ func TestMintWatcher(t *testing.T) {
 	defer c.Close()
 
 	done := make(chan struct{})
-
 
 	// {
 	// 	"jsonrpc": "2.0",
@@ -621,7 +612,6 @@ func TestMintWatcher(t *testing.T) {
 		t.Log("Minted some tokens")
 	}()
 
-	
 	// buildAccountUnsubscribeRequest := func(subID int64) WSRequestBody {
 	// 	return WSRequestBody {
 	// 		Jsonrpc: "2.0",
@@ -632,7 +622,7 @@ func TestMintWatcher(t *testing.T) {
 	// 		},
 	// 	}
 	// }
-	
+
 	// watchRequest := buildAccountSubscribeRequest(deployerTokenAccount)
 	watchRequest := buildLogsSubscribeRequest(deployerTokenAccount)
 
@@ -664,7 +654,6 @@ func TestMintWatcher(t *testing.T) {
 		}
 		log.Printf("recv: %s", message)
 
-
 		var responseUnpacked ws.LogsSubscribeNotification
 		err = json.Unmarshal(message, &responseUnpacked)
 		if err != nil {
@@ -680,7 +669,7 @@ func TestMintWatcher(t *testing.T) {
 		solanaClient := solclient.NewClient(RPCEndpoint)
 
 		ctx := context.Background()
-		
+
 		response, err := solanaClient.GetConfirmedTransaction(ctx, txID)
 		ValidateError(t, err)
 
@@ -702,7 +691,6 @@ func TestMintWatcher(t *testing.T) {
 
 		// tokenAccount, err := tokenprog.TokenAccountFromData(decodedAccountValue)
 		// ValidateError(t, err)
-
 
 		// if err != nil {
 		// 	// log.Println("read:", err)

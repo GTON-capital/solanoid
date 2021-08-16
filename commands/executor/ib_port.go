@@ -31,7 +31,6 @@ func (port *IBPortInstructionBuilder) Init(nebula, token common.PublicKey) inter
 	}
 }
 
-
 func (port *IBPortInstructionBuilder) InitWithOracles(nebula, token, tokenMint common.PublicKey, bft uint8, oracles []byte) interface{} {
 	return struct {
 		Instruction       uint8
@@ -49,7 +48,6 @@ func (port *IBPortInstructionBuilder) InitWithOracles(nebula, token, tokenMint c
 		Oracles:           oracles,
 	}
 }
-
 
 type CreateTransferUnwrapRequestInstruction struct {
 	Instruction uint8
@@ -76,7 +74,7 @@ func (port *IBPortInstructionBuilder) CreateTransferUnwrapRequest(receiver [32]b
 	fmt.Printf("CreateTransferUnwrapRequest - rq_id: %v amount: %v \n", requestID, amount)
 	amountBytes := float64ToByte(amount)
 
-	return CreateTransferUnwrapRequestInstruction {
+	return CreateTransferUnwrapRequestInstruction{
 		Instruction: 1,
 		TokenAmount: amountBytes,
 		Receiver:    receiver,
@@ -85,8 +83,8 @@ func (port *IBPortInstructionBuilder) CreateTransferUnwrapRequest(receiver [32]b
 }
 func (port *IBPortInstructionBuilder) ConfirmProcessedRequest(requestID []byte) interface{} {
 	return struct {
-		Instruction     uint8
-		RequestID     []byte
+		Instruction uint8
+		RequestID   []byte
 	}{
 		Instruction: 3,
 		RequestID:   requestID,
@@ -109,13 +107,12 @@ func (port *IBPortInstructionBuilder) TransferTokenOwnership(newOwner, newToken 
 	fmt.Printf("TransferOwnership - newOwner: %v, newToken: %v \n", newOwner, newToken)
 
 	return struct {
-		Instruction   uint8
-		NewAuthority  common.PublicKey
-		NewToken      common.PublicKey
+		Instruction  uint8
+		NewAuthority common.PublicKey
+		NewToken     common.PublicKey
 	}{
 		Instruction:  4,
 		NewAuthority: newOwner,
 		NewToken:     newToken,
 	}
 }
-

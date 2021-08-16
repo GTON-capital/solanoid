@@ -55,7 +55,7 @@ func NewOperatingBinaryAddressFromString(binary string, seeds []byte) (*Operatin
 	var targetAddressPDA common.PublicKey
 
 	if len(seeds) > 0 {
-		targetAddressPDA, err = common.CreateProgramAddress([][]byte{ seeds[:] }, common.PublicKeyFromString(binary))
+		targetAddressPDA, err = common.CreateProgramAddress([][]byte{seeds[:]}, common.PublicKeyFromString(binary))
 		if err != nil {
 			return nil, err
 		}
@@ -63,7 +63,7 @@ func NewOperatingBinaryAddressFromString(binary string, seeds []byte) (*Operatin
 
 	return &OperatingAddress{
 		PublicKey: common.PublicKeyFromString(binary),
-		PDA: targetAddressPDA,
+		PDA:       targetAddressPDA,
 	}, nil
 }
 

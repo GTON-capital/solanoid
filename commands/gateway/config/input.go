@@ -7,12 +7,12 @@ type AbstractValidatable interface {
 }
 
 type CrossChainTokenConfig struct {
-	AssetID        string
-	NodeURL        string
-	GravityAddress string
-	ChainType      string
-	ConsulsList  []string
-	NebulaScriptPath string
+	AssetID              string
+	NodeURL              string
+	GravityAddress       string
+	ChainType            string
+	ConsulsList          []string
+	NebulaScriptPath     string
 	SubscriberScriptPath string
 }
 

@@ -1,8 +1,5 @@
 package ws
 
-
-
-
 type LogsSubscribeNotification struct {
 	Jsonrpc string `json:"jsonrpc"`
 	Method  string `json:"method"`
@@ -24,11 +21,11 @@ type LogsSubscribeNotification struct {
 type LogsSubscribeParam struct {
 	Mentions   []string `json:"mentions,omitempty"`
 	Commitment string   `json:"commitment,omitempty"`
-} 
+}
 type LogsSubscribeBody struct {
-	Jsonrpc string `json:"jsonrpc"`
-	ID      int    `json:"id"`
-	Method  string `json:"method"`
+	Jsonrpc string               `json:"jsonrpc"`
+	ID      int                  `json:"id"`
+	Method  string               `json:"method"`
 	Params  []LogsSubscribeParam `json:"params"`
 }
 type AccountNotification struct {

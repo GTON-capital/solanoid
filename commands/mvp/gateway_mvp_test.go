@@ -23,7 +23,6 @@ import (
 	ethclient "github.com/ethereum/go-ethereum/ethclient"
 )
 
-
 func waitTransactionConfirmations() {
 	// time.Sleep(time.Millisecond * 500)
 	// time.Sleep(time.Second * 5)
@@ -35,13 +34,13 @@ func waitTransactionConfirmations() {
 
 type MVPConfigMeta struct {
 	SolanaGTONTokenRecever string
-	PolygonGTONReceiver string
+	PolygonGTONReceiver    string
 }
 
-type MVPConfig struct { 
-	Token *crossChainToken
+type MVPConfig struct {
+	Token     *crossChainToken
 	Extractor *extractorCfg
-	Meta *MVPConfigMeta
+	Meta      *MVPConfigMeta
 }
 
 func BuildMVPConfig() (*MVPConfig, error) {
@@ -60,18 +59,18 @@ func BuildMVPConfig() (*MVPConfig, error) {
 		destinationDecimals: 8,
 		chainID:             137,
 		originNodeURL:       "https://rpc-mainnet.maticvigil.com",
-		destinationNodeURL: "https://api.mainnet-beta.solana.com",
-		luportAddress:      "0x7725d618122F9A2Ce368dA1624Fbc79ce197c438",
-		ibportDataAccount:  "B9mZLg1yk7eFPBJ7PSN15tHVzuWidKg5L68uzCiSAsSm",
-		ibportProgramID:    "AH3QKaj942UUxDjaRaGh7hvdadsD8yfU9LRTa9KXfJkZ",
+		destinationNodeURL:  "https://api.mainnet-beta.solana.com",
+		luportAddress:       "0x7725d618122F9A2Ce368dA1624Fbc79ce197c438",
+		ibportDataAccount:   "B9mZLg1yk7eFPBJ7PSN15tHVzuWidKg5L68uzCiSAsSm",
+		ibportProgramID:     "AH3QKaj942UUxDjaRaGh7hvdadsD8yfU9LRTa9KXfJkZ",
 	}
 
 	return &MVPConfig{
-		Token: gtonToken,
+		Token:     gtonToken,
 		Extractor: extractorCfg,
-		Meta: &MVPConfigMeta {
+		Meta: &MVPConfigMeta{
 			SolanaGTONTokenRecever: "FMtjwGs2V6j3eWvZhLA18tkHuzvBHfpjFcCuuvsweuwC",
-			PolygonGTONReceiver: "0xBbc3D3F8C70C1A558bD0B5C25662aa3226b863e9",
+			PolygonGTONReceiver:    "0xBbc3D3F8C70C1A558bD0B5C25662aa3226b863e9",
 		},
 	}, nil
 }

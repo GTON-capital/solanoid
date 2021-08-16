@@ -9,8 +9,6 @@ import (
 	"github.com/portto/solana-go-sdk/types"
 )
 
-
-
 func TestCreateAccountForPDA(t *testing.T) {
 
 	deployer, err := NewOperatingAddress(t, "../private-keys/_test-pk-deployer.json", nil)
@@ -46,7 +44,6 @@ func TestCreateAccountForPDA(t *testing.T) {
 
 	waitTransactionConfirmations()
 
-
 	RPCEndpoint, _ := InferSystemDefinedRPC()
 
 	deployerExecutor, err := executor.NewEmptyExecutor(deployer.PrivateKey, RPCEndpoint)
@@ -56,10 +53,9 @@ func TestCreateAccountForPDA(t *testing.T) {
 	ValidateError(t, err)
 
 	response, err := deployerExecutor.InvokeIXList(
-		[]types.Instruction { *ix },
+		[]types.Instruction{*ix},
 	)
 	ValidateError(t, err)
 
 	fmt.Printf("LU Port PDA token account: %v; Tx: %v; \n", tokenAccount, response.TxSignature)
 }
-
