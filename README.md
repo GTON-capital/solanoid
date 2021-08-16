@@ -81,8 +81,9 @@ func (port *NebulaInstructionBuilder) Init(bft, dataType uint8, gravityProgramID
 ```
 
 9. Deployment via tests. Example [commands/gateway_test.go](commands/gateway_test.go#L14)
+10. Facility for writing MVPs between Solana and EVM [Solana and EVM Gateway MVP](commands/mvp/gateway_mvp_test.go) (Polygon is disabled atm)
 
-### Tutorial
+### Tutorial on Deployment/Testing with/without Multisig.
 
 To get the most of the Solanoid, follow these steps:
 
@@ -93,6 +94,8 @@ git clone <your_profile_or_org>/solanoid
 ```
 
 2. If you build your own custom program: declare method signatures in `commands/executor`.
+
+3. Check this invocation without Multisig.
 
 ```go
 // commands/executor/helloworld.go
@@ -159,8 +162,45 @@ func TestHelloWorld(t *testing.T) {
 	ValidateError(t, err)
 }
 ```
-3. Tests can be declared in `commands/` directory.
-4. Custom data models - in `models/`.
+4. For methods requiring multisig, just do this.
+
+
+```go
+// inside test
+... 
+	// if we want additional accounts
+	// those are concated to the end of the list
+
+	// Like this:
+	// signer + <n> of multisigs + <n> of additional meta
+	currentExecutor.SetAdditionalMeta([]types.AccountMeta{
+		{PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false},
+	})
+
+
+	multisigMember, err := ReadOperatingAddress(t, "path_to_multisig_member")
+	ValidateError(t, err)
+
+	var signers []executor.GravityBftSigner
+	signers = append(signers, *executor.NewGravityBftSigner(multisigMember.PrivateKey))
+
+	// For multisigs
+	currentExecutor.SetAdditionalSigners(signers)
+
+
+	// multisigs and metas can be erased
+	currentExecutor.EraseAdditionalMeta()
+	currentExecutor.EraseAdditionalSigners()
+...
+```
+5. Tests can be declared in `commands/` directory.
+6. Custom data models - in `models/`.
+
+
+# MVPs between Solana <-> EVM and vice versa
+
+<!-- 1. You need to repeat same steps mentioned in Testing/Deployment tutorial. -->
+Solanoid provides an example on how to write MVPs for dApps between EVM and Solana. Please consider check it here [this gateway example between Solana and EVM](commands/mvp/gateway_mvp_test.go).
 
 ### Things to consider
 
