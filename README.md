@@ -197,10 +197,10 @@ func TestHelloWorld(t *testing.T) {
 6. Custom data models - in `models/`.
 
 
-### Tutorial for writing MVPs between Solana <-> EVM and vice versa
+# MVPs between Solana <-> EVM and vice versa
 
-1. You need to repeat same steps mentioned in Testing/Deployment tutorial.
-2. 
+<!-- 1. You need to repeat same steps mentioned in Testing/Deployment tutorial. -->
+Solanoid provides an example on how to write MVPs for dApps between EVM and Solana. Please consider check it here [this gateway example between Solana and EVM](commands/mvp/gateway_mvp_test.go).
 
 ### Things to consider
 
