@@ -4,11 +4,16 @@
 
 ### Intro
 
-Solanoid is framework for testing and building programs on Solana blockchain.
+Solanoid is framework for testing and building programs on Solana blockchain written in Go.
 
 ### Purpose
 
-Solanoid aims to fulfill a gap between building and testing contracts on Solana. There's no yet built-in testing framework so we considered to present Solanoid.
+Solanoid aims to fulfill a gap between writing and testing contracts on Solana. There's no yet built-in testing framework so we considered to present Solanoid.
+
+### Dependencies
+
+1. Go >= 1.15.
+2. `solana-cli`.
 
 ### Features
 
