@@ -207,3 +207,9 @@ Solanoid provides an example on how to write MVPs for dApps between EVM and Sola
 1. When writing tests consider awaiting till confirmations reach MAX (via `	waitTransactionConfirmations()` call) - for Mainnet it's about 30 seconds, Devnet - 15 seconds. If you won't wait, state transition is not guaranteed. 
 2. Tests require temporary addresses to operate with. For such purpose use `NewOperatingAddress` function.
 3. Deployment tests require persisten addresses. For such purpose use `ReadOperatingAddress` function.
+
+
+### The Future
+
+1. We have obvious responsibility on managing and keeping this repo up-to-date but we'll be happy to receive issues/PR from any contributor.
+2. There is a naming misconception in several functions due to a fact that Solanoid has been considered as a proprietary software for SuSy dApp. However, we think that this software should be opensource. We'll make Solanoid more generic.
