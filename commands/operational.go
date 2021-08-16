@@ -17,7 +17,6 @@ type OperatingAddressBuilderOptions struct {
 }
 
 type OperatingAddress struct {
-	// DataAccount common.PublicKey
 	Account    types.Account
 	PublicKey  common.PublicKey
 	PDA        common.PublicKey
@@ -143,13 +142,9 @@ func (ch *ConsulsHandler) ConcatConsuls() []byte {
 
 func (ch *ConsulsHandler) ToBftSigners() []executor.GravityBftSigner {
 	var signers []executor.GravityBftSigner
-	// var additionalMeta []types.AccountMeta
 
 	for _, signer := range ch.List {
 		signers = append(signers, *executor.NewGravityBftSigner(signer.PrivateKey))
-		// additionalMeta = append(additionalMeta, types.AccountMeta{
-		// 	PubKey: common.PublicKeyFromString(solana.ClockProgram), IsSigner: false, IsWritable: false
-		// })
 	}
 
 	return signers

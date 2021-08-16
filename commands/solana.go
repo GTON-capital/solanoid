@@ -38,7 +38,6 @@ func ValidateErrorExistence(t *testing.T, err error) {
 func SystemAirdropTo(t *testing.T, callerKeyPairPath string, recipient string, amount uint64) error {
 	// t.Logf("transfer %v SOL to %v address \n", amount)
 
-	// cmd := exec.Command("solana", "airdrop", fmt.Sprint(amount), recipient)
 	cmd := exec.Command("solana", "airdrop", fmt.Sprint(amount), recipient, "--keypair", callerKeyPairPath)
 
 	output, err := cmd.CombinedOutput()
@@ -46,19 +45,13 @@ func SystemAirdropTo(t *testing.T, callerKeyPairPath string, recipient string, a
 
 	if err != nil {
 		t.Log(err.Error())
-		// log.Fatal(err)
 		return err
 	}
-
-	// t.Log(output)
 
 	return nil
 }
 
 func SystemAirdrop(t *testing.T, callerKeyPairPath string, amount uint64) error {
-	// t.Logf("transfer %v SOL to %v address \n", amount)
-
-	// cmd := exec.Command("solana", "airdrop", fmt.Sprint(amount), recipient)
 	cmd := exec.Command("solana", "airdrop", fmt.Sprint(amount), "--keypair", callerKeyPairPath)
 
 	output, err := cmd.CombinedOutput()
@@ -66,11 +59,8 @@ func SystemAirdrop(t *testing.T, callerKeyPairPath string, amount uint64) error 
 
 	if err != nil {
 		t.Log(err.Error())
-		// log.Fatal(err)
 		return err
 	}
-
-	// t.Log(output)
 
 	return nil
 }
@@ -86,11 +76,8 @@ func SystemFaucet(t *testing.T, recipient string, amount uint64) error {
 	if err != nil {
 		debug.PrintStack()
 		t.Log(err.Error())
-		// log.Fatal(err)
 		return err
 	}
-
-	// t.Log(output)
 
 	return nil
 }
@@ -115,7 +102,6 @@ func inferSystemDefinedSolanaConfigParam(prefix string) (string, error) {
 		return "", err
 	}
 
-	// t.Log(output)
 	return matchResult, nil
 }
 
@@ -127,26 +113,6 @@ func InferSystemDefinedRPC() (string, error) {
 	return inferSystemDefinedSolanaConfigParam("RPC URL")
 }
 
-// func InferSystemDefinedRPC() (string, error) {
-// 	cmd := exec.Command("solana", "config", "get")
-// 	output, err := cmd.CombinedOutput()
-
-// 	rgx, _ := regexp.Compile("RPC URL: .+")
-// 	result := rgx.Find(output)
-// 	resultStr := strings.Trim(string(result), "\n\r ")
-// 	resultList := strings.Split(resultStr, " ")
-// 	rpcURL := resultList[len(resultList) - 1]
-
-// 	fmt.Println(resultList)
-// 	rpcURL = strings.Trim(rpcURL, "\n\r")
-
-// 	if err != nil {
-// 		return "", err
-// 	}
-
-// 	// t.Log(output)
-// 	return rpcURL, nil
-// }
 
 type TokenCreateResult struct {
 	Token     common.PublicKey
@@ -253,7 +219,6 @@ func CreatePersistentAccountWithPDA(path string, forceRewrite bool, seeds [][]by
 	var targetAddressPDA common.PublicKey
 
 	targetAddressPDA, err = common.CreateProgramAddress(seeds[:], common.PublicKeyFromString(accountAddress))
-	// targetAddressPDA, _, err = common.FindProgramAddress(seeds[:], common.PublicKeyFromString(accountAddress))
 
 	if err != nil {
 		return CreatePersistentAccountWithPDA(path, forceRewrite, seeds)
@@ -274,7 +239,6 @@ func CreatePersistedAccount(path string, forceRewrite bool) error {
 	cmd := exec.Command("solana-keygen", "new", "-o", path, "--no-bip39-passphrase", forceArg)
 
 	_, err := cmd.CombinedOutput()
-	// t.Log(string(output))
 
 	if err != nil {
 		return err
@@ -426,7 +390,6 @@ func CreateTokenAccountWithFeePayer(currentOwnerPrivateKeyPath, tokenAddress str
 func CreateTokenAccount(currentOwnerPrivateKeyPath, tokenAddress string) (string, error) {
 	cmd := exec.Command("spl-token", "create-account", "--owner", currentOwnerPrivateKeyPath, tokenAddress)
 	output, err := cmd.CombinedOutput()
-	// t.Log(string(output))
 
 	// Creating account GMuGCTYcCV7FiKg3kQ7LArfZQdhagvUYWNXb1DNZQSGK
 	dataAccountCatchRegex, _ := regexp.Compile("Creating account .+")
@@ -509,7 +472,6 @@ func ReadPKFromPath(t *testing.T, path string) (string, error) {
 	}
 
 	encodedPrivKey := base58.Encode(input)
-	// t.Logf("priv key: %v \n", encodedPrivKey)
 
 	return encodedPrivKey, nil
 }

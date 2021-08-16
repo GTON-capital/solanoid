@@ -53,25 +53,11 @@ func TestGravityContract(t *testing.T) {
 		consulsKeysList = append(consulsKeysList, consul.PublicKey)
 	}
 
-	// consulsKeysList := []common.PublicKey {
-	// 	common.PublicKeyFromString("EnwGpvfZdCpkjs8jMShjo8evce2LbNfrYvREzdwGh5oc"),
-	// 	common.PublicKeyFromString("ESgKDVemBdqDty6WExZ74kV8Re9yepth5tbKcsWTNXC9"),
-	// 	common.PublicKeyFromString("5Ng92o7CPPWk5tT2pqrnRMndoD49d51f4QcocgJttGHS"),
-	// }
-
 	consuls := make([]byte, 0)
 	for _, x := range consulsKeysList {
 		consuls = append(consuls, x.Bytes()...)
 	}
 
-	// _, err = InitGravity(
-	// 	deployerPrivateKey, gravityProgramID,
-	// 	gravityStateAccount.Account.PublicKey.ToBase58(),
-	// 	gravityMultisigAccount.Account.PublicKey.ToBase58(),
-	// 	endpoint,
-	// 	consuls,
-	// )
-	// ValidateError(t, err)
 	time.Sleep(time.Second * 20)
 
 	gravityExecutor, err := InitGenericExecutor(
@@ -111,20 +97,12 @@ func TestGravityContract(t *testing.T) {
 	time.Sleep(time.Second * 20)
 
 	var signers []executor.GravityBftSigner
-	// var additionalMeta []types.AccountMeta
 
 	for _, signer := range consulsPKlist {
 		signers = append(signers, *executor.NewGravityBftSigner(base58.Encode(signer.PrivateKey)))
-		// additionalMeta = append(additionalMeta, types.AccountMeta{
-		// 	PubKey: common.PublicKeyFromString(solana.ClockProgram), IsSigner: false, IsWritable: false
-		// })
 	}
 
 	gravityExecutor.SetAdditionalSigners(signers)
-	// gravityExecutor.SetAdditionalMeta(additionalMeta)
-	// nebulaExecutor.SetAdditionalMeta([]types.AccountMeta {
-	// 	{ PubKey: common.PublicKeyFromString(solana.ClockProgram), IsSigner: false, IsWritable: false },
-	// })
 
 	gravityConsulsUpdateResponse, err := gravityExecutor.BuildAndInvoke(executor.UpdateConsulsGravityContractInstruction{
 		Instruction: 1,

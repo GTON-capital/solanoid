@@ -21,10 +21,6 @@ func TestRunSolanaGatewayDeployment(t *testing.T) {
 	mathWalletUser := "ANRHaW53Z89VWV5ycLr1HFW6dCTiLRj3RSiYNBBF8er1"
 
 	_ = mathWalletUser
-	// WrappedFaucet(t, deployer.PKPath, mathWalletUser, 10)
-	// WrappedFaucet(t, deployer.PKPath, deployer.PublicKey.ToBase58(), 10)
-
-	// waitTransactionConfirmations()
 
 	balanceBeforeDeploy, err := ReadAccountBalance(deployer.PublicKey.ToBase58())
 	ValidateError(t, err)

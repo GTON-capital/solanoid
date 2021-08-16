@@ -104,10 +104,6 @@ func AllocateAccount(deployerPrivateKey string, existingAccount types.Account, s
 		return nil, err
 	}
 
-	// fmt.Println("------- begin message --------")
-	// fmt.Println(hex.EncodeToString(serializedMessage))
-	// fmt.Println("-------- end message ---------")
-
 	tx, err := types.CreateTransaction(message, map[common.PublicKey]types.Signature{
 		account.PublicKey: ed25519.Sign(account.PrivateKey, serializedMessage),
 		existingAccount.PublicKey:  ed25519.Sign(existingAccount.PrivateKey, serializedMessage),

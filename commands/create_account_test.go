@@ -27,8 +27,6 @@ func TestCreateAccountForPDA(t *testing.T) {
 
 	waitTransactionConfirmations()
 
-	// RPCEndpoint, _ := InferSystemDefinedRPC()
-
 	tokenDeployResult, err := CreateToken(deployer.PKPath)
 	ValidateError(t, err)
 

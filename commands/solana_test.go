@@ -32,10 +32,6 @@ func TestTokenCreate(t *testing.T) {
 	t.Log(tokenRes.Owner.ToBase58())
 	t.Log(tokenRes.Token.ToBase58())
 	t.Log(tokenRes.Signature)
-
-	// if balance == 0 {
-	// 	t.Log("balance is empty")
-	// }
 }
 
 func TestPersistedAccount(t *testing.T) {

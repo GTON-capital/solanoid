@@ -8,9 +8,6 @@ import (
 	"github.com/portto/solana-go-sdk/common"
 )
 
-// const (
-// 	LUPortPDABumpSeeds = "ibport"
-// )
 
 var LUPortIXBuilder = &LUPortInstructionBuilder{}
 
