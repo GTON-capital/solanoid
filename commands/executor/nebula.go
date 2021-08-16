@@ -87,7 +87,7 @@ func (port *NebulaInstructionBuilder) Subscribe(subscriber common.PublicKey, min
 	return SubscribeNebulaContractInstruction{
 		Instruction:      4,
 		Subscriber:       subscriber,
-		MinConfirmations:  minConfirmations,
+		MinConfirmations: minConfirmations,
 		Reward:           reward,
 		SubscriptionID:   subscriptionID,
 	}
@@ -187,7 +187,6 @@ func (ge *GenericExecutor) EraseAdditionalMeta() {
 	ge.additionalMeta = make([]types.AccountMeta, 0)
 }
 
-
 func (ge *GenericExecutor) invokeInstruction(instructionsList []types.Instruction) (*models.CommandResponse, error) {
 	account := ge.deployerPrivKey
 
@@ -265,7 +264,6 @@ func (ge *GenericExecutor) invokeInstruction(instructionsList []types.Instructio
 	}, nil
 }
 
-
 func (ge *GenericExecutor) InvokeInstructionBatches(instructionsList []interface{}) (*models.CommandResponse, error) {
 	i, n := 0, len(instructionsList)
 	ixList := make([]types.Instruction, n, n)
@@ -304,7 +302,7 @@ func (ge *GenericExecutor) InvokePureInstruction(instruction interface{}) (*mode
 		return nil, err
 	}
 
-	return ge.invokeInstruction([]types.Instruction{ *builtIx })
+	return ge.invokeInstruction([]types.Instruction{*builtIx})
 }
 
 func (ge *GenericExecutor) BuildAndInvoke(instruction interface{}) (*models.CommandResponse, error) {
@@ -354,7 +352,7 @@ func NewEmptyExecutor(privateKey, clientEndpoint string) (*GenericExecutor, erro
 
 	return &GenericExecutor{
 		deployerPrivKey: account,
-		clientEndpoint: clientEndpoint,
+		clientEndpoint:  clientEndpoint,
 	}, nil
 }
 

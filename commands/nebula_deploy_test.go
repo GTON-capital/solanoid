@@ -16,28 +16,6 @@ import (
 	// "strings"
 )
 
-// func deployGravity(t *testing.T) {
-
-// 	gravityProgramID, err := DeploySolanaProgram(t, "gravity", "../private-keys/gravity.json", "../binaries/gravity.so")
-// 	validateError(t, err)
-
-// 	gravityStateAccount, err := GenerateNewAccount(deployerPrivateKey, GravityContractAllocation, nebulaProgramID)
-// 	validateError(t, err)
-
-// 	gravityMultisigAccount, err := GenerateNewAccount(deployerPrivateKey, MultisigAllocation, nebulaProgramID)
-// 	validateError(t, err)
-
-// 	gravityDeploymentResponse, err := InitGravity(
-// 		deployerPrivateKey, gravityProgramID,
-// 		gravityStateAccount.Account.PublicKey.ToBase58(), gravityMultisigAccount.Account.PublicKey.ToBase58()
-// 	)
-// 	validateError(t, err)
-
-// 	_, err = SystemFaucet(t, deployerPrivateKeyPath, nebulaProgramID, 1)
-// 	validateError(t, err)
-
-// }
-
 func TestNebulaDeployment(t *testing.T) {
 	var err error
 

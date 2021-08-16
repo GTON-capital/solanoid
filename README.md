@@ -57,7 +57,7 @@ func (port *NebulaInstructionBuilder) Init(bft, dataType uint8, gravityProgramID
 
 ```
 6. Provides management of temporary and storage persistent private keys. Example [Operational](commands/operational.go)
-7. Provides helper functions for interaction with `solana-cli`. Example [solana.go](commands/solana.go)
+7. Provides helper functions for interaction with `solana-cli`, `spl-token`. Example [solana.go](commands/solana.go)
 
 8. Offers parallel deployment of programs. Example: [Solana gateway deployment](commands/flow_test.go#L114)
 ```go

@@ -26,7 +26,6 @@ func float64ToByte(f float64) []byte {
 	return buf.Bytes()
 }
 
-
 func BuildCrossChainMintByteVector(swapId []byte, receiver common.PublicKey, amount float64) []byte {
 	var res []byte
 
@@ -46,10 +45,10 @@ func BuildCrossChainMintByteVector(swapId []byte, receiver common.PublicKey, amo
 }
 
 type PortOperation struct {
-	Action        uint8
-	SwapID    [16]byte
-	Amount     [8]byte
-	Receiver  [32]byte
+	Action   uint8
+	SwapID   [16]byte
+	Amount   [8]byte
+	Receiver [32]byte
 }
 
 const DefaultDecimals = 8
@@ -75,15 +74,15 @@ func UnpackByteArray(encoded []byte) (*PortOperation, error) {
 
 	// swapId := encoded[pos:pos + 16]
 	var swapId [16]byte
-	copy(swapId[:], encoded[pos:pos + 16])
-	pos += 16;
-	
+	copy(swapId[:], encoded[pos:pos+16])
+	pos += 16
+
 	var rawAmount [8]byte
-	copy(rawAmount[:], encoded[pos:pos + 8])
-	pos += 8;
+	copy(rawAmount[:], encoded[pos:pos+8])
+	pos += 8
 
 	var receiver [32]byte
-	copy(receiver[:], encoded[pos:pos + 32])
+	copy(receiver[:], encoded[pos:pos+32])
 
 	return &PortOperation{
 		action,

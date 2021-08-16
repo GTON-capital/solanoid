@@ -53,25 +53,11 @@ func TestGravityContract(t *testing.T) {
 		consulsKeysList = append(consulsKeysList, consul.PublicKey)
 	}
 
-	// consulsKeysList := []common.PublicKey {
-	// 	common.PublicKeyFromString("EnwGpvfZdCpkjs8jMShjo8evce2LbNfrYvREzdwGh5oc"),
-	// 	common.PublicKeyFromString("ESgKDVemBdqDty6WExZ74kV8Re9yepth5tbKcsWTNXC9"),
-	// 	common.PublicKeyFromString("5Ng92o7CPPWk5tT2pqrnRMndoD49d51f4QcocgJttGHS"),
-	// }
-
 	consuls := make([]byte, 0)
 	for _, x := range consulsKeysList {
 		consuls = append(consuls, x.Bytes()...)
 	}
 
-	// _, err = InitGravity(
-	// 	deployerPrivateKey, gravityProgramID,
-	// 	gravityStateAccount.Account.PublicKey.ToBase58(),
-	// 	gravityMultisigAccount.Account.PublicKey.ToBase58(),
-	// 	endpoint,
-	// 	consuls,
-	// )
-	// ValidateError(t, err)
 	time.Sleep(time.Second * 20)
 
 	gravityExecutor, err := InitGenericExecutor(
@@ -111,20 +97,12 @@ func TestGravityContract(t *testing.T) {
 	time.Sleep(time.Second * 20)
 
 	var signers []executor.GravityBftSigner
-	// var additionalMeta []types.AccountMeta
 
 	for _, signer := range consulsPKlist {
 		signers = append(signers, *executor.NewGravityBftSigner(base58.Encode(signer.PrivateKey)))
-		// additionalMeta = append(additionalMeta, types.AccountMeta{
-		// 	PubKey: common.PublicKeyFromString(solana.ClockProgram), IsSigner: false, IsWritable: false
-		// })
 	}
 
 	gravityExecutor.SetAdditionalSigners(signers)
-	// gravityExecutor.SetAdditionalMeta(additionalMeta)
-	// nebulaExecutor.SetAdditionalMeta([]types.AccountMeta {
-	// 	{ PubKey: common.PublicKeyFromString(solana.ClockProgram), IsSigner: false, IsWritable: false },
-	// })
 
 	gravityConsulsUpdateResponse, err := gravityExecutor.BuildAndInvoke(executor.UpdateConsulsGravityContractInstruction{
 		Instruction: 1,
@@ -601,37 +579,32 @@ func TestIBPortTransferOwnership(t *testing.T) {
 
 }
 
-
 func TestCheckBalanceDiffOn100BytesAlloc(t *testing.T) {
-    deployer, err := ReadOperatingAddress(t, "../private-keys/mainnet/deployer.json")
-    ValidateError(t, err)
+	deployer, err := ReadOperatingAddress(t, "../private-keys/mainnet/deployer.json")
+	ValidateError(t, err)
 
 	RPCEndpoint, _ := InferSystemDefinedRPC()
-
 
 	balanceBeforeDeploy, err := ReadAccountBalance(deployer.PublicKey.ToBase58())
 	ValidateError(t, err)
 
 	fmt.Printf("balanceBeforeDeploy: %v SOL;  \n", balanceBeforeDeploy)
 
-    testProgram, err := NewOperatingAddress(t, "../private-keys/test_alloc_acc.json", &OperatingAddressBuilderOptions{
-        Overwrite:    true,
-        WithPDASeeds: []byte(executor.IBPortPDABumpSeeds),
-    })
+	testProgram, err := NewOperatingAddress(t, "../private-keys/test_alloc_acc.json", &OperatingAddressBuilderOptions{
+		Overwrite:    true,
+		WithPDASeeds: []byte(executor.IBPortPDABumpSeeds),
+	})
 
-    testDataAccount, err := GenerateNewAccount(deployer.PrivateKey, 500, testProgram.PublicKey.ToBase58(), RPCEndpoint)
-    ValidateError(t, err)
-    fmt.Printf("Test Data Account: %v \n", testDataAccount.Account.PublicKey.ToBase58())
+	testDataAccount, err := GenerateNewAccount(deployer.PrivateKey, 500, testProgram.PublicKey.ToBase58(), RPCEndpoint)
+	ValidateError(t, err)
+	fmt.Printf("Test Data Account: %v \n", testDataAccount.Account.PublicKey.ToBase58())
 
 	time.Sleep(time.Second * 20)
-
 
 	balanceAfterDeploy, err := ReadAccountBalance(deployer.PublicKey.ToBase58())
 	ValidateError(t, err)
 
 	fmt.Printf("balanceAfterDeploy: %v SOL;  \n", balanceBeforeDeploy)
 
-	fmt.Printf("diff of balance: %v \n ", balanceAfterDeploy - balanceBeforeDeploy)
+	fmt.Printf("diff of balance: %v \n ", balanceAfterDeploy-balanceBeforeDeploy)
 }
-
-

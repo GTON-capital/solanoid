@@ -13,13 +13,11 @@ import (
 	"github.com/portto/solana-go-sdk/common"
 )
 
-
-
 func WaitTransactionConfirmations() {
 	time.Sleep(time.Second * 30)
 }
 
-type GatewayDeployResult struct {}
+type GatewayDeployResult struct{}
 
 func DeploySolanaGateway_LUPort(t *testing.T, consuls []string, originTokenMint common.PublicKey) *GatewayDeployResult {
 	var err error
@@ -76,7 +74,7 @@ func DeploySolanaGateway_LUPort(t *testing.T, consuls []string, originTokenMint 
 	fmt.Printf("LU Port Data Account: %v \n", luportDataAccount.Account.PublicKey.ToBase58())
 
 	WaitTransactionConfirmations()
-	
+
 	nebulaBuilder := executor.NebulaInstructionBuilder{}
 	nebulaExecutor, err := commands.InitGenericExecutor(
 		deployer.PrivateKey,
@@ -187,7 +185,7 @@ func DeploySolanaGateway_IBPort(t *testing.T, consuls []string) {
 
 	tokenDeployResult, err := commands.CreateToken(deployer.PKPath)
 	commands.ValidateError(t, err)
-	
+
 	tokenProgramAddress := tokenDeployResult.Token.ToBase58()
 	fmt.Printf("token address: %v \n", tokenProgramAddress)
 

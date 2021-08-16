@@ -24,17 +24,17 @@ func TestLUPortFullFlow(t *testing.T) {
 	// luportProgramPath := "../private-keys/__test_only_luport-owner.json"
 
 	deployer, err := NewOperatingAddress(t, "../private-keys/_test_deployer-pk-deployer.json", &OperatingAddressBuilderOptions{
-		Overwrite:    true,
+		Overwrite: true,
 	})
 	ValidateError(t, err)
 	fmt.Printf("Deployer: %v \n", deployer.PublicKey.ToBase58())
 
 	tokenOwner, err := NewOperatingAddress(t, "../private-keys/_test_only-token-owner.json", &OperatingAddressBuilderOptions{
-		Overwrite:    true,
+		Overwrite: true,
 	})
 	ValidateError(t, err)
 	fmt.Printf("Token Owner: %v \n", tokenOwner.PublicKey.ToBase58())
-	
+
 	luportProgram, err := NewOperatingAddress(t, "../private-keys/_test_only-luport.json", &OperatingAddressBuilderOptions{
 		Overwrite:    true,
 		WithPDASeeds: []byte(executor.CommonGravityBumpSeeds),
@@ -42,7 +42,7 @@ func TestLUPortFullFlow(t *testing.T) {
 	ValidateError(t, err)
 
 	tokenOwnerAddress := tokenOwner.PublicKey.ToBase58()
-	
+
 	const BFT = 3
 
 	// const OmitSendValueFlow = false
@@ -74,7 +74,7 @@ func TestLUPortFullFlow(t *testing.T) {
 
 	deployerTokenAccount, err := CreateTokenAccount(deployer.PKPath, tokenMint.ToBase58())
 	ValidateError(t, err)
-	
+
 	luportTokenAccount, err := CreateTokenAccount(luportProgram.PKPath, tokenMint.ToBase58())
 	ValidateError(t, err)
 
@@ -94,7 +94,7 @@ func TestLUPortFullFlow(t *testing.T) {
 	// err = MintToken(tokenOwner.PKPath, tokenMint.ToBase58(), 1_000_000, cons)
 	// ValidateError(t, err)
 	t.Log("Minted some tokens")
-	
+
 	waitTransactionConfirmations()
 
 	_, err = DeploySolanaProgram(t, "luport", luportProgram.PKPath, deployer.PKPath, "../binaries/luport.so")
@@ -104,7 +104,6 @@ func TestLUPortFullFlow(t *testing.T) {
 
 	portDataAccount, err := GenerateNewAccount(deployer.PrivateKey, LUPortAllocation, luportAddress, endpoint)
 	ValidateError(t, err)
-
 
 	luportExecutor, err := InitGenericExecutor(
 		deployer.PrivateKey,
@@ -137,7 +136,7 @@ func TestLUPortFullFlow(t *testing.T) {
 	var evmReceiver32bytes [32]byte
 	copy(evmReceiver32bytes[:], evmReceiver20bytes[:])
 
-	lockAmounts := []float64 {
+	lockAmounts := []float64{
 		1.235,
 		0.4234,
 	}
@@ -149,7 +148,7 @@ func TestLUPortFullFlow(t *testing.T) {
 	)
 	ValidateError(t, err)
 	t.Logf("LUPort #1 CreateTransferWrapRequest (%v): %v \n", lockAmounts[0], lockTokens.TxSignature)
-	
+
 	// baBuilder := executor.SolanaToEVMBABuilder{
 	// 	Amount: lockAmounts[0],
 	// 	// Receiver: evmReceiver,

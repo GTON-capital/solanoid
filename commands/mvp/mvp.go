@@ -138,7 +138,7 @@ func ProcessMVP_PolygonSolana() error {
 	}
 
 	transferAmount := float64(int64(randomFloat()*1000)) / 1e6
-	
+
 	// gtonToken.Set(0.0000227)
 	gtonToken.Set(transferAmount)
 
@@ -150,7 +150,6 @@ func ProcessMVP_PolygonSolana() error {
 	if err != nil {
 		return err
 	}
-
 
 	fmt.Printf("Approving %v GTON spend (Polygon) \n", gtonToken.Float())
 

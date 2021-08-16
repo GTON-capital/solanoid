@@ -5,10 +5,9 @@ import (
 	"github.com/portto/solana-go-sdk/types"
 )
 
-
 const (
 	RaydiumToken = "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R"
-	SerumToken = "SRMuApVNdxXokk5GT7XD5cUUgXMBCoAz2LHeuAoKWRt"
+	SerumToken   = "SRMuApVNdxXokk5GT7XD5cUUgXMBCoAz2LHeuAoKWRt"
 )
 
 const (
@@ -51,7 +50,7 @@ func GetAssociatedTokenAddressAndBumpSeed(
 func GetAssociatedTokenAddressAndBumpSeedInternal(
 	walletAddress, tokenMint, programId, tokenProgramId common.PublicKey,
 ) (common.PublicKey, int, error) {
-	programAddress, bt, err := common.FindProgramAddress([][]byte {
+	programAddress, bt, err := common.FindProgramAddress([][]byte{
 		walletAddress.Bytes(),
 		tokenProgramId.Bytes(),
 		tokenMint.Bytes(),
@@ -116,16 +115,16 @@ func CreateAssociatedTokenAccountIX(fundingAddress, targetWallet, splTokenMint c
 		return nil, associatedAccountAddress, err
 	}
 
-	return &types.Instruction {
+	return &types.Instruction{
 		ProgramID: common.PublicKeyFromString(AssociatedTokenProgram),
 		Accounts: []types.AccountMeta{
-			{ PubKey: fundingAddress, IsSigner: true, IsWritable: true },
-			{ PubKey: associatedAccountAddress, IsSigner: false, IsWritable: true },
-			{ PubKey: targetWallet, IsSigner: false, IsWritable: false },
-			{ PubKey: splTokenMint, IsSigner: false, IsWritable: false },
-			{ PubKey: common.SystemProgramID, IsSigner: false, IsWritable: false },
-			{ PubKey: common.TokenProgramID, IsSigner: false, IsWritable: false },
-			{ PubKey: common.SysVarRentPubkey, IsSigner: false, IsWritable: false },
+			{PubKey: fundingAddress, IsSigner: true, IsWritable: true},
+			{PubKey: associatedAccountAddress, IsSigner: false, IsWritable: true},
+			{PubKey: targetWallet, IsSigner: false, IsWritable: false},
+			{PubKey: splTokenMint, IsSigner: false, IsWritable: false},
+			{PubKey: common.SystemProgramID, IsSigner: false, IsWritable: false},
+			{PubKey: common.TokenProgramID, IsSigner: false, IsWritable: false},
+			{PubKey: common.SysVarRentPubkey, IsSigner: false, IsWritable: false},
 		},
 	}, associatedAccountAddress, nil
 }

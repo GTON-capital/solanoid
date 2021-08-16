@@ -91,9 +91,6 @@ func InitGravity(privateKey, programID, stateID, multisigID, clientEndpoint stri
 
 	account := types.AccountFromPrivateKeyBytes(pk)
 
-	// program := common.PublicKeyFromString(GravityProgramID)
-	// dataAcc := common.PublicKeyFromString(GravityDataAccount)
-	// multisigAcc := common.PublicKeyFromString(MultisigDataAccount)
 	program := common.PublicKeyFromString(programID)
 	dataAcc := common.PublicKeyFromString(stateID)
 	multisigAcc := common.PublicKeyFromString(multisigID)

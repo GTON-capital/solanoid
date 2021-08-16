@@ -97,20 +97,15 @@ func AllocateAccount(deployerPrivateKey string, existingAccount types.Account, s
 		res.Blockhash,
 	)
 
-
 	serializedMessage, err := message.Serialize()
 	if err != nil {
 		log.Fatalf("serialize message error, err: %v\n", err)
 		return nil, err
 	}
 
-	// fmt.Println("------- begin message --------")
-	// fmt.Println(hex.EncodeToString(serializedMessage))
-	// fmt.Println("-------- end message ---------")
-
 	tx, err := types.CreateTransaction(message, map[common.PublicKey]types.Signature{
-		account.PublicKey: ed25519.Sign(account.PrivateKey, serializedMessage),
-		existingAccount.PublicKey:  ed25519.Sign(existingAccount.PrivateKey, serializedMessage),
+		account.PublicKey:         ed25519.Sign(account.PrivateKey, serializedMessage),
+		existingAccount.PublicKey: ed25519.Sign(existingAccount.PrivateKey, serializedMessage),
 	})
 	if err != nil {
 		log.Fatalf("generate tx error, err: %v\n", err)
@@ -256,7 +251,7 @@ func GenerateNewTokenAccount(privateKey string, space uint64, owner, tokenMint c
 		tokenMint,
 		owner,
 	)
-	
+
 	message := types.NewMessage(
 		account.PublicKey,
 		[]types.Instruction{
