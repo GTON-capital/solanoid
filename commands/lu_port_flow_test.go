@@ -303,6 +303,7 @@ func TestNebulaSendValueToLUPortSubscriber(t *testing.T) {
 			{PubKey: tokenMint, IsWritable: true, IsSigner: false},
 			{PubKey: tokensReceiverDataAccount, IsWritable: true, IsSigner: false},
 			{PubKey: luportProgram.PDA, IsWritable: false, IsSigner: false},
+			{PubKey: deployer.PublicKey, IsWritable: false, IsSigner: false},
 			{PubKey: common.PublicKeyFromString(luportTokenAccount), IsWritable: true, IsSigner: false},
 		})
 

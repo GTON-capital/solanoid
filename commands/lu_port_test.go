@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/Gravity-Tech/solanoid/commands/executor"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/mr-tron/base58"
 	"github.com/portto/solana-go-sdk/common"
 	"github.com/portto/solana-go-sdk/types"
 )
@@ -163,5 +165,71 @@ func TestLUPortFullFlow(t *testing.T) {
 
 	// baBuilder.Receiver = evmReceiver20bytes
 	// correctDataHashForAttach := baBuilder.BuildForReverse()
+
+}
+
+
+func TestRuntimeLUPortRayGateway(t *testing.T) {
+	privateKey := "4xnBE5EY3GWnWiwVwR7hNWgeoHxxLQhU4BPVc7SFptJhJP3nwvC1p3A4GrUdJNZBRM3Zi7RLNkkRDGLhm71qFSyu"
+
+	privateKeyBytes, err := base58.Decode(privateKey)
+	ValidateError(t, err)
+
+	_ = privateKeyBytes
+
+	// callerAccount := types.AccountFromPrivateKeyBytes(privateKeyBytes)
+	callerRayTokenDataAccount := "DMszhJ6bFqBZJmm5np9hzE4mws3TsQ5SRV57C1txncgW"
+
+	luportProgramID := "DSZqp3Q3ydt5HeFeX1PfZJWAK8Re7ZoitK3eoot2aRyY"
+	luportDataAccount := "CAGB99utwtaC5XbfeECB1JE2VsTXvw3bYpu57jzYEN8S"
+	luportTokenAccount := "GcnLCDRvDqWWq3CoERdTGSkwMU2cRonC6is4sxM7qbHq"
+	rayTokenMint := "4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R"
+
+	endpoint, _ := InferSystemDefinedRPC()
+
+	luportExecutor, err := InitGenericExecutor(
+		privateKey,
+		luportProgramID,
+		luportDataAccount,
+		"",
+		endpoint,
+		common.PublicKeyFromString(""),
+	)
+	ValidateError(t, err)
+
+	luportExecutor.SetAdditionalMeta([]types.AccountMeta{
+		{ PubKey: common.TokenProgramID, IsWritable: false, IsSigner: false },
+		{ PubKey: common.PublicKeyFromString(rayTokenMint), IsWritable: true, IsSigner: false },
+		{ PubKey: common.PublicKeyFromString(callerRayTokenDataAccount), IsWritable: true, IsSigner: false },
+		{ PubKey: common.PublicKeyFromString(luportTokenAccount), IsWritable: true, IsSigner: false },
+	})
+
+	evmReceiver := "0xCed486E3905F8FE1E8aF5d1791F5E7Ad7915f01a"
+	evmReceiverBytes, err := hexutil.Decode(evmReceiver)
+	ValidateError(t, err)
+
+	var evmReceiverBytesSized [32]byte
+	copy(evmReceiverBytesSized[:], evmReceiverBytes[:])
+
+	// evmReceiver20bytes := executor.RandomEVMAddress()
+	// var evmReceiver32bytes [32]byte
+	// copy(evmReceiver32bytes[:], evmReceiver20bytes[:])
+
+	fmt.Printf("receiver bytes: %v \n", evmReceiverBytes)
+	fmt.Printf("common.TokenProgramID: %v \n", common.TokenProgramID)
+	fmt.Printf("rayTokenMint: %v \n", common.PublicKeyFromString(rayTokenMint))
+	fmt.Printf("callerRayTokenDataAccount: %v \n", common.PublicKeyFromString(callerRayTokenDataAccount))
+	fmt.Printf("luportTokenAccount: %v \n", common.PublicKeyFromString(luportTokenAccount))
+
+	lockAmount := 0.00002
+
+	waitTransactionConfirmations()
+
+	lockTokens, err := luportExecutor.BuildAndInvoke(
+		executor.LUPortIXBuilder.CreateTransferWrapRequest(evmReceiverBytesSized, lockAmount),
+	)
+	ValidateError(t, err)
+
+	t.Logf("LUPort #1 CreateTransferWrapRequest (%v): %v \n", lockAmount, lockTokens.TxSignature)
 
 }
